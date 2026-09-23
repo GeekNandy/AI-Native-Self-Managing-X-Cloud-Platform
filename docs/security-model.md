@@ -777,8 +777,6 @@ Execution Logs
 Audit Events
 ```
 
-unless explicitly required by a controlled security boundary.
-
 ## Prompt and Instruction Security
 
 AI-assisted interpretation must treat Requests and retrieved content as untrusted input.
@@ -1131,7 +1129,7 @@ Execution Scope
 Credential Identity
 ```
 
-Any mismatch between trusted context and request-supplied values should result in rejection or controlled clarification.
+Any mismatch between trusted context and request-supplied values must result in rejection.
 
 ## Security Context Across Asynchronous Boundaries
 
