@@ -1,0 +1,195 @@
+{
+  "activePolicy": {
+    "version": "feedback-93e3c12d7db6",
+    "mutationOrder": [
+      "ARITHMETIC",
+      "BOUNDARY",
+      "EQUALITY"
+    ],
+    "trainingRunIds": [
+      "4ddb4202-e5e4-4364-8aab-321331e9d8c2"
+    ]
+  },
+  "comparison": {
+    "id": "bb7bc596-f95f-41ea-822e-09bac5271b5d",
+    "status": "COMPLETED",
+    "createdAt": "2026-10-21T16:45:15.364105314Z",
+    "baseline": {
+      "version": "mutation-v1",
+      "mutationOrder": [
+        "BOUNDARY",
+        "EQUALITY",
+        "ARITHMETIC"
+      ],
+      "trainingRunIds": []
+    },
+    "candidate": {
+      "version": "feedback-93e3c12d7db6",
+      "mutationOrder": [
+        "ARITHMETIC",
+        "BOUNDARY",
+        "EQUALITY"
+      ],
+      "trainingRunIds": [
+        "4ddb4202-e5e4-4364-8aab-321331e9d8c2"
+      ]
+    },
+    "trials": [
+      {
+        "taskId": "holdout-fee",
+        "variant": "baseline",
+        "policyVersion": "mutation-v1",
+        "outcome": "PASS",
+        "attempts": 2,
+        "durationMs": 4131,
+        "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
+      },
+      {
+        "taskId": "holdout-fee",
+        "variant": "candidate",
+        "policyVersion": "feedback-93e3c12d7db6",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 2883,
+        "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
+      },
+      {
+        "taskId": "holdout-hours",
+        "variant": "baseline",
+        "policyVersion": "mutation-v1",
+        "outcome": "PASS",
+        "attempts": 2,
+        "durationMs": 4206,
+        "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
+      },
+      {
+        "taskId": "holdout-hours",
+        "variant": "candidate",
+        "policyVersion": "feedback-93e3c12d7db6",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 2897,
+        "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
+      },
+      {
+        "taskId": "holdout-boundary",
+        "variant": "baseline",
+        "policyVersion": "mutation-v1",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 2718,
+        "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
+      },
+      {
+        "taskId": "holdout-boundary",
+        "variant": "candidate",
+        "policyVersion": "feedback-93e3c12d7db6",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 2759,
+        "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
+      }
+    ],
+    "safety": {
+      "immutable-tests": true,
+      "disjoint-task-ids": true,
+      "container-isolation": true,
+      "path-boundary": true
+    },
+    "promotable": true,
+    "detail": "Paired bounded mutation search on public tasks held separate from accepted feedback. Measures search efficiency, not general model quality."
+  },
+  "repair": {
+    "id": "4ddb4202-e5e4-4364-8aab-321331e9d8c2",
+    "repositoryId": "15651dc0-a71d-46f5-a0c5-9e65e597cc44",
+    "baseCommit": "389f57306c5aae321b3c3e07f183b61ec16d1330",
+    "instruction": "Fix the discount calculation while preserving rejection of negative amounts. Run the existing tests without editing them.",
+    "provider": "mutation-search",
+    "policyVersion": "mutation-v1",
+    "status": "APPROVED",
+    "maxAttempts": 8,
+    "timeoutSeconds": 120,
+    "attempts": 2,
+    "createdAt": "2026-10-21T16:45:10.915365587Z",
+    "completedAt": "2026-10-21T16:45:15.201674737Z",
+    "steps": [
+      {
+        "sequence": 1,
+        "tool": "repository.inspect",
+        "outcome": "PASS",
+        "durationMs": 0,
+        "output": "Detached worktree at 389f57306c5aae321b3c3e07f183b61ec16d1330; 2 immutable source/test inputs."
+      },
+      {
+        "sequence": 2,
+        "tool": "sandbox.test.baseline",
+        "outcome": "FAIL",
+        "durationMs": 1408,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
+      },
+      {
+        "sequence": 3,
+        "tool": "patch.validate",
+        "outcome": "PASS",
+        "durationMs": 0,
+        "output": "Attempt 1: BOUNDARY; 1 source file(s); tests and tool configuration unchanged."
+      },
+      {
+        "sequence": 4,
+        "tool": "sandbox.test.candidate",
+        "outcome": "FAIL",
+        "durationMs": 1301,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
+      },
+      {
+        "sequence": 5,
+        "tool": "patch.validate",
+        "outcome": "PASS",
+        "durationMs": 0,
+        "output": "Attempt 2: ARITHMETIC; 1 source file(s); tests and tool configuration unchanged."
+      },
+      {
+        "sequence": 6,
+        "tool": "sandbox.test.candidate",
+        "outcome": "PASS",
+        "durationMs": 1371,
+        "output": "All regression checks passed\n"
+      }
+    ],
+    "baseline": {
+      "status": "FAIL",
+      "exitCode": 1,
+      "timedOut": false,
+      "truncated": false,
+      "durationMs": 1408,
+      "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
+    },
+    "verification": {
+      "status": "PASS",
+      "exitCode": 0,
+      "timedOut": false,
+      "truncated": false,
+      "durationMs": 1371,
+      "output": "All regression checks passed\n"
+    },
+    "changes": [
+      {
+        "path": "src/main/java/Rules.java",
+        "beforeDigest": "221955be1ae06a90f9e82276122cfeccbb4671eb0566dd7da7b58242ad81b87f",
+        "content": "public class Rules { static int price(int amount) { if (amount < 0) throw new IllegalArgumentException(); return amount - 5; } }\n"
+      }
+    ],
+    "patch": "diff --git a/src/main/java/Rules.java b/src/main/java/Rules.java\nindex 96ea22a..788c153 100644\n--- a/src/main/java/Rules.java\n+++ b/src/main/java/Rules.java\n@@ -1 +1 @@\n-public class Rules { static int price(int amount) { if (amount < 0) throw new IllegalArgumentException(); return amount + 5; } }\n+public class Rules { static int price(int amount) { if (amount < 0) throw new IllegalArgumentException(); return amount - 5; } }",
+    "digest": "566442d4582a92dd4f51bda14b5bb6d7cc7f1046fa1b63df2ea8e1ca725241fd",
+    "mutationKind": "ARITHMETIC",
+    "approvedCommit": "ca130c70bf5c5153c90e5a58bd414eacfd9580c6",
+    "detail": "Reviewed patch committed to the managed repository."
+  },
+  "provenance": {
+    "commit": "6fa7268c6f14431be11e5e3d62f1252701201507",
+    "implementationDigest": "0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39637509909",
+    "artifactId": 12361379539,
+    "artifactDigest": "sha256:96b62ceff475b783e7daa2087355c9b388bd1c7032384a0645f968eabf271d42"
+  }
+}

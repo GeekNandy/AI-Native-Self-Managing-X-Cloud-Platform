@@ -1,89 +1,74 @@
-# Demonstrating the governed agent loop
+# Demonstrating the governed workflows
 
-## Start locally
+## Start
 
-Requirements: JDK 21 and Python 3. The Maven wrapper downloads Maven and the Java dependencies. The browser UI has no build step, CDN scripts or remote fonts.
+Use JDK 21 and Git. Run `./mvnw verify`, then start the packaged JAR shown in the README. Open [http://127.0.0.1:8080](http://127.0.0.1:8080) and enter the token from `.workbench/operator.token`. Treat that file as a local credential. The UI keeps the token in the current tab's session storage; it never puts it in a URL.
 
-```bash
-./mvnw verify
-java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar
-```
+The default server uses fixture interpretation and a durable environment simulator. Existing state is restored on restart. Use a different `PLATFORM_DATA_DIR` for an independent demonstration instead of deleting earlier evidence.
 
-Open <http://127.0.0.1:8080>. The default mode replays eight curated requests. Unknown requests ask for clarification instead of pretending to be interpreted by an AI model.
+## Environment walkthrough
 
-## Five-minute walkthrough
-
-| Time | Action | What to explain |
+| Step | Action | Observable result |
 | --- | --- | --- |
-| 0:00-0:45 | Choose **Production service**, then **Compile intent**. | The interpreter proposes a provider-neutral IR. Validation, policy and compilation are separate deterministic stages. |
-| 0:45-1:30 | Inspect **Policy**, **Plan** and **Artifacts**. | Eight versioned policy checks, ordered resource dependencies, a runnable Java source file, a Dockerfile and Kubernetes previews. Storage encryption and residency remain logical requirements, not provisioned guarantees. |
-| 1:30-2:00 | Choose **Review & approve**, inspect the digest, check the acknowledgement and execute. | Approval is tied to the exact plan and environment revision. The interpreter has no execute or approval capability. This local acknowledgement is not production authentication. |
-| 2:00-3:00 | Under **Environments**, choose **Lose replicas** and **Open egress**. Plan and approve recovery. | Desired state stays immutable. Observation exposes two differences. Remediation passes through the same policy and execution path. Desired state is not rewritten to hide drift. |
-| 3:00-3:45 | Compile **Unsafe production networking**, then **Missing requirements**. | Unsafe complete intent is denied; incomplete intent creates no executable plan. Do not silently fix the user's requirements. |
-| 3:45-4:45 | Compile the production example again. Open **Close the feedback loop**, record an expected result and run the suite. | Reviewed feedback becomes a regression case. The report shows its dataset digest, outcomes and case timings. This is an engineering feedback loop, not autonomous model improvement. |
-| 4:45-5:00 | Open **Activity log**. | Policy, approval, operations and feedback share correlation IDs. Discuss retention and durability limits explicitly. |
+| 1 | Choose **Production service** and compile. | Complete typed intent and independent policy checks. |
+| 2 | Inspect **Policy**, **Plan** and **Artifacts**. | Resource dependencies, Java source, Dockerfile and Kubernetes previews. |
+| 3 | Review the digest and approve. | A committed desired version and durable operation receipt. Approval requires the operator token. |
+| 4 | Under **Environments**, choose **Lose replicas** and **Open egress**. | Desired intent stays unchanged; two observed differences appear. |
+| 5 | Plan and approve recovery. | Observed state converges; desired version remains unchanged. |
+| 6 | Try **Unsafe production networking** and **Missing requirements**. | Policy denial and clarification, respectively; neither can execute. |
+| 7 | Record reviewed feedback and run evaluation. | The report includes a dataset digest and the additional regression case. |
+| 8 | Inspect **Activity log**, stop the app and restart it. | Receipts, runs, feedback, observations and audit history survive. |
 
-For the observation failure path, choose **Lose observation**. The state becomes `UNKNOWN` and recovery is unavailable until **Restore observation** is selected. An absence of telemetry is never treated as proof of convergence.
+**Lose observation** produces `UNKNOWN`. Recovery remains unavailable until observation is restored. **Refresh environments** explicitly re-observes the configured runtime and invalidates stale proposals when observations change.
 
-## Reproduce and export evidence
+The default simulator does not enforce cloud residency or storage encryption. Kubernetes output is a review artifact; the workbench does not apply it to a cluster.
 
-With the app running in a separate terminal:
+## Repository walkthrough
 
-```bash
-python3 scripts/demo.py --evidence target/demo-evidence.json --artifacts-dir target/generated-workload
-```
+Start Docker and run `docker pull eclipse-temurin:21-jdk`. The server must be able to reach its trusted local Docker daemon. Open **Repository agent**:
 
-The script calls the real HTTP API, provisions a sandbox, verifies retry deduplication, injects and repairs two faults, checks denial and clarification, captures feedback and runs the isolated evaluation suite. Repeated runs retain earlier feedback until the app restarts, so case totals can increase.
+1. Create **Discount calculation**. This creates an actual managed Git repository with source and immutable regression tests.
+2. Use **Bounded mutation search**, eight attempts and a 90-second budget. Start the repair.
+3. Inspect the failing baseline, candidate validation, passing verification and source diff. The managed repository head has not changed.
+4. Review the digest and commit. Repeating the same approved request returns the committed result.
+5. Run **Compare feedback candidate**. It derives candidate ordering from accepted example repairs and compares it with the active version on disjoint public smoke tasks.
+6. Inspect per-task outcomes, attempt counts, durations and isolation probes. Promotion requires all tasks/safety checks to pass and fewer aggregate attempts. Promote explicitly, then export the comparison.
 
-The exported JSON includes actual receipts, pre-recovery drift, configuration, a digest of the implementation source and the evaluation report. Local case timings exclude inference and cloud calls. They are not throughput, end-user latency or model-quality claims.
+This demonstrates measured improvement in bounded search efficiency. It does not train model weights or establish general repair quality. Importing a snapshot accepts only bounded Java source/test files; Maven/Gradle scripts and external dependencies are unsupported. See [the repository contract](repository-workflow.md).
 
-To compile and run the generated Java workload independently:
+## Actual local runtime
 
-```bash
-cd target/generated-workload
-javac --release 21 Main.java
-java Main
-```
+Start a separate workspace with `PLATFORM_RUNTIME=docker PLATFORM_DATA_DIR=.workbench-docker` and the same packaged JAR. Select **Local development runtime**; it is the initial example in Docker mode. Approve it, observe two generated Java HTTP workloads, lose a replica and approve recovery.
 
-The workload listens on port 8080. Stop the workbench first or run it on a different port using `PORT=8081`. The generated Dockerfile can build the same sample workload. Kubernetes YAML is a review preview and requires a real cluster, image distribution, CNI, namespaces and provider integration. The workbench does not apply it.
+Only one local zone, `region=local`, development tier, up to three replicas, private networking with no egress, ephemeral non-PII data and no automatic rollback are supported. The adapter denies unsupported requirements. Workloads have no published host ports; trusted health checks run through Docker exec. Stop or remove only containers labelled for this workspace when cleaning up. Runtime containers remain until explicitly removed or their 24-hour supervisor exits.
 
-## Live Gemini interpretation
-
-Choose a currently available Gemini model that your API key can access. The adapter implements the official [structured generateContent interface](https://ai.google.dev/gemini-api/docs/generate-content/structured-output).
+## Live Gemini
 
 ```bash
-export PLATFORM_AI_PROVIDER=gemini
 export GEMINI_MODEL=your-available-model-id
 export GEMINI_API_KEY=your-api-key
+export PLATFORM_AI_PROVIDER=gemini
 java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar
 ```
 
-Keep credentials in the process environment, not source files. Live mode sends the entered intent to Gemini. It never sends cloud credentials, approves changes or executes model-supplied commands. Inference has a 30-second request deadline, an 8-second connect timeout, a 64 KiB response cap and at most four concurrent calls. There are no automatic retries or silent fixture fallbacks.
+The interpreter calls the official [structured generateContent interface](https://ai.google.dev/gemini-api/docs/generate-content/structured-output). It has an 8-second connect timeout, 30-second complete-response deadline, four inference slots, a 64 KiB response cap and no automatic retries or fixture fallback. Model output still passes semantic validation, policy and operator approval.
 
-The adapter rejects incomplete output, unknown intent fields, null primitive values and numeric/string coercions. Complete candidate intents still pass independent semantic validation and policy checks. Missing requirements produce clarification. The live adapter's response contract is tested with local responses; real model access and live quality need a configured key and a separate evaluation run.
+A configured key/model also enables **Gemini structured patch** in the repository workflow, independently of the environment interpreter mode. Source snapshots, the task instruction and bounded test output are sent to Gemini. Credentials and the host environment are not included. Repair allows at most three model calls, 4,096 output tokens per call and a 120-second run budget. Full replacements for existing source files must match before hashes and pass unchanged tests. No generated shell commands are accepted.
 
-**Evaluate Gemini interpreter** checks extracted intent against golden specifications and policy outcomes. It is a small, public smoke suite. Fixture interpreter evaluation checks exact example replay and is labelled accordingly. Neither establishes blind generalization or autonomous improvement.
+No live key is included. Evaluate live behavior separately and retain model/version, dataset and failure evidence. Offline replay/search scores are not live-model scores.
 
-## Verification
+## Verification and evidence
 
 ```bash
 ./mvnw verify
+python3 scripts/verify-restart.py
+RUN_DOCKER_TESTS=true ./mvnw verify
 npm ci
 npx playwright install chromium
 npm run check
 npm run test:e2e
 ```
 
-Browser tests start the packaged application on port 8090, exercise actual UI/API behavior and check mobile overflow and uncaught client errors. Java tests cover concurrency, idempotency, stale and expired plans, changed policy, partial runtime failure, output schema rejection and compilation of generated code. GitHub Actions runs both layers.
+Docker tests run actual repairs, paired promotion gates and generated workload recovery. The process test uses SIGKILL and a fresh JVM. Browser tests cover approval, denial, clarification, feedback, authentication, repository creation and mobile overflow.
 
-For an explicitly local HTTP measurement, run this against a fresh workbench process:
-
-```bash
-python3 scripts/benchmark.py --requests 128 --concurrency 8 --output target/local-plan-benchmark.json
-```
-
-It reports actual client-side p50/p95/p99 timings, completed requests per second and errors for structured plan compilation. It excludes model inference, apply operations and cloud APIs. It creates proposals that count against demo retention limits, so restart before repeating large runs. Do not extrapolate these numbers to production or distributed scale.
-
-## Demo boundaries
-
-The server binds to loopback and checks local Host/Origin. It has no user authentication or tenant isolation and should remain a local demo. All runtime state, feedback and audit data are in memory. There is no real provider execution, persistent storage, MCP server, IDE integration, general code-repair agent, model training or production-scale benchmark. The architecture documents describe a broader target; this walkthrough describes the implemented slice.
+For API evidence and local measurements, run `scripts/demo.py` and `scripts/benchmark.py` against a fresh default workspace. They read the operator credential from `PLATFORM_OPERATOR_TOKEN` or `.workbench/operator.token`; `--token-file` supports another data directory. These workloads include durable local writes but exclude model inference, provider APIs and distributed scaling. Retention survives restart, so use a new workspace for repeated large measurements.

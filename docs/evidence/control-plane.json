@@ -1,28 +1,32 @@
 {
-  "recordedAt": "2026-10-21T10:32:55Z",
-  "sourceDigest": "3f3464f8b25bb983f3c309b45582dac6deba0b9349a79bdd4e04cb7de9e5e39d",
+  "recordedAt": "2026-10-21T16:42:13Z",
+  "sourceDigest": "0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014",
   "configuration": {
-    "model": "curated-example-replay",
-    "authentication": "local-demo-only",
     "capabilities": [
       "intent-compilation",
       "policy-checks",
       "plan-review",
       "sandbox-execution",
       "drift-recovery",
-      "regression-evaluation"
+      "regression-evaluation",
+      "durable-state",
+      "scoped-access",
+      "mcp-tools",
+      "repository-repair"
     ],
-    "executionMode": "in-memory-sandbox",
-    "planTtlMinutes": 15,
+    "authentication": "scoped-bearer",
+    "model": "curated-example-replay",
+    "policyVersion": "sandbox-policy-v1",
     "provider": "fixture",
-    "policyVersion": "sandbox-policy-v1"
+    "planTtlMinutes": 15,
+    "executionMode": "durable-simulator"
   },
   "provisioningReceipt": {
     "receipt": {
-      "operationId": "81788cfa-a4f7-4a50-a45f-4d4b2662b6f3",
-      "planId": "3c7bfedb-023e-42b3-bf37-5e8cfea57549",
-      "digest": "d031dc9d650af5f8eea323d94b4ebcfefc0c8d3c324186d712f889259f443313",
-      "idempotencyKey": "9785d575-92fb-4b60-bc4e-4706e85b9c2a",
+      "operationId": "bf4f7040-de08-4314-903a-59b5fc87d2ec",
+      "planId": "79535573-76d3-4fbc-9e90-1c7b9f203971",
+      "digest": "299e5f7dabf1b430276b5e4d371e88bbc7d42e3ef3690eb816c4e58ceac0b5bb",
+      "idempotencyKey": "1fd82575-cd3b-45c0-ab16-0d9c1a79ee09",
       "environment": {
         "id": "payments-api-production",
         "revision": 1,
@@ -58,7 +62,7 @@
         },
         "drift": []
       },
-      "completedAt": "2026-10-21T10:32:55.879556696Z"
+      "completedAt": "2026-10-21T16:42:13.612313163Z"
     },
     "replayed": false
   },
@@ -113,10 +117,10 @@
   },
   "recoveryReceipt": {
     "receipt": {
-      "operationId": "5dd1d553-e537-44d5-a248-4402acc08fdd",
-      "planId": "1d78ad68-201b-4ce5-a434-4cc3f7f1798b",
-      "digest": "b5e3d7f852146d84a9766749eb1675594ed5f3d3cf752d31350949514e6476fd",
-      "idempotencyKey": "2d646c7b-9e2b-4af2-b0ef-b80fd5b8ac91",
+      "operationId": "661ad01c-f015-414a-a685-d677fd2010d4",
+      "planId": "6bb3e458-3db8-40d2-88cf-65383711d56d",
+      "digest": "97ca32c482ba5f6079939d8694fb82c6ca8ef2e234a55a0a742cbd37bffe3469",
+      "idempotencyKey": "384da172-2f25-45aa-9d4e-a3cdfb4332a9",
       "environment": {
         "id": "payments-api-production",
         "revision": 4,
@@ -152,7 +156,7 @@
         },
         "drift": []
       },
-      "completedAt": "2026-10-21T10:32:55.931059104Z"
+      "completedAt": "2026-10-21T16:42:13.687496525Z"
     },
     "replayed": false
   },
@@ -161,15 +165,15 @@
     "ambiguousRequest": "CLARIFICATION_REQUIRED"
   },
   "evaluation": {
-    "id": "1ffda273-aaa8-472a-b56b-557c566e2678",
-    "createdAt": "2026-10-21T10:32:55.988140919Z",
+    "id": "7d94e98a-f9e5-4750-aa13-b791c6c87d8e",
+    "createdAt": "2026-10-21T16:42:13.869840489Z",
     "mode": "deterministic-control-plane",
-    "datasetDigest": "1b89848517ff7cf973703fcf860671c8cd5a03ce490c8393de662010510b0c29",
-    "passed": 22,
-    "total": 22,
+    "datasetDigest": "84053b0c6204acc44d245088090d44c509ff2a0250d22758f514d3531c3b8981",
+    "passed": 23,
+    "total": 23,
     "passRate": 100.0,
-    "p50Ms": 0.03357,
-    "p95Ms": 2.927364,
+    "p50Ms": 0.031948,
+    "p95Ms": 22.194776,
     "feedbackCases": 1,
     "cases": [
       {
@@ -179,7 +183,7 @@
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.178669,
+        "latencyMs": 0.170694,
         "detail": "Matched expected outcome."
       },
       {
@@ -189,7 +193,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.03357,
+        "latencyMs": 0.024166,
         "detail": "Matched expected outcome."
       },
       {
@@ -199,7 +203,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.015784,
+        "latencyMs": 0.014902,
         "detail": "Matched expected outcome."
       },
       {
@@ -209,7 +213,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.01307,
+        "latencyMs": 0.01354,
         "detail": "Matched expected outcome."
       },
       {
@@ -219,7 +223,7 @@
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.013671,
+        "latencyMs": 0.058877,
         "detail": "Matched expected outcome."
       },
       {
@@ -229,7 +233,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.041112,
+        "latencyMs": 0.037115,
         "detail": "Matched expected outcome."
       },
       {
@@ -239,7 +243,7 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.068433,
+        "latencyMs": 0.068431,
         "detail": "Intent failed semantic validation."
       },
       {
@@ -249,7 +253,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.0136,
+        "latencyMs": 0.014672,
         "detail": "Matched expected outcome."
       },
       {
@@ -259,7 +263,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.159029,
+        "latencyMs": 0.031948,
         "detail": "Matched expected outcome."
       },
       {
@@ -269,7 +273,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.028403,
+        "latencyMs": 0.027761,
         "detail": "Matched expected outcome."
       },
       {
@@ -279,7 +283,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.082915,
+        "latencyMs": 0.011888,
         "detail": "Matched expected outcome."
       },
       {
@@ -289,7 +293,7 @@
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.032719,
+        "latencyMs": 0.012017,
         "detail": "Matched expected outcome."
       },
       {
@@ -299,7 +303,7 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.027462,
+        "latencyMs": 0.022694,
         "detail": "Intent failed semantic validation."
       },
       {
@@ -309,7 +313,7 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.015984,
+        "latencyMs": 0.230472,
         "detail": "Intent failed semantic validation."
       },
       {
@@ -319,17 +323,27 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.031558,
+        "latencyMs": 0.018988,
         "detail": "Intent failed semantic validation."
       },
       {
-        "id": "857e6e7c-3cc2-4f0b-8ff7-04d6f3a46864",
+        "id": "local-docker",
+        "name": "Local development runtime",
+        "category": "local-capability",
+        "expected": "ALLOW",
+        "actual": "ALLOW",
+        "passed": true,
+        "latencyMs": 0.016755,
+        "detail": "Matched expected outcome."
+      },
+      {
+        "id": "25cad1af-005a-494b-9549-05e4abbafb8f",
         "name": "Recovery preserves the reviewed production PII intent.",
         "category": "feedback-regression",
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.021883,
+        "latencyMs": 0.015353,
         "detail": "Matched expected outcome."
       },
       {
@@ -339,7 +353,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 4.887589,
+        "latencyMs": 22.194776,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -349,7 +363,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 1.010313,
+        "latencyMs": 16.120619,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -359,7 +373,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 2.927364,
+        "latencyMs": 18.982135,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -369,7 +383,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 2.3938,
+        "latencyMs": 17.692381,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -379,7 +393,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 1.135361,
+        "latencyMs": 14.967097,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -389,11 +403,11 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 1.771501,
+        "latencyMs": 25.754483,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       }
     ],
     "limitation": "Local compiler/policy and isolated simulator checks. Latency excludes model and cloud calls; this is not a load benchmark."
   },
-  "limitations": "Offline fixture replay and in-memory simulation. No live model, cloud calls, workload deployment or load benchmark."
+  "limitations": "Offline fixture interpretation and durable simulation. No live model, cloud calls, workload deployment or load benchmark."
 }

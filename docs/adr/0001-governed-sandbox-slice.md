@@ -1,6 +1,6 @@
 # ADR 0001: Prove the governed loop with an explicit simulator
 
-Status: Accepted for the first working slice
+Status: Historical first-slice decision; execution/storage scope extended by [ADR 0002](0002-durable-repository-workflows.md)
 
 ## Context
 

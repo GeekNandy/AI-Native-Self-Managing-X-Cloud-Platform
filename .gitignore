@@ -42,3 +42,6 @@ test-results/
 *.log
 __pycache__/
 *.pyc
+
+# Local durable state, credentials and disposable repository worktrees
+.workbench/

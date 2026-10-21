@@ -23,6 +23,11 @@ module.exports = defineConfig({
     url: "http://127.0.0.1:8090/actuator/health",
     timeout: 60000,
     reuseExistingServer: false,
-    env: { PLATFORM_AI_PROVIDER: "fixture" },
+    env: {
+      PLATFORM_AI_PROVIDER: "fixture",
+      PLATFORM_DATA_DIR: "memory",
+      PLATFORM_OPERATOR_TOKEN: "e2e-operator-token-0123456789",
+      PLATFORM_AGENT_TOKEN: "e2e-agent-token-0123456789",
+    },
   },
 });

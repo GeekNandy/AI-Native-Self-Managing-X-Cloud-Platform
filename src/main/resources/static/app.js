@@ -10,6 +10,7 @@ const esc = (value) =>
 const pretty = (value) => JSON.stringify(value, null, 2);
 const labels = {
   workbench: "Agent workbench",
+  code: "Repository agent",
   environments: "Environments",
   evaluations: "Evaluations",
   activity: "Activity log",
@@ -36,22 +37,25 @@ let toastTimeout;
 async function api(path, body) {
   let response;
   try {
-    response = await fetch(
-      `/api${path}`,
-      body === undefined
-        ? {}
-        : {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          },
-    );
+    response = await fetch(`/api${path}`, {
+      method: body === undefined ? "GET" : "POST",
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(sessionStorage.getItem("workbench-token")
+          ? {
+              Authorization: `Bearer ${sessionStorage.getItem("workbench-token")}`,
+            }
+          : {}),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
   } catch {
     throw new Error(
       "The workbench is unreachable. Check the server, then retry. Apply retries reuse the same operation key.",
     );
   }
   const result = await response.json();
+  if (response.status === 401) $("#login-dialog").showModal();
   if (!response.ok) {
     const error = new Error(
       result.message || result.detail || `Request failed (${response.status}).`,
@@ -147,7 +151,7 @@ function renderConfig() {
     ? `Gemini · ${state.config.model}`
     : "Offline example mode";
   $("#mode-notice").innerHTML =
-    `<span class="notice-symbol">i</span><span>${live ? "<strong>Live model extraction</strong> · Proposals still pass independent validation and policy checks." : "<strong>Offline examples</strong> · Choose a curated request below. Configure Gemini to interpret new requests."} Every execution uses the local sandbox.</span>`;
+    `<span class="notice-symbol">i</span><span>${live ? "<strong>Live model extraction</strong> · Proposals still pass independent validation and policy checks." : "<strong>Offline examples</strong> · Choose a curated request below. Configure Gemini to interpret new requests."} Runtime: ${esc(state.config.executionMode)}.</span>`;
   $("#connection-status").textContent = "Control plane connected";
   $("#evaluation-mode-label").textContent = live
     ? "Control-plane + live interpreter evaluation"
@@ -156,7 +160,9 @@ function renderConfig() {
     ? "Evaluate Gemini interpreter ↗"
     : "Check example replay ↗";
   $("#workbench-boundary").textContent =
-    "In-memory sandbox · No cloud resources created";
+    state.config.executionMode === "docker-local"
+      ? "Docker runtime · Local containers"
+      : "Durable simulator · No cloud resources created";
 }
 
 function renderExamples() {
@@ -387,7 +393,7 @@ function renderEnvironments() {
           ["Encrypted storage required", "encryptedStorage"],
           ["Monitoring", "monitoring"],
         ];
-        return `<section class="card environment-card"><header><h2>${esc(environment.id)}</h2>${badge(environment.convergence === "CONVERGED" ? "Converged" : unknown ? "Observation unknown" : `${environment.drift.length} drifted field${environment.drift.length === 1 ? "" : "s"}`, environment.convergence === "CONVERGED" ? "success" : unknown ? "neutral" : "warning")}</header><div class="environment-meta">Desired version ${environment.desiredVersion} · Revision ${environment.revision} · In-memory sandbox</div><table class="state-comparison"><thead><tr><th>FIELD</th><th>DESIRED</th><th>OBSERVED</th></tr></thead><tbody>${rows.map(([label, key]) => `<tr><td>${label}</td><td>${esc(format(environment.desired[key]))}</td><td class="${environment.observed && environment.desired[key] !== environment.observed[key] ? "different" : ""}">${esc(environment.observed ? format(environment.observed[key]) : "Unknown")}</td></tr>`).join("")}</tbody></table><div class="fault-actions"><button class="button secondary small" data-fault="replica-loss" data-env="${esc(environment.id)}" ${unknown || state.busy.environment ? "disabled" : ""}>Lose replicas</button><button class="button secondary small" data-fault="egress-open" data-env="${esc(environment.id)}" ${unknown || state.busy.environment ? "disabled" : ""}>Open egress</button><button class="button secondary small" data-fault="${unknown ? "observation-restored" : "observation-lost"}" data-env="${esc(environment.id)}" ${state.busy.environment ? "disabled" : ""}>${unknown ? "Restore observation" : "Lose observation"}</button></div><div class="environment-action"><span>${unknown ? "Recovery waits for reliable observation." : environment.drift.length ? "Restore approved desired state." : "Inject a fault to exercise the control loop."}</span><button class="button ${environment.drift.length ? "primary" : "secondary"} small" data-reconcile="${esc(environment.id)}" ${unknown || !environment.drift.length || state.busy.environment ? "disabled" : ""}>Plan recovery ↗</button></div></section>`;
+        return `<section class="card environment-card"><header><h2>${esc(environment.id)}</h2>${badge(environment.convergence === "CONVERGED" ? "Converged" : unknown ? "Observation unknown" : `${environment.drift.length} drifted field${environment.drift.length === 1 ? "" : "s"}`, environment.convergence === "CONVERGED" ? "success" : unknown ? "neutral" : "warning")}</header><div class="environment-meta">Desired version ${environment.desiredVersion} · Revision ${environment.revision} · ${esc(state.config?.executionMode || "runtime")}</div><table class="state-comparison"><thead><tr><th>FIELD</th><th>DESIRED</th><th>OBSERVED</th></tr></thead><tbody>${rows.map(([label, key]) => `<tr><td>${label}</td><td>${esc(format(environment.desired?.[key]))}</td><td class="${environment.desired && environment.observed && environment.desired[key] !== environment.observed[key] ? "different" : ""}">${esc(environment.observed ? format(environment.observed[key]) : "Unknown")}</td></tr>`).join("")}</tbody></table><div class="fault-actions"><button class="button secondary small" data-fault="replica-loss" data-env="${esc(environment.id)}" ${unknown || state.busy.environment ? "disabled" : ""}>Lose replicas</button><button class="button secondary small" data-fault="egress-open" data-env="${esc(environment.id)}" ${unknown || state.busy.environment || state.config?.executionMode === "docker-local" ? "disabled" : ""}>Open egress</button><button class="button secondary small" data-fault="${unknown ? "observation-restored" : "observation-lost"}" data-env="${esc(environment.id)}" ${state.busy.environment ? "disabled" : ""}>${unknown ? "Restore observation" : "Lose observation"}</button></div><div class="environment-action"><span>${unknown ? "Recovery waits for reliable observation." : environment.drift.length ? "Restore approved desired state." : "Inject a fault to exercise the control loop."}</span><button class="button ${environment.drift.length ? "primary" : "secondary"} small" data-reconcile="${esc(environment.id)}" ${unknown || !environment.drift.length || state.busy.environment ? "disabled" : ""}>Plan recovery ↗</button></div></section>`;
       })
       .join("")}</div>`;
 }
@@ -579,7 +585,15 @@ $("#about-button").addEventListener("click", () =>
   $("#about-dialog").showModal(),
 );
 $("#refresh-environments").addEventListener("click", () =>
-  refresh().catch(fail),
+  (async () => {
+    const environments = await api("/environments");
+    await Promise.all(
+      environments.map((e) =>
+        api(`/environments/${encodeURIComponent(e.id)}/refresh`, {}),
+      ),
+    );
+    await refresh();
+  })().catch(fail),
 );
 $("#refresh-activity").addEventListener("click", () => refresh().catch(fail));
 $("#evaluate-controls").addEventListener("click", () =>
@@ -597,6 +611,25 @@ document.addEventListener("change", (event) => {
 });
 window.addEventListener("hashchange", showView);
 
+$("#login-dialog").addEventListener("cancel", (event) =>
+  event.preventDefault(),
+);
+$("#login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  sessionStorage.setItem("workbench-token", $("#access-token").value.trim());
+  try {
+    await api("/session");
+    $("#access-token").value = "";
+    $("#login-dialog").close();
+    $("#connection-error").hidden = true;
+    $("#compile-button").disabled = false;
+    await initialize();
+  } catch (error) {
+    sessionStorage.removeItem("workbench-token");
+    $("#login-error").textContent = error.message;
+  }
+});
+
 async function initialize() {
   showView();
   renderStats();
@@ -605,14 +638,24 @@ async function initialize() {
   renderEvaluations();
   renderActivity();
   try {
+    if (!sessionStorage.getItem("workbench-token")) {
+      $("#login-dialog").showModal();
+      return;
+    }
     [state.config, state.examples] = await Promise.all([
       api("/config"),
       api("/examples"),
     ]);
     renderConfig();
-    if (state.examples.length) $("#prompt").value = state.examples[0].prompt;
+    if (state.examples.length)
+      $("#prompt").value = (
+        state.config.executionMode === "docker-local"
+          ? state.examples.find((e) => e.id === "local-docker")
+          : state.examples[0]
+      ).prompt;
     renderExamples();
     await refresh();
+    document.dispatchEvent(new Event("workspace-connected"));
   } catch (error) {
     $("#connection-status").textContent = "Connection unavailable";
     $("#connection-error").hidden = false;
@@ -621,3 +664,5 @@ async function initialize() {
   }
 }
 void initialize();
+
+export { api, esc, pretty, toast, fail };
