@@ -101,6 +101,7 @@ public class DockerSandbox {
     public TestResult test(Map<String, String> files, String testClass, Duration budget) {
         RepositoryWorkspace.validateFiles(files, testClass);
         long start = System.nanoTime();
+        long deadline = start + budget.toNanos();
         String name = "xcloud-test-" + UUID.randomUUID();
         boolean attemptedCreate = false;
         try {
@@ -108,7 +109,7 @@ public class DockerSandbox {
             var create =
                     commands.run(
                             null,
-                            Duration.ofSeconds(5),
+                            phaseBudget(deadline, 15),
                             List.of(
                                     "docker",
                                     "create",
@@ -137,19 +138,16 @@ public class DockerSandbox {
                                     image,
                                     "sleep",
                                     "180"));
-            if (create.exitCode() != 0)
-                throw new PlatformException(
-                        503,
-                        "SANDBOX_UNAVAILABLE",
-                        "The Docker sandbox image is unavailable. Pre-pull the configured Java 21"
-                                + " image.");
-            require(commands.run(null, Duration.ofSeconds(5), List.of("docker", "start", name)));
+            require(create, "container creation");
+            require(
+                    commands.run(null, phaseBudget(deadline, 10), List.of("docker", "start", name)),
+                    "container start");
             // Docker cp does not support all tmpfs mounts. Stream a validated tar via stdin
             // instead.
             require(
                     commands.run(
                             null,
-                            Duration.ofSeconds(5),
+                            phaseBudget(deadline, 10),
                             List.of(
                                     "docker",
                                     "exec",
@@ -161,18 +159,12 @@ public class DockerSandbox {
                                     "-",
                                     "-C",
                                     "/workspace"),
-                            tar(files)));
+                            tar(files)),
+                    "source transfer");
             var result =
                     commands.run(
                             null,
-                            Duration.ofMillis(
-                                    Math.max(
-                                            1,
-                                            Math.min(
-                                                    20_000,
-                                                    budget.toMillis()
-                                                            - (System.nanoTime() - start)
-                                                                    / 1_000_000))),
+                            phaseBudget(deadline, 20),
                             List.of(
                                     "docker",
                                     "exec",
@@ -213,12 +205,31 @@ public class DockerSandbox {
         }
     }
 
-    private static void require(CommandRunner.Result result) {
-        if (result.exitCode() != 0)
+    private static Duration phaseBudget(long deadline, int maxSeconds) {
+        long remaining = deadline - System.nanoTime();
+        if (remaining <= 0)
             throw new PlatformException(
-                    503,
-                    "SANDBOX_UNAVAILABLE",
-                    "Could not initialize the isolated test container.");
+                    409,
+                    "REPAIR_DEADLINE",
+                    "The run deadline expired during sandbox initialization.");
+        return Duration.ofNanos(Math.min(remaining, Duration.ofSeconds(maxSeconds).toNanos()));
+    }
+
+    private static void require(CommandRunner.Result result, String phase) {
+        if (result.exitCode() == 0 && !result.timedOut()) return;
+        String output = result.output().strip();
+        if (output.length() > 2000) output = output.substring(0, 2000);
+        throw new PlatformException(
+                503,
+                result.timedOut() ? "SANDBOX_START_TIMEOUT" : "SANDBOX_START_FAILED",
+                "Isolated sandbox "
+                        + phase
+                        + (result.timedOut()
+                                ? " exceeded its startup allowance."
+                                : " failed (exit "
+                                        + result.exitCode()
+                                        + "). Check the Docker daemon and configured image."),
+                output.isBlank() ? List.of() : List.of(output));
     }
 
     /**

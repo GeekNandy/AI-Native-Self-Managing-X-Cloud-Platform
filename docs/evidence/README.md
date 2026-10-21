@@ -13,7 +13,7 @@ These files contain outputs from actual local HTTP/process experiments and hoste
 
 The Docker reports include the exact tested commit, workflow-run URL and artifact digest in `provenance`. GitHub Actions also runs a complete browser repair/approval/promotion scenario and retains execution reports and screenshots. These records are evidence for their identified source, not a substitute for checks on a later release.
 
-The control-loop, restart and API measurement files share implementation digest `6d754068e6a160b7b9b8ed756eb8a7180e468f83511ed79b427aa2de0e1d7c5e`. The local measurement recorded p50 33.05 ms and p95 60.29 ms. It is a short loopback experiment, not a steady-state capacity result. Results depend on filesystem behavior, machine load, JVM warmup and client scheduling.
+The control-loop, restart and API measurement files share implementation digest `0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014`. The local measurement recorded p50 36.76 ms and p95 69.64 ms. It is a short loopback experiment, not a steady-state capacity result. Results depend on filesystem behavior, machine load, JVM warmup and client scheduling.
 
 ## Reproduce
 

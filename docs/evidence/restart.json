@@ -1,7 +1,7 @@
 {
-  "recordedAt": "2026-10-21T16:29:30.049745+00:00",
+  "recordedAt": "2026-10-21T16:42:23.153412+00:00",
   "experiment": "SIGKILL after committed provision and observed drift; fresh JVM; same H2 directory",
-  "sourceDigest": "6d754068e6a160b7b9b8ed756eb8a7180e468f83511ed79b427aa2de0e1d7c5e",
+  "sourceDigest": "0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014",
   "checks": {
     "receiptSurvived": true,
     "replayDeduplicated": true,
@@ -11,9 +11,9 @@
     "auditHistoryPreserved": true
   },
   "receipt": {
-    "operationId": "f4ee40fc-78a2-4e5d-996c-e4de90e825e7",
-    "planId": "3fdf6551-3234-4afb-a476-d9a315daf47d",
-    "digest": "2f6b8e70d83f8d9798c55028c3f7af87e1d79a211e5ab9bbd615fceed9cac179",
+    "operationId": "3573fba3-8bdf-4d88-bd74-b2151b0096fc",
+    "planId": "b6554352-3c53-47aa-9937-4bba8061201d",
+    "digest": "78d6a5bef045ffc376daec8d34a62372c978e0336027d1cab49b9da50e899475",
     "idempotencyKey": "crash-restart-retry",
     "environment": {
       "id": "payments-api-production",
@@ -50,7 +50,7 @@
       },
       "drift": []
     },
-    "completedAt": "2026-10-21T16:29:26.287306176Z"
+    "completedAt": "2026-10-21T16:42:19.077310173Z"
   },
   "restoredEnvironment": {
     "id": "payments-api-production",

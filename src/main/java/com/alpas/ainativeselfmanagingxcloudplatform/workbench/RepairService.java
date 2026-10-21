@@ -338,6 +338,8 @@ public class RepairService {
                                     ? "BUDGET_EXHAUSTED"
                                     : "FAILED";
             e.detail = failure.code() + ": " + failure.getMessage();
+            if (!failure.details().isEmpty())
+                e.step("tool.error", failure.code(), 0, String.join("\n", failure.details()));
         } catch (RuntimeException failure) {
             e.status = "FAILED";
             e.detail = "The worker failed. Inspect the operation trace before starting a new run.";
