@@ -2,55 +2,81 @@
 
 An AI-native control plane for translating high-level software and infrastructure intent into governed, deployable, and self-managing cloud environments.
 
-## Working Proof of Concept
+## Working proof of concept
 
-The repository now includes a runnable **governed agent workbench**: describe a Java service, review its structured intent and policy checks, inspect generated code and manifests, approve a sandbox plan, introduce drift, and review its recovery. Reviewed feedback becomes regression evidence.
+A runnable Java 21 control plane and browser workbench with two complete review paths:
 
-![The working agent workbench with a compiled production-service proposal](docs/images/workbench.png)
+- **Environment intent → policy → immutable plan → operator approval → execution → observed drift → reviewed recovery.**
+- **Failing repository test → bounded repair → isolated verification → inspectable Git diff → operator-approved commit.**
 
-### Run in two commands
+Reviewed repairs can derive a versioned search policy. A paired evaluation on separate public tasks and container-isolation probes gates promotion.
 
-Requirements: **JDK 21**. No external services, API keys or frontend build are needed for the offline demo.
+![The governed environment workbench](docs/images/workbench.png)
+
+### Start locally
+
+Requirements: **JDK 21 and Git**. Python 3 runs the evidence scripts. Docker is required for repository execution and the optional local workload adapter. The default environment simulator needs no external credentials or services.
 
 ```bash
 ./mvnw verify
 java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar
 ```
 
-Open **http://127.0.0.1:8080**. Choose **Production service**, compile the intent and inspect the proposal. After approval, open **Environments**, inject a fault and review the recovery plan.
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080). Read `.workbench/operator.token` in your terminal and enter it in the unlock dialog. The server generates separate operator and proposal-only agent credentials; they survive restart. State lives in the ignored `.workbench` directory.
+
+To enable isolated repository tests, start Docker and pre-pull the runner image:
+
+```bash
+docker pull eclipse-temurin:21-jdk
+```
+
+Open **Repository agent**, create the **Discount calculation** example, run the repair, inspect its failing/passing test trace and patch, then review and commit. **Compare feedback candidate** evaluates candidate ordering against the active version before operator promotion.
 
 | Implemented | Demonstrable behavior |
 | --- | --- |
-| Typed intent and independent policy | Semantic validation and eight versioned policy checks, including residency, encryption, networking, availability and quota |
-| Deterministic compilation | Ordered logical resource operations; Java source, Dockerfile and Kubernetes review previews |
-| Explicit change review | SHA-256 digest bound to the complete plan; fifteen-minute expiry; state revision and current-policy checks at apply |
-| Sandbox lifecycle | Committed desired state, separate observations, retry deduplication and per-environment concurrency control |
-| Drift and recovery | Replica loss, opened egress and lost observation; remediation uses the same approval and execution boundary |
-| Measured feedback | Versioned golden scenarios, isolated execution-safety checks and operator-specified regression cases |
-| Full-stack workbench | Responsive same-origin browser client, HTTP API, activity history and exportable artifacts/evaluation reports |
-| Optional live extraction | Configurable Gemini structured-output adapter with bounded concurrency, deadlines and strict response validation |
+| Intent and independent policy | Strict structured extraction, semantic validation and eight versioned governance rules |
+| Plan-bound approval | Full-content SHA-256 digest, expiry, current-policy checks, revision preconditions and durable retry receipts |
+| Desired/observed control loop | Provisioning, fault injection, unknown observations and recovery without rewriting desired intent |
+| Durable single-node execution | Embedded H2, write-ahead operation markers, restart recovery and per-environment serialization |
+| Scoped access | Separate operator/agent bearer tokens, local Host/Origin checks and protected API/metrics |
+| Repository repair | Managed Git snapshots, detached worktrees, immutable tests, source-only patches, bounded async workers and cancellation |
+| Isolated Java tools | Docker with no network, host mounts or credentials; unprivileged test execution, read-only source and CPU/memory/PID limits |
+| Measured feedback | Accepted repairs derive a versioned candidate; paired public smoke tasks and isolation checks gate promotion |
+| MCP | Nine inspection/proposal tools over stateless Streamable HTTP, pinned to protocol 2025-11-25 |
+| Actual local workloads | Optional Docker adapter runs generated Java services, observes health/replica counts and restores lost replicas |
+| Full-stack client | Responsive workflow, patch/trace review, approval dialogs, activity history and evidence exports |
+| Optional Gemini | Bounded intent extraction and typed source-patch proposals with no shell or approval capability |
 
-**Scope:** default interpretation is exact replay of curated examples; execution is an in-memory simulator. No cloud resources are provisioned. Encryption and residency are policy requirements, not deployed guarantees. Gemini needs explicit configuration and a live evaluation. Feedback does not train a model or alter policy. The target architecture below extends beyond the implemented slice.
+**Evidence boundary:** offline environment interpretation uses curated examples. Offline repository repair is real bounded mutation search, labelled separately from Gemini. The default environment adapter is a durable simulator; Docker enforces a narrow local development profile and denies unsupported cloud requirements. Public smoke tasks do not establish general model quality. Production cloud IAM, multi-tenant identity, distributed workers and live-model quality evidence remain outside this PoC.
 
 ### Reproduce the evidence
 
-With the app running:
+With the default app running:
 
 ```bash
 python3 scripts/demo.py --evidence target/demo-evidence.json --artifacts-dir target/generated-workload
 python3 scripts/benchmark.py --requests 128 --concurrency 8 --output target/local-plan-benchmark.json
 ```
 
-The demo verifies the complete HTTP control loop, retry deduplication, policy denial, clarification, recovery and feedback evaluation. The benchmark measures the local structured-plan endpoint; it excludes model inference and cloud execution. [Recorded results](docs/evidence/README.md) disclose their source digest and limits.
+A separate process-level check kills and restarts a packaged server using the same H2 directory:
 
-### Start here
+```bash
+python3 scripts/verify-restart.py
+RUN_DOCKER_TESTS=true ./mvnw verify
+```
 
-- [Five-minute demo and live Gemini setup](docs/demo-guide.md)
-- [Engineering roadmap](docs/roadmap.md)
-- [Decision: one governed sandbox slice](docs/adr/0001-governed-sandbox-slice.md)
-- [Architecture](docs/architecture.md), [domain model](docs/domain-model.md), [intent compiler](docs/intent-compiler.md) and [security model](docs/security-model.md)
+[Recorded evidence](docs/evidence/README.md) identifies the tested source, harness and limitations. GitHub Actions runs Java, Docker, restart and browser checks and retains execution reports as artifacts.
 
-For browser checks: `npm ci`, `npx playwright install chromium`, then `npm run test:e2e`. The Java build and browser workflows also run in GitHub Actions.
+### Documentation
+
+- [Demo walkthrough and Gemini setup](docs/demo-guide.md)
+- [Repository repair, budgets and feedback promotion](docs/repository-workflow.md)
+- [Runtime capabilities, durable state and recovery](docs/runtime-and-state.md)
+- [MCP connection and tool contract](docs/mcp.md)
+- [Remaining engineering roadmap](docs/roadmap.md)
+- [Architecture](docs/architecture.md), [domain model](docs/domain-model.md), [intent compiler](docs/intent-compiler.md), [security model](docs/security-model.md) and [control-plane design](docs/control-plane.md) describe the broader target architecture.
+
+Browser verification: `npm ci`, `npx playwright install chromium`, `npm run check`, then `npm run test:e2e`. The packaged app is required; the browser runner starts it on port 8090 with isolated test state and credentials.
 
 ## Problem
 

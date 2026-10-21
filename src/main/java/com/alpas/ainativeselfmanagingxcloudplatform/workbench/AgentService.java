@@ -1,16 +1,19 @@
 package com.alpas.ainativeselfmanagingxcloudplatform.workbench;
 
 import static com.alpas.ainativeselfmanagingxcloudplatform.workbench.Model.*;
+
 import io.micrometer.core.instrument.MeterRegistry;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Semaphore;
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class AgentService {
@@ -23,19 +26,47 @@ public class AgentService {
     private final Semaphore retentionSlots = new Semaphore(500);
 
     private final StateStore store;
-    public AgentService(IntentInterpreter interpreter, ControlPlane control, Clock clock, AuditLog audit, MeterRegistry metrics) {
+
+    public AgentService(
+            IntentInterpreter interpreter,
+            ControlPlane control,
+            Clock clock,
+            AuditLog audit,
+            MeterRegistry metrics) {
         this(interpreter, control, clock, audit, metrics, StateStore.volatileStore());
     }
-    @Autowired public AgentService(IntentInterpreter interpreter, ControlPlane control, Clock clock, AuditLog audit, MeterRegistry metrics, StateStore store) {
-        this.interpreter = interpreter; this.control = control; this.clock = clock; this.audit = audit; this.metrics = metrics; this.store = store;
+
+    @Autowired
+    public AgentService(
+            IntentInterpreter interpreter,
+            ControlPlane control,
+            Clock clock,
+            AuditLog audit,
+            MeterRegistry metrics,
+            StateStore store) {
+        this.interpreter = interpreter;
+        this.control = control;
+        this.clock = clock;
+        this.audit = audit;
+        this.metrics = metrics;
+        this.store = store;
         store.all("runs", AgentRun.class).forEach(r -> runs.put(r.id(), r));
         retentionSlots.acquireUninterruptibly(runs.size());
     }
 
     public AgentRun run(String prompt) {
-        if (!retentionSlots.tryAcquire()) throw new PlatformException(429, "RUN_CAPACITY", "The local workbench reached its run retention limit. Export evidence and use a new data directory for another session.");
-        try { return captureRun(prompt);
-        } catch (RuntimeException failure) { retentionSlots.release(); throw failure; }
+        if (!retentionSlots.tryAcquire())
+            throw new PlatformException(
+                    429,
+                    "RUN_CAPACITY",
+                    "The local workbench reached its run retention limit. Export evidence and use a"
+                        + " new data directory for another session.");
+        try {
+            return captureRun(prompt);
+        } catch (RuntimeException failure) {
+            retentionSlots.release();
+            throw failure;
+        }
     }
 
     private AgentRun captureRun(String prompt) {
@@ -50,21 +81,39 @@ public class AgentService {
             interpretationMs = (System.nanoTime() - started) / 1_000_000.0;
             plan = control.propose(spec);
             status = plan.policy().allowed() ? "AWAITING_APPROVAL" : "BLOCKED";
-            messages.add(plan.policy().allowed() ? "Candidate intent compiled. Review the plan before sandbox execution."
-                    : "The independent policy engine denied this candidate. Execution is unavailable.");
+            messages.add(
+                    plan.policy().allowed()
+                            ? "Candidate intent compiled. Review the plan before sandbox execution."
+                            : "The independent policy engine denied this candidate. Execution is"
+                                  + " unavailable.");
         } catch (PlatformException failure) {
-            if (!List.of("CLARIFICATION_REQUIRED", "INVALID_INTENT").contains(failure.code())) throw failure;
+            if (!List.of("CLARIFICATION_REQUIRED", "INVALID_INTENT").contains(failure.code()))
+                throw failure;
             interpretationMs = (System.nanoTime() - started) / 1_000_000.0;
             status = failure.code();
             messages.add(failure.getMessage());
             messages.addAll(failure.details());
         }
-        var result = new AgentRun(id, clock.instant(), prompt, interpreter.provider(), status, interpretationMs, plan, messages);
+        var result =
+                new AgentRun(
+                        id,
+                        clock.instant(),
+                        prompt,
+                        interpreter.provider(),
+                        status,
+                        interpretationMs,
+                        plan,
+                        messages);
         store.put("runs", id, result);
         runs.put(id, result);
         metrics.timer("platform.agent.run", "provider", interpreter.provider(), "status", status)
                 .record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
-        audit.append("AGENT_RUN_COMPLETED", "bounded-interpreter", plan == null ? null : plan.environmentId(), id, status);
+        audit.append(
+                "AGENT_RUN_COMPLETED",
+                "bounded-interpreter",
+                plan == null ? null : plan.environmentId(),
+                id,
+                status);
         return result;
     }
 

@@ -1,15 +1,17 @@
 {
-  "recordedAt": "2026-10-21T10:32:56.393123+00:00",
+  "recordedAt": "2026-10-21T15:57:59.319549+00:00",
+  "sourceDigest": "5c0038488504952453d6f8031e23842c57f49da5cff4fd22100bc6f8521ce9df",
+  "storage": "embedded-h2",
   "workload": "POST /api/plans, structured Java development intent; five warmup requests excluded",
   "requests": 128,
   "concurrency": 8,
   "environmentIdentities": 8,
-  "elapsedSeconds": 0.2773079950002284,
-  "completedRequestsPerSecond": 461.5806334754055,
+  "elapsedSeconds": 0.5790857300003154,
+  "completedRequestsPerSecond": 221.0380836010763,
   "errors": 0,
   "errorDetails": [],
-  "p50Ms": 12.531397999737237,
-  "p95Ms": 23.018349000267335,
-  "p99Ms": 34.058508000271104,
-  "limitations": "One local JVM and loopback HTTP; client wall-clock timings include Python scheduling. No model, cloud execution, durability or distributed scaling measured."
+  "p50Ms": 31.025366999983817,
+  "p95Ms": 57.14764899994407,
+  "p99Ms": 97.88904700008061,
+  "limitations": "One local JVM and loopback HTTP; client wall-clock timings include Python scheduling. Embedded state commits included; no model, cloud execution or distributed scaling measured."
 }

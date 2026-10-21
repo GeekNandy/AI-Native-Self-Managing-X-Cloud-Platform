@@ -337,5 +337,27 @@
       "rollback": true
     },
     "expected": "INVALID"
+  },
+  {
+    "id": "local-docker",
+    "name": "Local development runtime",
+    "category": "local-capability",
+    "fixture": true,
+    "prompt": "Create a Java 21 service named local-api for development in the local region. Use private networking with no egress, internal non-PII data, ephemeral storage without an encryption requirement, one zone, two replicas, health monitoring, and no automatic rollback.",
+    "spec": {
+      "serviceName": "local-api",
+      "runtime": "java21",
+      "tier": "development",
+      "region": "local",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "internal",
+      "encryptedStorage": false,
+      "zones": 1,
+      "replicas": 2,
+      "monitoring": true,
+      "rollback": false
+    },
+    "expected": "ALLOW"
   }
 ]

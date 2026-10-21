@@ -7,8 +7,10 @@ test.beforeEach(async ({ page }) => {
   errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await page.getByLabel("Access token", {exact:true}).fill("e2e-operator-token-0123456789");
-  await page.getByRole("button", {name:"Connect to workspace"}).click();
+  await page
+    .getByLabel("Access token", { exact: true })
+    .fill("e2e-operator-token-0123456789");
+  await page.getByRole("button", { name: "Connect to workspace" }).click();
   await expect(
     page.getByText("Control plane connected", { exact: true }),
   ).toBeVisible();
@@ -54,14 +56,12 @@ test("review, approve, drift and reconcile through the real UI", async ({
     });
   }
   await approve(page);
-  const environment = page
-    .locator(".environment-card")
-    .filter({
-      has: page.getByRole("heading", {
-        name: "payments-api-production",
-        exact: true,
-      }),
-    });
+  const environment = page.locator(".environment-card").filter({
+    has: page.getByRole("heading", {
+      name: "payments-api-production",
+      exact: true,
+    }),
+  });
   await expect(
     environment.getByText("Converged", { exact: true }),
   ).toBeVisible();
@@ -125,7 +125,7 @@ test("reviewed feedback is included in the next evaluation", async ({
     .getByRole("button", { name: /Save regression & run suite/ })
     .click();
   await expect(page).toHaveURL(/#evaluations$/);
-  await expect(page.getByText("22 / 22", { exact: true })).toBeVisible();
+  await expect(page.getByText("23 / 23", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("cell", {
       name: "Preserve production PII requirements through the full lifecycle.",
@@ -150,22 +150,94 @@ test("mobile layout stays within the viewport and keeps navigation usable", asyn
   ).toBeLessThanOrEqual(390);
 });
 
-test("repository workflow creates a real task snapshot and discloses runner availability", async ({ page }) => {
-  await page.getByRole("link", {name:"Repository agent", exact:true}).click();
-  await expect(page.getByRole("heading", {name:"A failing test. A reviewed fix."})).toBeVisible();
-  await page.getByRole("button", {name:"Create task repository"}).click();
+test("repository workflow creates a real task snapshot and discloses runner availability", async ({
+  page,
+}) => {
+  await page
+    .getByRole("link", { name: "Repository agent", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "A failing test. A reviewed fix." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Create task repository" }).click();
   await expect(page.locator("#code-repository")).not.toHaveValue("");
-  await expect(page.getByLabel("Repair request")).toHaveValue(/Fix the discount/);
-  await expect(page.locator("#code-notice")).toContainText(/Isolated runner ready|Docker runner unavailable/);
-  await page.setViewportSize({width:390,height:844});
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.getByLabel("Repair request")).toHaveValue(
+    /Fix the discount/,
+  );
+  await expect(page.locator("#code-notice")).toContainText(
+    /Isolated runner ready|Docker runner unavailable/,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("invalid credentials cannot unlock the workspace", async ({ page }) => {
   await page.evaluate(() => sessionStorage.clear());
   await page.reload();
-  await page.getByLabel("Access token", {exact:true}).fill("invalid-token-with-enough-characters");
-  await page.getByRole("button", {name:"Connect to workspace"}).click();
+  await page
+    .getByLabel("Access token", { exact: true })
+    .fill("invalid-token-with-enough-characters");
+  await page.getByRole("button", { name: "Connect to workspace" }).click();
   await expect(page.locator("#login-error")).toContainText("bearer token");
   await expect(page.locator("#login-dialog")).toBeVisible();
+});
+
+test("isolated repair, patch approval and evaluated promotion through the UI", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(150000);
+  const response = await request.get("/api/code/config", {
+    headers: { Authorization: "Bearer e2e-operator-token-0123456789" },
+  });
+  test.skip(
+    !(await response.json()).sandbox.available,
+    "Requires the isolated Docker runner; verified in CI.",
+  );
+  await page
+    .getByRole("link", { name: "Repository agent", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Create task repository" }).click();
+  await expect(page.locator("#code-repository")).not.toHaveValue("");
+  await page.getByRole("button", { name: "Run isolated repair" }).click();
+  await expect(
+    page.getByRole("button", { name: "Review & commit patch" }),
+  ).toBeEnabled({ timeout: 120000 });
+  await expect(page.locator(".patch-output")).toContainText("amount - 5");
+  await expect(page.locator("#code-result")).toContainText("FAIL → PASS");
+  fs.mkdirSync("target/screenshots", { recursive: true });
+  await page.screenshot({
+    path: "target/screenshots/repository-repair.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Review & commit patch" }).click();
+  await expect(
+    page.getByRole("button", { name: "Commit reviewed patch" }),
+  ).toBeDisabled();
+  await page
+    .getByLabel("I reviewed the source diff and unchanged test results.")
+    .check();
+  await page.getByRole("button", { name: "Commit reviewed patch" }).click();
+  await expect(page.locator("#code-result")).toContainText(
+    "Reviewed patch committed",
+  );
+  await page
+    .getByRole("button", { name: "Compare feedback candidate" })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Promote evaluated candidate" }),
+  ).toBeVisible({ timeout: 120000 });
+  await expect(page.locator("#code-comparisons")).toContainText(
+    "container-isolation: PASS",
+  );
+  await page
+    .getByRole("button", { name: "Promote evaluated candidate" })
+    .click();
+  await expect(page.locator("#toast")).toHaveText(
+    "Evaluated search policy promoted.",
+  );
 });

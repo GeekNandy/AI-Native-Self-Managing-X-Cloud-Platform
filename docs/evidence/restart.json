@@ -1,0 +1,98 @@
+{
+  "recordedAt": "2026-10-21T16:00:02.102168+00:00",
+  "experiment": "SIGKILL after committed provision and observed drift; fresh JVM; same H2 directory",
+  "sourceDigest": "5c0038488504952453d6f8031e23842c57f49da5cff4fd22100bc6f8521ce9df",
+  "checks": {
+    "receiptSurvived": true,
+    "replayDeduplicated": true,
+    "desiredVersionPreserved": true,
+    "observedDriftPreserved": true,
+    "runRestored": true,
+    "auditHistoryPreserved": true
+  },
+  "receipt": {
+    "operationId": "5e33dd15-c2e7-447a-b8da-e81de5f96635",
+    "planId": "0a401797-9837-4310-86af-3ba2f59697ac",
+    "digest": "f547fa796c1967674ee844fa1cbe7d3b283523bd2262a9297b4410f55b22244b",
+    "idempotencyKey": "crash-restart-retry",
+    "environment": {
+      "id": "payments-api-production",
+      "revision": 1,
+      "desiredVersion": 1,
+      "convergence": "CONVERGED",
+      "desired": {
+        "serviceName": "payments-api",
+        "runtime": "java21",
+        "tier": "production",
+        "region": "germany",
+        "privateNetwork": true,
+        "restrictedEgress": true,
+        "dataClassification": "pii",
+        "encryptedStorage": true,
+        "zones": 3,
+        "replicas": 3,
+        "monitoring": true,
+        "rollback": true
+      },
+      "observed": {
+        "serviceName": "payments-api",
+        "runtime": "java21",
+        "tier": "production",
+        "region": "germany",
+        "privateNetwork": true,
+        "restrictedEgress": true,
+        "dataClassification": "pii",
+        "encryptedStorage": true,
+        "zones": 3,
+        "replicas": 3,
+        "monitoring": true,
+        "rollback": true
+      },
+      "drift": []
+    },
+    "completedAt": "2026-10-21T15:59:58.654570849Z"
+  },
+  "restoredEnvironment": {
+    "id": "payments-api-production",
+    "revision": 2,
+    "desiredVersion": 1,
+    "convergence": "DRIFT_DETECTED",
+    "desired": {
+      "serviceName": "payments-api",
+      "runtime": "java21",
+      "tier": "production",
+      "region": "germany",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "pii",
+      "encryptedStorage": true,
+      "zones": 3,
+      "replicas": 3,
+      "monitoring": true,
+      "rollback": true
+    },
+    "observed": {
+      "serviceName": "payments-api",
+      "runtime": "java21",
+      "tier": "production",
+      "region": "germany",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "pii",
+      "encryptedStorage": true,
+      "zones": 3,
+      "replicas": 1,
+      "monitoring": true,
+      "rollback": true
+    },
+    "drift": [
+      {
+        "field": "replicas",
+        "expected": 3,
+        "observed": 1,
+        "severity": "HIGH"
+      }
+    ]
+  },
+  "limitation": "Single-node embedded state. In-flight external-write recovery is covered by a separate journal-interruption test; distributed leases and cross-node failover are outside this release."
+}

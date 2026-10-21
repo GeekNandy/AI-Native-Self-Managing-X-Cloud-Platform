@@ -17,12 +17,25 @@
   <body>
     <dialog id="login-dialog" aria-labelledby="login-title">
       <form id="login-form">
-        <div class="eyebrow">SCOPED ACCESS</div><h2 id="login-title">Unlock your workspace</h2>
-        <p>Enter the operator token from <code>.workbench/operator.token</code>, or use your configured credential.</p>
+        <div class="eyebrow">SCOPED ACCESS</div>
+        <h2 id="login-title">Unlock your workspace</h2>
+        <p>
+          Enter the operator token from <code>.workbench/operator.token</code>,
+          or use your configured credential.
+        </p>
         <label for="access-token">Access token</label>
-        <input id="access-token" type="password" autocomplete="off" required minlength="24" maxlength="200" />
+        <input
+          id="access-token"
+          type="password"
+          autocomplete="off"
+          required
+          minlength="24"
+          maxlength="200"
+        />
         <p id="login-error" role="alert"></p>
-        <button class="button primary" type="submit">Connect to workspace</button>
+        <button class="button primary" type="submit">
+          Connect to workspace
+        </button>
       </form>
     </dialog>
     <div class="shell">
@@ -42,7 +55,10 @@
             ><span class="nav-icon" aria-hidden="true">◈</span>Agent
             workbench</a
           >
-          <a href="#code" data-view="code" class="nav-item"><span class="nav-icon" aria-hidden="true">⌘</span>Repository agent</a>
+          <a href="#code" data-view="code" class="nav-item"
+            ><span class="nav-icon" aria-hidden="true">⌘</span>Repository
+            agent</a
+          >
           <a href="#environments" data-view="environments" class="nav-item"
             ><span class="nav-icon" aria-hidden="true">▦</span>Environments<span
               id="nav-environments"
@@ -202,25 +218,130 @@
             </div>
           </section>
           <section id="view-code" class="view" hidden>
-            <div class="page-heading"><div><div class="eyebrow">BOUNDED REPOSITORY WORKFLOW</div><h1>A failing test. A reviewed fix.</h1><p>Inspect a real Git patch, its test evidence, and every tool operation.</p></div><span id="code-provider" class="badge purple">Mutation search</span></div>
-            <div id="code-notice" class="mode-notice" role="status">Checking the isolated test runner…</div>
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">BOUNDED REPOSITORY WORKFLOW</div>
+                <h1>A failing test. A reviewed fix.</h1>
+                <p>
+                  Inspect a real Git patch, its test evidence, and every tool
+                  operation.
+                </p>
+              </div>
+              <span id="code-provider" class="badge purple"
+                >Mutation search</span
+              >
+            </div>
+            <div id="code-notice" class="mode-notice" role="status">
+              Checking the isolated test runner…
+            </div>
             <div class="code-layout">
               <div class="panel code-task-panel">
-                <div class="eyebrow">1 · CHOOSE THE REPOSITORY</div><h2>A small, inspectable task</h2>
-                <label for="code-task">Example task</label><select id="code-task"></select>
-                <button id="code-create" class="button secondary">Create task repository</button>
-                <label for="code-repository">Managed repository</label><select id="code-repository"><option value="">Create or import a repository</option></select>
-                <details><summary>Import a source snapshot</summary><p>JSON with <code>name</code>, <code>files</code>, and <code>testClass</code>. Up to 24 Java files; no build scripts or dependencies. The test class supplies a main method.</p><input id="code-import-file" type="file" accept=".json,application/json" aria-label="Import repository JSON"/><button id="code-template" class="button text-button">Download example JSON</button></details>
-                <div class="eyebrow">2 · SET THE BUDGET</div><label for="code-instruction">Repair request</label><textarea id="code-instruction" rows="4" maxlength="4000"></textarea>
-                <label for="code-engine">Proposal provider</label><select id="code-engine"><option value="mutation-search">Bounded mutation search</option></select>
-                <div class="code-budget"><label>Candidate attempts<input id="code-attempts" type="number" min="1" max="12" value="8"/></label><label>Time budget (seconds)<input id="code-timeout" type="number" min="20" max="120" value="90"/></label></div>
-                <button id="code-start" class="button primary" disabled>Run isolated repair</button>
-                <p class="footnote">Tests stay unchanged. The runner has no network, host mounts or credentials. Each candidate gets at most 20 seconds. Cleanup has a separate bounded allowance.</p>
+                <div class="eyebrow">1 · CHOOSE THE REPOSITORY</div>
+                <h2>A small, inspectable task</h2>
+                <label for="code-task">Example task</label
+                ><select id="code-task"></select>
+                <button id="code-create" class="button secondary">
+                  Create task repository
+                </button>
+                <label for="code-repository">Managed repository</label
+                ><select id="code-repository">
+                  <option value="">Create or import a repository</option>
+                </select>
+                <details>
+                  <summary>Import a source snapshot</summary>
+                  <p>
+                    JSON with <code>name</code>, <code>files</code>, and
+                    <code>testClass</code>. Up to 24 Java files; no build
+                    scripts or dependencies. The test class supplies a main
+                    method.
+                  </p>
+                  <input
+                    id="code-import-file"
+                    type="file"
+                    accept=".json,application/json"
+                    aria-label="Import repository JSON"
+                  /><button id="code-template" class="button text-button">
+                    Download example JSON
+                  </button>
+                </details>
+                <div class="eyebrow">2 · SET THE BUDGET</div>
+                <label for="code-instruction">Repair request</label
+                ><textarea
+                  id="code-instruction"
+                  rows="4"
+                  maxlength="4000"
+                ></textarea>
+                <label for="code-engine">Proposal provider</label
+                ><select id="code-engine">
+                  <option value="mutation-search">
+                    Bounded mutation search
+                  </option>
+                </select>
+                <div class="code-budget">
+                  <label
+                    >Candidate attempts<input
+                      id="code-attempts"
+                      type="number"
+                      min="1"
+                      max="12"
+                      value="8" /></label
+                  ><label
+                    >Time budget (seconds)<input
+                      id="code-timeout"
+                      type="number"
+                      min="20"
+                      max="120"
+                      value="90"
+                  /></label>
+                </div>
+                <button id="code-start" class="button primary" disabled>
+                  Run isolated repair
+                </button>
+                <p class="footnote">
+                  Tests stay unchanged. The runner has no network, host mounts
+                  or credentials. Each candidate gets at most 20 seconds.
+                  Cleanup has a separate bounded allowance.
+                </p>
               </div>
-              <div class="panel code-review-panel"><div class="eyebrow">3 · INSPECT THE EVIDENCE</div><div id="code-result"><div class="empty-state"><h2>Your patch will appear here</h2><p>A successful run shows the failing baseline, passing verification and a reviewable source diff.</p></div></div></div>
+              <div class="panel code-review-panel">
+                <div class="eyebrow">3 · INSPECT THE EVIDENCE</div>
+                <div id="code-result">
+                  <div class="empty-state">
+                    <h2>Your patch will appear here</h2>
+                    <p>
+                      A successful run shows the failing baseline, passing
+                      verification and a reviewable source diff.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="panel code-improvement"><div class="section-heading"><div><div class="eyebrow">MEASURED FEEDBACK</div><h2>Evaluate before promotion</h2><p>Approved example repairs can change candidate ordering. Compare against the active version on separate public tasks and isolation probes.</p></div><button id="code-compare" class="button secondary">Compare feedback candidate</button></div><div id="code-comparisons"></div></div>
-            <div class="panel code-history"><div class="section-heading"><h2>Run history</h2><button id="code-refresh" class="button secondary">Refresh repair runs</button></div><div id="code-runs"></div></div>
+            <div class="panel code-improvement">
+              <div class="section-heading">
+                <div>
+                  <div class="eyebrow">MEASURED FEEDBACK</div>
+                  <h2>Evaluate before promotion</h2>
+                  <p>
+                    Approved example repairs can change candidate ordering.
+                    Compare against the active version on separate public tasks
+                    and isolation probes.
+                  </p>
+                </div>
+                <button id="code-compare" class="button secondary">
+                  Compare feedback candidate
+                </button>
+              </div>
+              <div id="code-comparisons"></div>
+            </div>
+            <div class="panel code-history">
+              <div class="section-heading">
+                <h2>Run history</h2>
+                <button id="code-refresh" class="button secondary">
+                  Refresh repair runs
+                </button>
+              </div>
+              <div id="code-runs"></div>
+            </div>
           </section>
           <section id="view-environments" class="view" hidden>
             <div class="page-heading">
@@ -314,7 +435,33 @@
         </div>
       </form>
     </dialog>
-    <dialog id="code-approval" aria-labelledby="code-approval-title"><form method="dialog"><div class="eyebrow">REVIEWED SOURCE CHANGE</div><h2 id="code-approval-title">Commit this tested patch?</h2><p>This updates the managed repository only. Approval checks the exact patch digest and original Git head.</p><code id="code-approval-digest" class="digest"></code><label class="approval-check"><input id="code-approval-check" type="checkbox"/><span>I reviewed the source diff and unchanged test results.</span></label><div class="dialog-actions"><button class="button secondary" value="cancel">Cancel</button><button id="code-approval-confirm" type="button" class="button primary" disabled>Commit reviewed patch</button></div></form></dialog>
+    <dialog id="code-approval" aria-labelledby="code-approval-title">
+      <form method="dialog">
+        <div class="eyebrow">REVIEWED SOURCE CHANGE</div>
+        <h2 id="code-approval-title">Commit this tested patch?</h2>
+        <p>
+          This updates the managed repository only. Approval checks the exact
+          patch digest and original Git head.
+        </p>
+        <code id="code-approval-digest" class="digest"></code
+        ><label class="approval-check"
+          ><input id="code-approval-check" type="checkbox" /><span
+            >I reviewed the source diff and unchanged test results.</span
+          ></label
+        >
+        <div class="dialog-actions">
+          <button class="button secondary" value="cancel">Cancel</button
+          ><button
+            id="code-approval-confirm"
+            type="button"
+            class="button primary"
+            disabled
+          >
+            Commit reviewed patch
+          </button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="about-dialog">
       <form method="dialog">
         <div class="dialog-icon">x</div>
@@ -322,7 +469,8 @@
         <h2>AI proposes. The control plane decides.</h2>
         <p>
           This proof of concept translates structured requirements into
-          deterministic plans, generated workload files and a capability-checked local runtime.
+          deterministic plans, generated workload files and a capability-checked
+          local runtime.
         </p>
         <ul>
           <li>
@@ -334,7 +482,9 @@
             and bounded concurrency. It cannot approve or execute plans.
           </li>
           <li>
-            <strong>Runtime:</strong> durable simulator by default, or isolated Docker development workloads. Unsupported provider requirements are denied.
+            <strong>Runtime:</strong> durable simulator by default, or isolated
+            Docker development workloads. Unsupported provider requirements are
+            denied.
           </li>
           <li>
             <strong>Feedback:</strong> reviewed corrections become regression
@@ -342,7 +492,9 @@
           </li>
         </ul>
         <p class="footnote">
-          Single-node PoC with durable state, scoped access, repository repair and MCP. Cloud IAM, multi-tenant identity and distributed coordination remain future work.
+          Single-node PoC with durable state, scoped access, repository repair
+          and MCP. Cloud IAM, multi-tenant identity and distributed coordination
+          remain future work.
         </p>
         <div class="dialog-actions">
           <button class="button primary">Back to workbench</button>

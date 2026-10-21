@@ -4,6 +4,7 @@ import argparse
 import os
 import concurrent.futures
 import datetime
+import hashlib
 import json
 import math
 import time
@@ -57,8 +58,14 @@ def main():
     times = sorted(duration for duration, _ in results)
     errors = [error for _, error in results if error]
     percentile = lambda p: times[max(0, math.ceil(len(times) * p) - 1)]
+    source_root = Path(__file__).resolve().parent.parent
+    source = hashlib.sha256()
+    for path in sorted([source_root / 'pom.xml', *source_root.joinpath('src/main').rglob('*')]):
+        if path.is_file():
+            source.update(str(path.relative_to(source_root)).encode())
+            source.update(path.read_bytes())
     report = dict(recordedAt=datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                  workload='POST /api/plans, structured Java development intent; five warmup requests excluded',
+                  sourceDigest=source.hexdigest(), storage='embedded-h2', workload='POST /api/plans, structured Java development intent; five warmup requests excluded',
                   requests=args.requests, concurrency=args.concurrency, environmentIdentities=args.environments,
                   elapsedSeconds=elapsed, completedRequestsPerSecond=args.requests / elapsed,
                   errors=len(errors), errorDetails=errors[:10], p50Ms=percentile(.50), p95Ms=percentile(.95), p99Ms=percentile(.99),

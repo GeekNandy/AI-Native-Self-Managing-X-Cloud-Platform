@@ -79,7 +79,7 @@ def main():
                 'driftBeforeRecovery': drift, 'recoveryReceipt': recovered,
                 'negativeOutcomes': {'unsafeRequest': denied['status'], 'ambiguousRequest': clarify['status']},
                 'evaluation': evaluation,
-                'limitations': 'Offline fixture replay and in-memory simulation. No live model, cloud calls, workload deployment or load benchmark.'}
+                'limitations': 'Offline fixture interpretation and durable simulation. No live model, cloud calls, workload deployment or load benchmark.'}
     if args.evidence:
         args.evidence.parent.mkdir(parents=True, exist_ok=True)
         args.evidence.write_text(json.dumps(evidence, indent=2) + '\n')
@@ -92,7 +92,7 @@ def main():
     print(f'Provisioned {environment_id}; retry deduplicated; two drift fields repaired.')
     print(f'Unsafe request: {denied["status"]}; ambiguous request: {clarify["status"]}.')
     print(f'Evaluation: {evaluation["passed"]}/{evaluation["total"]} passed, including {evaluation["feedbackCases"]} feedback cases.')
-    print('Execution: in-memory sandbox. No live model or cloud resources used.')
+    print('Execution: durable simulator. No live model or cloud resources used.')
 
 
 if __name__ == '__main__':

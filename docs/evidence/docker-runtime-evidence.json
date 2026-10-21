@@ -1,0 +1,273 @@
+{
+  "drift": {
+    "id": "container-demo-development",
+    "revision": 2,
+    "desiredVersion": 1,
+    "convergence": "DRIFT_DETECTED",
+    "desired": {
+      "serviceName": "container-demo",
+      "runtime": "java21",
+      "tier": "development",
+      "region": "local",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "internal",
+      "encryptedStorage": false,
+      "zones": 1,
+      "replicas": 2,
+      "monitoring": true,
+      "rollback": false
+    },
+    "observed": {
+      "serviceName": "container-demo",
+      "runtime": "java21",
+      "tier": "development",
+      "region": "local",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "internal",
+      "encryptedStorage": false,
+      "zones": 1,
+      "replicas": 1,
+      "monitoring": true,
+      "rollback": false
+    },
+    "drift": [
+      {
+        "field": "replicas",
+        "expected": 2,
+        "observed": 1,
+        "severity": "HIGH"
+      }
+    ]
+  },
+  "provision": {
+    "id": "aad5b7d8-546e-4ca7-89a3-1bb1bb0d1807",
+    "environmentId": "container-demo-development",
+    "kind": "PROVISION",
+    "status": "AWAITING_APPROVAL",
+    "baseRevision": 0,
+    "intent": {
+      "serviceName": "container-demo",
+      "runtime": "java21",
+      "tier": "development",
+      "region": "local",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "internal",
+      "encryptedStorage": false,
+      "zones": 1,
+      "replicas": 2,
+      "monitoring": true,
+      "rollback": false
+    },
+    "policy": {
+      "version": "sandbox-policy-v1",
+      "decision": "ALLOW",
+      "checks": [
+        {
+          "id": "RESIDENCY",
+          "field": "region",
+          "passed": true,
+          "requirement": "PII must remain in Germany or the EU."
+        },
+        {
+          "id": "PRIVATE_NETWORK",
+          "field": "privateNetwork",
+          "passed": true,
+          "requirement": "Production workloads require private networking."
+        },
+        {
+          "id": "RESTRICTED_EGRESS",
+          "field": "restrictedEgress",
+          "passed": true,
+          "requirement": "Production workloads require restricted egress."
+        },
+        {
+          "id": "ENCRYPTION",
+          "field": "encryptedStorage",
+          "passed": true,
+          "requirement": "PII storage must require encryption."
+        },
+        {
+          "id": "AVAILABILITY",
+          "field": "zones",
+          "passed": true,
+          "requirement": "Production requires at least three zones and three replicas."
+        },
+        {
+          "id": "MONITORING",
+          "field": "monitoring",
+          "passed": true,
+          "requirement": "Production monitoring must be enabled."
+        },
+        {
+          "id": "ROLLBACK",
+          "field": "rollback",
+          "passed": true,
+          "requirement": "Production rollback support must be enabled."
+        },
+        {
+          "id": "REPLICA_BUDGET",
+          "field": "replicas",
+          "passed": true,
+          "requirement": "The sandbox quota permits at most ten replicas."
+        },
+        {
+          "id": "DOCKER_SCOPE",
+          "field": "tier",
+          "passed": true,
+          "requirement": "Local Docker supports development environments only."
+        },
+        {
+          "id": "DOCKER_REGION",
+          "field": "region",
+          "passed": true,
+          "requirement": "Choose local; this adapter cannot enforce a cloud residency region."
+        },
+        {
+          "id": "DOCKER_TOPOLOGY",
+          "field": "zones",
+          "passed": true,
+          "requirement": "One local zone and at most three replicas are supported."
+        },
+        {
+          "id": "DOCKER_NETWORK",
+          "field": "restrictedEgress",
+          "passed": true,
+          "requirement": "The local workload uses network=none, with no published ports or egress."
+        },
+        {
+          "id": "DOCKER_DATA",
+          "field": "dataClassification",
+          "passed": true,
+          "requirement": "Ephemeral public/internal workloads only; encrypted storage and PII are unsupported."
+        },
+        {
+          "id": "DOCKER_ROLLBACK",
+          "field": "rollback",
+          "passed": true,
+          "requirement": "Automatic rollback is unsupported; review a fresh plan to restore an earlier configuration."
+        }
+      ]
+    },
+    "actions": [
+      {
+        "order": 1,
+        "resource": "network",
+        "operation": "ENSURE",
+        "description": "Declare network boundary and egress requirements",
+        "dependsOn": []
+      },
+      {
+        "order": 2,
+        "resource": "data",
+        "operation": "ENSURE",
+        "description": "Declare classification, residency and encryption requirements",
+        "dependsOn": [
+          "network"
+        ]
+      },
+      {
+        "order": 3,
+        "resource": "workload",
+        "operation": "ENSURE",
+        "description": "Compile Java 21 workload with 2 replicas",
+        "dependsOn": [
+          "network",
+          "data"
+        ]
+      },
+      {
+        "order": 4,
+        "resource": "operations",
+        "operation": "ENSURE",
+        "description": "Declare monitoring and rollback requirements",
+        "dependsOn": [
+          "workload"
+        ]
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "intent.json",
+        "language": "json",
+        "content": "{\n  \"serviceName\" : \"container-demo\",\n  \"runtime\" : \"java21\",\n  \"tier\" : \"development\",\n  \"region\" : \"local\",\n  \"privateNetwork\" : true,\n  \"restrictedEgress\" : true,\n  \"dataClassification\" : \"internal\",\n  \"encryptedStorage\" : false,\n  \"zones\" : 1,\n  \"replicas\" : 2,\n  \"monitoring\" : true,\n  \"rollback\" : false\n}"
+      },
+      {
+        "path": "deployment.yaml",
+        "language": "yaml",
+        "content": "# REVIEW PREVIEW. The workbench never applies this file to a cluster.\n# Residency and storage encryption require a provider adapter and are not enforced here.\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: container-demo\nspec:\n  replicas: 2\n  revisionHistoryLimit: 0\n  selector:\n    matchLabels: {app: container-demo}\n  template:\n    metadata:\n      labels: {app: container-demo}\n    spec:\n      automountServiceAccountToken: false\n      securityContext:\n        runAsNonRoot: true\n        runAsUser: 10001\n        seccompProfile: {type: RuntimeDefault}\n      topologySpreadConstraints:\n        - maxSkew: 1\n          minDomains: 1\n          topologyKey: topology.kubernetes.io/zone\n          whenUnsatisfiable: DoNotSchedule\n          labelSelector:\n            matchLabels: {app: container-demo}\n      containers:\n        - name: app\n          image: local/container-demo:demo\n          ports: [{containerPort: 8080}]\n          securityContext:\n            allowPrivilegeEscalation: false\n            readOnlyRootFilesystem: true\n            capabilities: {drop: [ALL]}\n          resources:\n            requests: {cpu: 100m, memory: 128Mi}\n            limits: {cpu: 500m, memory: 256Mi}\n          readinessProbe:\n            httpGet: {path: /health, port: 8080}\n          livenessProbe:\n            httpGet: {path: /health, port: 8080}\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: container-demo\nspec:\n  type: ClusterIP\n  selector: {app: container-demo}\n  ports: [{port: 80, targetPort: 8080}]\n"
+      },
+      {
+        "path": "network-policy.yaml",
+        "language": "yaml",
+        "content": "# Requires a NetworkPolicy-capable CNI. Restricted mode denies all egress.\n# Add reviewed DNS/service allow rules before deploying a real application.\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: container-demo\nspec:\n  podSelector:\n    matchLabels: {app: container-demo}\n  policyTypes: [Ingress, Egress]\n  ingress: [{from: [{podSelector: {}}]}]\n  egress: []\n"
+      },
+      {
+        "path": "Main.java",
+        "language": "java",
+        "content": "import com.sun.net.httpserver.HttpServer;\nimport java.net.InetSocketAddress;\nimport java.nio.charset.StandardCharsets;\n\npublic class Main {\n    public static void main(String[] args) throws Exception {\n        var server = HttpServer.create(new InetSocketAddress(8080), 0);\n        server.createContext(\"/\", exchange -> {\n            var body = \"{\\\"service\\\":\\\"container-demo\\\",\\\"status\\\":\\\"ok\\\"}\".getBytes(StandardCharsets.UTF_8);\n            exchange.getResponseHeaders().set(\"Content-Type\", \"application/json\");\n            exchange.sendResponseHeaders(200, body.length);\n            try (var output = exchange.getResponseBody()) { output.write(body); }\n        });\n        server.start();\n    }\n}\n"
+      },
+      {
+        "path": "Dockerfile",
+        "language": "dockerfile",
+        "content": "FROM eclipse-temurin:21-jdk AS build\nWORKDIR /src\nCOPY Main.java .\nRUN javac --release 21 Main.java\nFROM eclipse-temurin:21-jre\nWORKDIR /app\nCOPY --from=build /src/Main.class .\nUSER 10001:10001\nEXPOSE 8080\nENTRYPOINT [\"java\", \"-XX:MaxRAMPercentage=75\", \"Main\"]\n"
+      }
+    ],
+    "digest": "948e48c31d875fd1a3bee178aba5ad514c17c302ac8793ffad18e8ee55c2cf96",
+    "createdAt": "2026-10-21T15:42:42.843643190Z",
+    "expiresAt": "2026-10-21T15:57:42.843643190Z"
+  },
+  "recovery": {
+    "receipt": {
+      "operationId": "25098139-a971-4131-a2c1-956d36f8d583",
+      "planId": "3aec5f07-07a6-4b83-9759-e9b93cd411b6",
+      "digest": "fa42cecfa253aa674870d1eea4275194dfefce83b06c9202daa0e0ede5a1c3a3",
+      "idempotencyKey": "docker-recovery-key",
+      "environment": {
+        "id": "container-demo-development",
+        "revision": 3,
+        "desiredVersion": 1,
+        "convergence": "CONVERGED",
+        "desired": {
+          "serviceName": "container-demo",
+          "runtime": "java21",
+          "tier": "development",
+          "region": "local",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "internal",
+          "encryptedStorage": false,
+          "zones": 1,
+          "replicas": 2,
+          "monitoring": true,
+          "rollback": false
+        },
+        "observed": {
+          "serviceName": "container-demo",
+          "runtime": "java21",
+          "tier": "development",
+          "region": "local",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "internal",
+          "encryptedStorage": false,
+          "zones": 1,
+          "replicas": 2,
+          "monitoring": true,
+          "rollback": false
+        },
+        "drift": []
+      },
+      "completedAt": "2026-10-21T15:42:56.356327457Z"
+    },
+    "replayed": false
+  },
+  "provenance": {
+    "commit": "e1358d2ec78c6b0bd7b4a0247d33403a23766149",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39627955441",
+    "artifactId": 12357348048,
+    "artifactDigest": "sha256:4a8dc7baf0469f1b4f71308d539e87866cc46e40648ce762a450188a0da81f11"
+  }
+}

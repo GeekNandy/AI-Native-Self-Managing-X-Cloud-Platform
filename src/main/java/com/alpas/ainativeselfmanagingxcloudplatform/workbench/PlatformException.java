@@ -10,13 +10,23 @@ public final class PlatformException extends RuntimeException {
     public PlatformException(int status, String code, String message) {
         this(status, code, message, List.of());
     }
+
     public PlatformException(int status, String code, String message, List<String> details) {
         super(message);
         this.status = status;
         this.code = code;
         this.details = List.copyOf(details);
     }
-    public int status() { return status; }
-    public String code() { return code; }
-    public List<String> details() { return details; }
+
+    public int status() {
+        return status;
+    }
+
+    public String code() {
+        return code;
+    }
+
+    public List<String> details() {
+        return details;
+    }
 }

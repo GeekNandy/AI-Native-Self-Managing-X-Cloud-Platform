@@ -1,36 +1,20 @@
-# Engineering Roadmap
+# Engineering roadmap
 
-## Current baseline
+## Completed PoC scope
 
-The workbench compiles candidate environment intent into a reviewed engineering change, applies a governed sandbox transition, observes drift, and records regression evidence.
+The working release includes governed environment planning/recovery, durable single-node state, operator/agent scopes, bounded repository repair in actual containers, inspected Git patches, MCP tools, capability-checked local workload execution, and feedback-derived search-policy promotion gated by paired public tasks and isolation probes. See the [demo](demo-guide.md) and [evidence](evidence/README.md).
 
-| Area | Implemented behavior | Next increment |
+## Next production increments
+
+| Area | Current evidence | Further work |
 | --- | --- | --- |
-| Developer workflow | Browser workbench, explicit interpreter contract and generated workload files | Repository tasks with edits, isolated build/test tools and a reviewable patch |
-| Client and API | Java 21/Spring Boot API and responsive JavaScript client with browser tests | IDE integration and broader accessibility validation |
-| Orchestration | Typed intent, bounded inference, independent policy and immutable plans | Durable asynchronous runs, cancellation and multi-tenant identity |
-| Evaluation | Versioned golden scenarios, exact intent checks, isolated execution probes and exported results | Held-out repository tasks, repeated live-model trials and cost/quality comparisons |
-| Feedback | Reviewed corrections become regression cases | Versioned prompt or tool changes, evaluated against a separate holdout before promotion |
-| Reliability | Retry deduplication, state revision checks, explicit unknown observations and partial-failure tests | Real provider failures, distributed coordination and recovery after restart |
+| Generative quality | Strict Gemini adapters and deterministic contract tests | Repeated live-key trials, model/version tracking, token/cost measurements and unseen private datasets |
+| Repair correctness | Unchanged regression tests on bounded Java snapshots | Multi-module projects, dependency-aware context, stronger oracles and adversarial correctness evaluation |
+| Feedback | Versioned mutation ordering, disjoint public smoke tasks and operator promotion | Protected evolving holdouts, statistical confidence, rollback and broader candidate changes |
+| Provider execution | Actual isolated local workloads and capability denials | Cloud IAM, quotas, encrypted storage, verified residency, Kubernetes admission and cross-zone failures |
+| Durability | Embedded transactional journal and crash/restart evidence | Migrations, backups/restore drills, distributed leases and fault injection across service boundaries |
+| Access | Scoped local tokens and origin enforcement | OIDC, tenant/resource authorization, credential rotation and remote TLS/OAuth deployment |
+| Execution isolation | Docker resource/privilege/network controls | MicroVM workers, hardened images, image digest lifecycle and hostile multi-tenant security review |
+| Operations | Bounded queues, retention and local measurements | Continuous reconciliation, workload lifecycle cleanup, long-duration saturation tests and distributed tracing |
 
-## Priorities
-
-1. **Repository change workflow.** Introduce a worktree tool and a narrowly scoped agent that diagnoses a failing test, proposes a patch, runs an allowlisted build in an isolated container and submits the change for review. Each run needs an explicit tool, time and token budget. Measure task completion through tests and patch correctness.
-2. **Live interpretation evidence.** Evaluate Gemini against fresh requests outside the fixture catalog. Record exact intent agreement, invalid tool requests, policy outcomes, task completion, end-to-end latency, token usage and cost. Identify fixture replay and live inference separately in reports.
-3. **Measured improvement.** Keep feedback and holdout tasks separate. Compare a versioned prompt or retrieval change against the baseline on paired runs. Promotion requires passing safety checks and measured improvement. Retain failed candidates and protect the holdout from training or tuning.
-4. **Execution adapter.** Start with an isolated Kubernetes namespace or a disposable cloud environment. Enforce identity, residency, encryption and provider capabilities through actual execution. Report unsupported requirements explicitly.
-5. **Durable operation semantics.** Persist plans, desired state, receipts, feedback and audit records. Introduce per-environment optimistic concurrency, leased workers and recovery rules for uncertain provider writes. Measure bounded-concurrency workloads and recovery after process failure.
-
-## Acceptance gates
-
-- Repository changes include an inspectable patch, test results and an operation trace.
-- Live interpreter results include the model, configuration, dataset version and failure analysis.
-- Improvement candidates pass the same safety suite as the baseline and use a separate evaluation holdout.
-- Provider adapters expose capability checks and demonstrate that required controls are enforced.
-- Durable execution preserves retry semantics and reconstructs state after a crash or restart.
-
-## Evidence boundaries
-
-The current release uses curated offline examples and an in-memory simulator. Generated deployment files are review artifacts. Residency and encryption are logical policy requirements until a provider adapter enforces them. Feedback contributes regression cases; model or policy changes require a separate implementation and evaluation.
-
-Recorded local measurements describe the tested JVM and loopback HTTP workload. Live-model quality, cloud execution, distributed capacity and durable recovery each require their own evidence.
+Acceptance for production claims requires evidence for the actual backend, identity system and deployment topology. Local timings, fixture extraction and public repair tasks are labelled according to what they establish.

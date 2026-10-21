@@ -9,5 +9,4 @@ public class AiNativeSelfManagingCloudApplicationPlatformApplication {
     public static void main(String[] args) {
         SpringApplication.run(AiNativeSelfManagingCloudApplicationPlatformApplication.class, args);
     }
-
 }

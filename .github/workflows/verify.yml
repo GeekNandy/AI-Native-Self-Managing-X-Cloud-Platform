@@ -26,6 +26,7 @@ jobs:
       - run: ./mvnw -B verify
         env:
           RUN_DOCKER_TESTS: true
+      - run: python3 scripts/verify-restart.py
       - run: npm ci
       - run: npm run check
       - run: npx playwright install --with-deps chromium
@@ -37,6 +38,8 @@ jobs:
           path: |
             target/docker-*-evidence.json
             target/surefire-reports/
+            target/restart-evidence.json
+            target/screenshots/
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: failure()
