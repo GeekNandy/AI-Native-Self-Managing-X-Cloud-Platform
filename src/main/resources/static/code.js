@@ -114,7 +114,7 @@ async function initialize() {
     $("#code-engine").innerHTML = state.config.providers
       .map(
         (p) =>
-          `<option value="${esc(p)}">${p === "gemini" ? "Gemini structured patch" : "Bounded mutation search"}</option>`,
+          `<option value="${esc(p)}">${p === "gemini" ? "Gemini structured patch" : p === "nebius" ? "Nebius structured patch" : "Bounded mutation search"}</option>`,
       )
       .join("");
     $("#code-notice").textContent = state.config.sandbox.available
@@ -138,11 +138,13 @@ $("#code-task").addEventListener("change", () => {
   ).instruction;
 });
 $("#code-engine").addEventListener("change", () => {
-  const live = $("#code-engine").value === "gemini";
+  const live = $("#code-engine").value !== "mutation-search";
   $("#code-attempts").max = live ? "3" : "12";
   if (live) $("#code-attempts").value = "2";
   $("#code-provider").textContent = live
-    ? "Gemini proposals"
+    ? $("#code-engine").value === "nebius"
+      ? "Nebius proposals"
+      : "Gemini proposals"
     : "Mutation search";
 });
 $("#code-create").addEventListener("click", () =>
@@ -246,3 +248,5 @@ document.addEventListener("click", (event) => {
       await initialize();
     });
 });
+
+export { state as codeState };

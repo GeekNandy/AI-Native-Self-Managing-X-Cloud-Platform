@@ -1,13 +1,16 @@
 {
   "name": "x-cloud-workbench-checks",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Browser checks for the Spring Boot workbench; no frontend build step required.",
   "scripts": {
-    "check": "node --check src/main/resources/static/app.js && node --check src/main/resources/static/code.js",
-    "test:e2e": "playwright test"
+    "check": "node --check src/main/resources/static/app.js && node --check src/main/resources/static/code.js && node --check src/main/resources/static/workspace-ui.js && node --check src/main/resources/static/theme.js && node scripts/build-theme.mjs --check",
+    "test:e2e": "playwright test",
+    "build:theme": "node scripts/build-theme.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.11.1",
+    "@material/material-color-utilities": "0.3.0",
     "@playwright/test": "1.62.1"
   }
 }

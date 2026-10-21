@@ -1,0 +1,9 @@
+Material Color Utilities 0.3.0: Copyright Google LLC. Apache-2.0 (Apache-2.0.txt).
+https://github.com/material-foundation/material-color-utilities
+Used at development time by scripts/build-theme.mjs. Vibrant light/dark schemes, seed #1a73e8, standard contrast.
+Material Symbols Outlined: Copyright Google LLC. Apache-2.0 (Apache-2.0.txt).
+https://github.com/google/material-design-icons — revision 49d4db35df873165d6bd6ba09b063c7dafbac2f4
+32 unchanged SVGs combined into a local sprite: cloud terminal code domain science history search dark_mode light_mode logout help chevron_right arrow_forward arrow_back check close add download refresh shield verified_user info error warning account_tree lock play_arrow commit compare_arrows check_circle visibility visibility_off
+Roboto variable normal, Latin, weights 100–900. Copyright 2011 The Roboto Project Authors. SIL Open Font License 1.1 (Roboto-OFL.txt).
+Unmodified Google Fonts v51 WOFF2. Source: https://fonts.gstatic.com/s/roboto/v51/KFO7CnqEu92Fr1ME7kSn66aGLdTylUAMa3yUBA.woff2
+SHA-256: 1404ca348bd75ef836f4dd8b6f2cc719458642d1237c368296b2fc652dca47dc

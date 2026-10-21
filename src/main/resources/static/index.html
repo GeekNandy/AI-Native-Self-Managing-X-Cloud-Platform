@@ -3,16 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#101a2c" />
+    <meta name="theme-color" content="#f8f9fc" />
     <meta
       name="description"
       content="A governed intent-to-environment workbench with policy review, sandbox execution, drift recovery and regression evaluation."
     />
     <title>X / Cloud — Agent Workbench</title>
     <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/assets/material-tokens.css" />
     <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/material.css" />
+    <script src="/theme.js"></script>
     <script src="/app.js" type="module"></script>
     <script src="/code.js" type="module"></script>
+    <script src="/workspace-ui.js" type="module"></script>
   </head>
   <body>
     <dialog id="login-dialog" aria-labelledby="login-title">
@@ -399,8 +403,8 @@
             </div>
             <div id="activity-content"></div>
             <p class="footnote">
-              Process-local event history. The latest 2,000 events are retained;
-              restarting clears the log.
+              Durable event journal. The latest 2,000 events are retained across
+              restarts.
             </p>
           </section>
         </main>

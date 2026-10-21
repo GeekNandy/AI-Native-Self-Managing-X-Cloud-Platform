@@ -44,8 +44,8 @@ Open **Repository agent**, create the **Discount calculation** example, run the 
 | Measured feedback | Accepted repairs derive a versioned candidate; paired public smoke tasks and isolation checks gate promotion |
 | MCP | Nine inspection/proposal tools over stateless Streamable HTTP, pinned to protocol 2025-11-25 |
 | Actual local workloads | Optional Docker adapter runs generated Java services, observes health/replica counts and restores lost replicas |
-| Full-stack client | Responsive workflow, patch/trace review, approval dialogs, activity history and evidence exports |
-| Optional Gemini | Bounded intent extraction and typed source-patch proposals with no shell or approval capability |
+| Full-stack client | Material 3 light/dark UI, Google open source assets, keyboard navigation, mobile layouts, scoped controls, filters, history selection and evidence exports |
+| Optional Gemini / Nebius | Bounded intent extraction and typed source-patch proposals with no shell or approval capability |
 
 **Evidence boundary:** offline environment interpretation uses curated examples. Offline repository repair is real bounded mutation search, labelled separately from Gemini. The default environment adapter is a durable simulator; Docker enforces a narrow local development profile and denies unsupported cloud requirements. Public smoke tasks do not establish general model quality. Production cloud IAM, multi-tenant identity, distributed workers and live-model quality evidence remain outside this PoC.
 
@@ -71,6 +71,8 @@ Verified: **40 Java tests, eight browser scenarios, actual Docker repair/recover
 
 ### Documentation
 
+- [Material 3 UI and Google open source assets](docs/frontend.md)
+- [Render hosting, username/password and Nebius configuration](docs/deploy-render.md)
 - [Demo walkthrough and Gemini setup](docs/demo-guide.md)
 - [Repository repair, budgets and feedback promotion](docs/repository-workflow.md)
 - [Runtime capabilities, durable state and recovery](docs/runtime-and-state.md)

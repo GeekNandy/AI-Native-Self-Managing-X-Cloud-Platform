@@ -17,6 +17,7 @@ import java.util.Map;
 @RequestMapping("/api")
 public class WorkbenchController {
     private final ControlPlane control;
+    private final HostedAccess hosted;
     private final AgentService agents;
     private final IntentInterpreter interpreter;
     private final ScenarioCatalog catalog;
@@ -31,7 +32,9 @@ public class WorkbenchController {
             ScenarioCatalog catalog,
             AuditLog audit,
             FeedbackStore feedback,
-            EvaluationService evaluations) {
+            EvaluationService evaluations,
+            HostedAccess hosted) {
+        this.hosted = hosted;
         this.control = control;
         this.agents = agents;
         this.interpreter = interpreter;
@@ -73,7 +76,7 @@ public class WorkbenchController {
                 "planTtlMinutes",
                 15,
                 "authentication",
-                "scoped-bearer",
+                hosted.enabled() ? "username-password" : "scoped-bearer",
                 "capabilities",
                 List.of(
                         "intent-compilation",
