@@ -158,28 +158,29 @@ public class GeminiPatchPlanner {
                         .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)))
                         .build();
         try {
-            var response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            try (var stream = response.body()) {
-                if (response.statusCode() != 200)
-                    throw new PlatformException(
-                            503,
-                            "MODEL_UNAVAILABLE",
-                            "Gemini returned HTTP "
-                                    + response.statusCode()
-                                    + ". No patch was applied.");
-                byte[] bytes = stream.readNBytes(131_073);
-                if (bytes.length > 131_072) throw new IllegalArgumentException();
-                var candidate = json.readTree(bytes).path("candidates").path(0);
-                if (!candidate.path("finishReason").asText().equals("STOP"))
-                    throw new IllegalArgumentException();
-                var text = new StringBuilder();
-                for (var part : candidate.path("content").path("parts"))
-                    if (!part.path("thought").asBoolean(false))
-                        text.append(part.path("text").asText(""));
-                var patch = json.readValue(text.toString(), Patch.class);
-                RepairSearch.validateAndApply(files, patch.changes());
-                return patch.changes();
-            }
+            var response =
+                    BoundedHttp.send(
+                            http,
+                            request,
+                            131_072,
+                            Duration.ofMillis(Math.max(1, Math.min(30_000, budget.toMillis()))));
+            if (response.statusCode() != 200)
+                throw new PlatformException(
+                        503,
+                        "MODEL_UNAVAILABLE",
+                        "Gemini returned HTTP "
+                                + response.statusCode()
+                                + ". No patch was applied.");
+            var candidate = json.readTree(response.body()).path("candidates").path(0);
+            if (!candidate.path("finishReason").asText().equals("STOP"))
+                throw new IllegalArgumentException();
+            var text = new StringBuilder();
+            for (var part : candidate.path("content").path("parts"))
+                if (!part.path("thought").asBoolean(false))
+                    text.append(part.path("text").asText(""));
+            var patch = json.readValue(text.toString(), Patch.class);
+            RepairSearch.validateAndApply(files, patch.changes());
+            return patch.changes();
         } catch (PlatformException expected) {
             throw expected;
         } catch (InterruptedException e) {

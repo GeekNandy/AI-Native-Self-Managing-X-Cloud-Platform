@@ -99,8 +99,8 @@ class RepositoryWorkflowTest {
                 Map.of(
                         "src/main/java/Rules.java",
                         "public class Rules { // < >= + -\n"
-                            + "String text=\"< +\"; boolean check(int n) { return n > 5; } int"
-                            + " calc(int n) { return n + 2; } }");
+                                + "String text=\"< +\"; boolean check(int n) { return n > 5; } int"
+                                + " calc(int n) { return n + 2; } }");
         var candidates = RepairSearch.candidates(files, RepairSearch.DEFAULT_ORDER, 10);
         assertEquals(2, candidates.size());
         assertEquals("BOUNDARY", candidates.getFirst().kind());
@@ -136,5 +136,30 @@ class RepositoryWorkflowTest {
                                 DockerSandbox.tar(task.files()));
         assertEquals(0, result.exitCode(), result.output());
         assertTrue(result.output().contains("src/test/java/RulesTest.java"));
+    }
+
+    @Test
+    void interruptingAProcessDoesNotWaitForItsBlockedOutputReader() throws Exception {
+        var result = new java.util.concurrent.CompletableFuture<String>();
+        var thread =
+                Thread.ofPlatform()
+                        .start(
+                                () -> {
+                                    try {
+                                        new CommandRunner()
+                                                .run(
+                                                        null,
+                                                        Duration.ofSeconds(60),
+                                                        List.of("sleep", "60"));
+                                        result.complete("unexpected-success");
+                                    } catch (PlatformException expected) {
+                                        result.complete(expected.code());
+                                    }
+                                });
+        Thread.sleep(100);
+        thread.interrupt();
+        assertEquals("RUN_CANCELLED", result.get(2, java.util.concurrent.TimeUnit.SECONDS));
+        thread.join(2000);
+        assertFalse(thread.isAlive());
     }
 }

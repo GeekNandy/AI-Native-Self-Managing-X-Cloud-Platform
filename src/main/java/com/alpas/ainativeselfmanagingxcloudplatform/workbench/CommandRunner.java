@@ -21,7 +21,8 @@ public class CommandRunner {
     public Result run(Path cwd, Duration timeout, List<String> command, byte[] input) {
         long start = System.nanoTime();
         Process process = null;
-        try (var io = Executors.newVirtualThreadPerTaskExecutor()) {
+        var io = Executors.newVirtualThreadPerTaskExecutor();
+        try {
             var builder = new ProcessBuilder(command).redirectErrorStream(true);
             if (cwd != null) builder.directory(cwd.toFile());
             // Children receive no API keys, bearer credentials, SSH agent, proxy credentials or
@@ -84,7 +85,11 @@ public class CommandRunner {
                     503,
                     "TOOL_UNAVAILABLE",
                     "A required local tool could not complete. Check Git, Docker and the configured"
-                        + " image.");
+                            + " image.");
+        } finally {
+            // Executor.close waits for blocked stream readers. Kill the process in the catch path
+            // first, then interrupt readers without delaying cancellation on executor termination.
+            io.shutdownNow();
         }
     }
 
@@ -100,7 +105,7 @@ public class CommandRunner {
                     409,
                     "REPOSITORY_CONFLICT",
                     "The repository operation failed; refresh the repository and review its"
-                        + " state.");
+                            + " state.");
         return result.output().strip();
     }
 }

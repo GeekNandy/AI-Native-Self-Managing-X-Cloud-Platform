@@ -51,7 +51,7 @@ export PLATFORM_AI_PROVIDER=gemini
 java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar
 ```
 
-The interpreter calls the official [structured generateContent interface](https://ai.google.dev/gemini-api/docs/generate-content/structured-output). It has an 8-second connect timeout, 30-second request deadline, four inference slots, a 64 KiB response cap and no automatic retries or fixture fallback. Model output still passes semantic validation, policy and operator approval.
+The interpreter calls the official [structured generateContent interface](https://ai.google.dev/gemini-api/docs/generate-content/structured-output). It has an 8-second connect timeout, 30-second complete-response deadline, four inference slots, a 64 KiB response cap and no automatic retries or fixture fallback. Model output still passes semantic validation, policy and operator approval.
 
 A configured key/model also enables **Gemini structured patch** in the repository workflow, independently of the environment interpreter mode. Source snapshots, the task instruction and bounded test output are sent to Gemini. Credentials and the host environment are not included. Repair allows at most three model calls, 4,096 output tokens per call and a 120-second run budget. Full replacements for existing source files must match before hashes and pass unchanged tests. No generated shell commands are accepted.
 

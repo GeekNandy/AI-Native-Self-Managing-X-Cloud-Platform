@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -100,13 +99,13 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                         422,
                         "CLARIFICATION_REQUIRED",
                         "Offline mode replays the curated examples only. Select an example, use the"
-                            + " structured intent API, or configure Gemini.");
+                                + " structured intent API, or configure Gemini.");
             if (scenario.get().spec() == null)
                 throw new PlatformException(
                         422,
                         "CLARIFICATION_REQUIRED",
                         "Specify the service name, runtime, tier, region, networking, data,"
-                            + " availability and operational requirements.");
+                                + " availability and operational requirements.");
             return scenario.get().spec();
         }
         if (!slots.tryAcquire())
@@ -163,24 +162,18 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                         .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)))
                         .build();
         try {
-            var response = http.send(request, HttpResponse.BodyHandlers.ofInputStream());
-            try (var input = response.body()) {
-                if (response.statusCode() != 200)
-                    throw new PlatformException(
-                            503,
-                            "MODEL_UNAVAILABLE",
-                            "Gemini returned HTTP "
-                                    + response.statusCode()
-                                    + ". Check model access and configuration; no plan was"
-                                    + " executed.");
-                byte[] bytes = input.readNBytes(65_537);
-                if (bytes.length > 65_536)
-                    throw new PlatformException(
-                            502,
-                            "MODEL_RESPONSE_TOO_LARGE",
-                            "Model response exceeded the allowed size.");
-                return parseResponse(new String(bytes, StandardCharsets.UTF_8));
-            }
+            var response = BoundedHttp.send(http, request, 65_536, Duration.ofSeconds(30));
+            if (response.statusCode() != 200)
+                throw new PlatformException(
+                        503,
+                        "MODEL_UNAVAILABLE",
+                        "Gemini returned HTTP "
+                                + response.statusCode()
+                                + ". Check model access and configuration; no plan was executed.");
+            return parseResponse(new String(response.body(), StandardCharsets.UTF_8));
+        } catch (BoundedHttp.ResponseTooLarge tooLarge) {
+            throw new PlatformException(
+                    502, "MODEL_RESPONSE_TOO_LARGE", "Model response exceeded the allowed size.");
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new PlatformException(
@@ -192,7 +185,7 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                     503,
                     "MODEL_UNAVAILABLE",
                     "Gemini could not be reached within the request deadline; no plan was"
-                        + " executed.");
+                            + " executed.");
         }
     }
 

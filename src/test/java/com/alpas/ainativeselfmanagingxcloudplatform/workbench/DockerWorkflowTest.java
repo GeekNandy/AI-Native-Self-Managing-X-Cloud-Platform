@@ -173,7 +173,7 @@ class DockerWorkflowTest {
                             "public class Rules {}",
                             "src/test/java/RulesTest.java",
                             "public class RulesTest { public static void main(String[] a) { for"
-                                + " (;;) {} } }");
+                                    + " (;;) {} } }");
             var r =
                     repositories.create(
                             "Cancellation probe", files, "RulesTest", "imported-snapshot");
@@ -200,7 +200,13 @@ class DockerWorkflowTest {
                     Thread.sleep(30);
                 Thread.sleep(500);
                 service.cancel(run.id());
-                var cancelled = awaitRun(service, run.id());
+                long cancellationDeadline = System.nanoTime() + Duration.ofSeconds(12).toNanos();
+                RepairRun cancelled;
+                do {
+                    Thread.sleep(50);
+                    cancelled = service.require(run.id());
+                } while (List.of("QUEUED", "RUNNING").contains(cancelled.status())
+                        && System.nanoTime() < cancellationDeadline);
                 assertEquals("CANCELLED", cancelled.status());
                 assertEquals(r.head(), repositories.head(r.id()));
                 var containers =

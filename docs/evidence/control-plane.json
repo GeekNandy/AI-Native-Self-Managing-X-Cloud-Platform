@@ -1,6 +1,6 @@
 {
-  "recordedAt": "2026-10-21T15:57:58Z",
-  "sourceDigest": "5c0038488504952453d6f8031e23842c57f49da5cff4fd22100bc6f8521ce9df",
+  "recordedAt": "2026-10-21T16:07:44Z",
+  "sourceDigest": "636f87843e88f4e4f4cc2c675a830d438934395f2f0c9693658a5da6c7380ffa",
   "configuration": {
     "capabilities": [
       "intent-compilation",
@@ -14,19 +14,19 @@
       "mcp-tools",
       "repository-repair"
     ],
-    "authentication": "scoped-bearer",
-    "model": "curated-example-replay",
-    "policyVersion": "sandbox-policy-v1",
-    "provider": "fixture",
+    "executionMode": "durable-simulator",
     "planTtlMinutes": 15,
-    "executionMode": "durable-simulator"
+    "provider": "fixture",
+    "policyVersion": "sandbox-policy-v1",
+    "model": "curated-example-replay",
+    "authentication": "scoped-bearer"
   },
   "provisioningReceipt": {
     "receipt": {
-      "operationId": "95e703f6-8dcd-436e-ad87-cf524905143b",
-      "planId": "1612cab7-c232-45a1-a974-5724843e3078",
-      "digest": "0a8dee83b7de78b6943947f735e7e2c17127af4161aaebb72985a92771c5547d",
-      "idempotencyKey": "4d729c3b-efc3-4626-bd87-47cca8697cc1",
+      "operationId": "9ade33da-e3b1-4e4c-bf0f-afcb73da22a9",
+      "planId": "1e135e54-fed5-4c60-8654-3948a952aa60",
+      "digest": "ea48597a081df4c73b333c356102059ba89d96198fcdf3c23bc6544377beab3c",
+      "idempotencyKey": "a4fd44c4-bd3d-485e-8dd3-09cc5c3313af",
       "environment": {
         "id": "payments-api-production",
         "revision": 1,
@@ -62,7 +62,7 @@
         },
         "drift": []
       },
-      "completedAt": "2026-10-21T15:57:58.357885704Z"
+      "completedAt": "2026-10-21T16:07:44.693423843Z"
     },
     "replayed": false
   },
@@ -117,10 +117,10 @@
   },
   "recoveryReceipt": {
     "receipt": {
-      "operationId": "0dbc7829-2e35-4f7f-b8ad-7d4461d7d7d5",
-      "planId": "247cb7fc-c9ce-4b12-9896-11e99c60edee",
-      "digest": "a9ffeaf6d1d88e8c5f1692ce0a2b92e864df96be987d48312904ee64e093b9c0",
-      "idempotencyKey": "58ea0bf8-1469-4d6c-9995-0adbd52b7a3d",
+      "operationId": "f2d9c17b-8eb6-4b41-b7e2-b7b12cbe4d56",
+      "planId": "e384d332-6dce-4a47-8263-fc75ecdb62fd",
+      "digest": "b04f05c50e458577314c492ab2cf8fd0b3f03535d181c704d10d4de0adb2be54",
+      "idempotencyKey": "7700322e-6997-404e-abd1-3b1076e5a08b",
       "environment": {
         "id": "payments-api-production",
         "revision": 4,
@@ -156,7 +156,7 @@
         },
         "drift": []
       },
-      "completedAt": "2026-10-21T15:57:58.430700099Z"
+      "completedAt": "2026-10-21T16:07:44.761638797Z"
     },
     "replayed": false
   },
@@ -165,15 +165,15 @@
     "ambiguousRequest": "CLARIFICATION_REQUIRED"
   },
   "evaluation": {
-    "id": "49f823d9-2ae8-4076-8e38-90a796d4ac9f",
-    "createdAt": "2026-10-21T15:57:58.587161858Z",
+    "id": "43a332e9-6779-412a-a28d-70120aa04ab0",
+    "createdAt": "2026-10-21T16:07:44.919643953Z",
     "mode": "deterministic-control-plane",
-    "datasetDigest": "672e783cc2c356ee1ec45b91c819f91709c74c860c2f3e1296a4c7848fbffd5d",
+    "datasetDigest": "81aa7d5e35daf89fc265f425ffa975f26f9d567f8fa8b993fb1800ddccef8456",
     "passed": 23,
     "total": 23,
     "passRate": 100.0,
-    "p50Ms": 0.030555,
-    "p95Ms": 18.260207,
+    "p50Ms": 0.029724,
+    "p95Ms": 18.131624,
     "feedbackCases": 1,
     "cases": [
       {
@@ -183,7 +183,7 @@
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.378101,
+        "latencyMs": 0.187808,
         "detail": "Matched expected outcome."
       },
       {
@@ -193,7 +193,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.030555,
+        "latencyMs": 0.023795,
         "detail": "Matched expected outcome."
       },
       {
@@ -203,7 +203,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.018167,
+        "latencyMs": 0.014442,
         "detail": "Matched expected outcome."
       },
       {
@@ -213,7 +213,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.099528,
+        "latencyMs": 0.012419,
         "detail": "Matched expected outcome."
       },
       {
@@ -223,7 +223,7 @@
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.026389,
+        "latencyMs": 0.241859,
         "detail": "Matched expected outcome."
       },
       {
@@ -233,7 +233,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.052327,
+        "latencyMs": 0.041582,
         "detail": "Matched expected outcome."
       },
       {
@@ -243,7 +243,7 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.061141,
+        "latencyMs": 0.065988,
         "detail": "Intent failed semantic validation."
       },
       {
@@ -253,7 +253,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.025497,
+        "latencyMs": 0.023956,
         "detail": "Matched expected outcome."
       },
       {
@@ -263,7 +263,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.042974,
+        "latencyMs": 0.046909,
         "detail": "Matched expected outcome."
       },
       {
@@ -273,7 +273,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.029564,
+        "latencyMs": 0.02002,
         "detail": "Matched expected outcome."
       },
       {
@@ -283,7 +283,7 @@
         "expected": "DENY",
         "actual": "DENY",
         "passed": true,
-        "latencyMs": 0.017956,
+        "latencyMs": 0.018047,
         "detail": "Matched expected outcome."
       },
       {
@@ -293,7 +293,7 @@
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.01386,
+        "latencyMs": 0.019138,
         "detail": "Matched expected outcome."
       },
       {
@@ -303,7 +303,7 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.018767,
+        "latencyMs": 0.029724,
         "detail": "Intent failed semantic validation."
       },
       {
@@ -313,7 +313,7 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.014521,
+        "latencyMs": 0.025548,
         "detail": "Intent failed semantic validation."
       },
       {
@@ -323,7 +323,7 @@
         "expected": "INVALID",
         "actual": "INVALID",
         "passed": true,
-        "latencyMs": 0.011377,
+        "latencyMs": 0.018808,
         "detail": "Intent failed semantic validation."
       },
       {
@@ -333,17 +333,17 @@
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.011437,
+        "latencyMs": 0.017826,
         "detail": "Matched expected outcome."
       },
       {
-        "id": "4f21edd2-fb44-434e-a9c7-ac26cabfb620",
+        "id": "7f7ef373-b3ab-41dc-ad4c-a0c5a1ed7eeb",
         "name": "Recovery preserves the reviewed production PII intent.",
         "category": "feedback-regression",
         "expected": "ALLOW",
         "actual": "ALLOW",
         "passed": true,
-        "latencyMs": 0.012769,
+        "latencyMs": 0.01984,
         "detail": "Matched expected outcome."
       },
       {
@@ -353,7 +353,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 18.260207,
+        "latencyMs": 19.481034,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -363,7 +363,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 13.852526,
+        "latencyMs": 13.866702,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -373,7 +373,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 18.691515,
+        "latencyMs": 18.115299,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -383,7 +383,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 17.090945,
+        "latencyMs": 18.131624,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -393,7 +393,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 14.311155,
+        "latencyMs": 14.95105,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       },
       {
@@ -403,7 +403,7 @@
         "expected": "PASS",
         "actual": "PASS",
         "passed": true,
-        "latencyMs": 15.951876,
+        "latencyMs": 15.671793,
         "detail": "Passed against an isolated sandbox; workbench state unchanged."
       }
     ],
