@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#101a2c" />
+    <meta
+      name="description"
+      content="A governed intent-to-environment workbench with policy review, sandbox execution, drift recovery and regression evaluation."
+    />
+    <title>X / Cloud — Agent Workbench</title>
+    <link rel="icon" href="/mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/app.js" type="module"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="#workbench" aria-label="X Cloud workbench"
+          ><span class="brand-mark">x</span
+          ><span>X / CLOUD<small>ENGINEERING WORKSPACE</small></span></a
+        >
+        <div class="workspace">
+          <span class="workspace-avatar">S</span
+          ><span>Sandbox workspace<small>Local development</small></span
+          ><span class="workspace-dot"></span>
+        </div>
+        <div class="nav-label">WORKSPACE</div>
+        <nav aria-label="Primary navigation">
+          <a href="#workbench" data-view="workbench" class="nav-item active"
+            ><span class="nav-icon" aria-hidden="true">◈</span>Agent
+            workbench</a
+          >
+          <a href="#environments" data-view="environments" class="nav-item"
+            ><span class="nav-icon" aria-hidden="true">▦</span>Environments<span
+              id="nav-environments"
+              class="nav-count"
+              >0</span
+            ></a
+          >
+          <a href="#evaluations" data-view="evaluations" class="nav-item"
+            ><span class="nav-icon" aria-hidden="true">◎</span>Evaluations</a
+          >
+          <a href="#activity" data-view="activity" class="nav-item"
+            ><span class="nav-icon" aria-hidden="true">≋</span>Activity log</a
+          >
+        </nav>
+        <div class="sidebar-note">
+          <span class="tiny-overline">THE CONTROL BOUNDARY</span>
+          <p>
+            Agents propose.<br />Policy governs.<br />You review the change.
+          </p>
+          <span class="tiny-line"></span
+          ><small>One traceable path from intent<br />to environment.</small>
+        </div>
+        <button class="sidebar-help" id="about-button">
+          <span aria-hidden="true">i</span> About this proof of concept
+        </button>
+        <div class="sidebar-footer">
+          <span class="avatar">SN</span>
+          <div>Sharad Nanda<small>Platform engineering</small></div>
+          <span class="local-label">LOCAL</span>
+        </div>
+      </aside>
+      <div class="main-shell">
+        <header class="topbar">
+          <div class="breadcrumb">
+            Workspace <span>/</span>
+            <strong id="breadcrumb-current">Agent workbench</strong>
+          </div>
+          <div class="topbar-right">
+            <span class="connection-dot"></span
+            ><span id="connection-status">Connecting</span
+            ><span class="topbar-divider"></span
+            ><span class="version-label">POC · v0.1</span>
+          </div>
+        </header>
+        <main>
+          <div id="connection-error" class="alert error" hidden></div>
+          <section id="view-workbench" class="view">
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">GOVERNED AGENT INFRASTRUCTURE</div>
+                <h1>Your intent. A reviewable change.</h1>
+                <p>
+                  Describe an environment. Inspect the plan. Keep every action
+                  accountable.
+                </p>
+              </div>
+              <span id="provider-badge" class="badge neutral"
+                >Loading configuration</span
+              >
+            </div>
+            <div id="mode-notice" class="mode-notice"></div>
+            <div id="stats" class="stats-grid"></div>
+            <div class="workbench-grid">
+              <section class="card composer">
+                <div class="card-heading">
+                  <div>
+                    <span class="section-number">01</span>
+                    <h2>Describe the outcome</h2>
+                  </div>
+                  <span class="micro-label">INTENT INPUT</span>
+                </div>
+                <p class="card-description">
+                  Start with a service and the constraints it needs to respect.
+                </p>
+                <label for="prompt" class="sr-only">Environment request</label
+                ><textarea
+                  id="prompt"
+                  maxlength="4000"
+                  spellcheck="false"
+                  placeholder="Describe a Java service, its region and operational requirements…"
+                ></textarea>
+                <div class="composer-meta">
+                  <span id="prompt-length">0 / 4,000</span
+                  ><span>Java 21 · provider-neutral intent</span>
+                </div>
+                <div class="example-heading">EXPLORE AN EXAMPLE</div>
+                <div id="examples" class="example-list"></div>
+                <div class="composer-actions">
+                  <span id="run-caption"
+                    >Proposals cannot execute themselves.</span
+                  ><button id="compile-button" class="button primary">
+                    Compile intent <span>↗</span>
+                  </button>
+                </div>
+              </section>
+              <section class="card proposal-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="section-number">02</span>
+                    <h2>Review the proposal</h2>
+                  </div>
+                  <span id="plan-status" class="badge neutral"
+                    >Awaiting intent</span
+                  >
+                </div>
+                <div id="pipeline" class="pipeline"></div>
+                <div id="proposal-content"></div>
+              </section>
+            </div>
+            <section id="feedback-section" class="card feedback-card" hidden>
+              <details id="feedback-details">
+                <summary>
+                  <div>
+                    <span class="feedback-symbol">↻</span
+                    ><strong>Close the feedback loop</strong
+                    ><span>Turn a reviewed result into a regression case.</span>
+                  </div>
+                  <span aria-hidden="true">+</span>
+                </summary>
+                <div class="feedback-body">
+                  <p>
+                    Record the expected intent and decision. The next evaluation
+                    checks your correction alongside the versioned suite.
+                    Policies and model behavior remain unchanged.
+                  </p>
+                  <div class="feedback-fields">
+                    <label
+                      >What should this regression protect?<input
+                        id="feedback-note"
+                        maxlength="500"
+                        placeholder="e.g. Keep customer data in the EU, including development environments" /></label
+                    ><label
+                      >Expected policy outcome<select id="feedback-outcome">
+                        <option>ALLOW</option>
+                        <option>DENY</option>
+                        <option>INVALID</option>
+                      </select></label
+                    >
+                  </div>
+                  <label
+                    >Expected structured intent<textarea
+                      id="feedback-spec"
+                      class="code-input"
+                      spellcheck="false"
+                    ></textarea></label
+                  ><button id="feedback-save" class="button secondary">
+                    Save regression &amp; run suite <span>↗</span>
+                  </button>
+                </div>
+              </details>
+            </section>
+            <div class="boundary-footer">
+              <span class="connection-dot"></span>
+              <span id="workbench-boundary">Sandbox execution only</span
+              ><span class="boundary-spacer"></span
+              ><span>Interpret → Govern → Compile → Review → Reconcile</span>
+            </div>
+          </section>
+          <section id="view-environments" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">DESIRED STATE / OBSERVED STATE</div>
+                <h1>Keep the loop closed.</h1>
+                <p>
+                  Inspect the sandbox, introduce a fault and review its recovery
+                  plan.
+                </p>
+              </div>
+              <button id="refresh-environments" class="button secondary">
+                Refresh state ↻
+              </button>
+            </div>
+            <div id="environments-content"></div>
+          </section>
+          <section id="view-evaluations" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">EVIDENCE OVER ASSUMPTIONS</div>
+                <h1>Make behavior measurable.</h1>
+                <p>
+                  Versioned scenarios, execution invariants and your regression
+                  cases.
+                </p>
+              </div>
+              <button id="evaluate-controls" class="button primary">
+                Run control-plane suite <span>↗</span>
+              </button>
+            </div>
+            <div class="evaluation-toolbar">
+              <span class="badge neutral" id="evaluation-mode-label"
+                >Deterministic checks</span
+              ><span>Evaluation runs use isolated sandboxes.</span
+              ><button id="evaluate-interpreter" class="text-button">
+                Evaluate interpreter ↗
+              </button>
+            </div>
+            <div id="evaluation-content"></div>
+          </section>
+          <section id="view-activity" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <div class="eyebrow">TRACEABLE BY DESIGN</div>
+                <h1>Every transition has a record.</h1>
+                <p>
+                  Correlated policy decisions, approvals, operations and
+                  feedback.
+                </p>
+              </div>
+              <button id="refresh-activity" class="button secondary">
+                Refresh activity ↻
+              </button>
+            </div>
+            <div id="activity-content"></div>
+            <p class="footnote">
+              Process-local event history. The latest 2,000 events are retained;
+              restarting clears the log.
+            </p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <dialog id="approval-dialog">
+      <form method="dialog">
+        <div class="dialog-icon">◈</div>
+        <div class="eyebrow">EXPLICIT CHANGE REVIEW</div>
+        <h2>Approve this sandbox change?</h2>
+        <p>
+          The approval is bound to this exact plan and the environment revision
+          you reviewed.
+        </p>
+        <div id="approval-summary"></div>
+        <label class="approval-check"
+          ><input type="checkbox" id="approval-checkbox" /><span
+            >I reviewed this plan and approve its execution in the local
+            sandbox.</span
+          ></label
+        >
+        <div class="dialog-actions">
+          <button class="button secondary" value="cancel">Cancel</button
+          ><button
+            id="approval-confirm"
+            type="button"
+            class="button primary"
+            disabled
+          >
+            Approve &amp; execute
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="about-dialog">
+      <form method="dialog">
+        <div class="dialog-icon">x</div>
+        <div class="eyebrow">A WORKING VERTICAL SLICE</div>
+        <h2>AI proposes. The control plane decides.</h2>
+        <p>
+          This proof of concept translates structured requirements into
+          deterministic plans, generated workload files and an explicitly
+          simulated environment.
+        </p>
+        <ul>
+          <li>
+            <strong>Offline mode:</strong> exact replay of curated examples,
+            with no model calls.
+          </li>
+          <li>
+            <strong>Gemini mode:</strong> structured extraction with timeouts
+            and bounded concurrency. It cannot approve or execute plans.
+          </li>
+          <li>
+            <strong>Sandbox:</strong> in-memory runtime, no cloud resources or
+            credentials. Residency and encryption are policy assertions, not
+            provisioned guarantees.
+          </li>
+          <li>
+            <strong>Feedback:</strong> reviewed corrections become regression
+            cases. No autonomous model training or policy changes.
+          </li>
+        </ul>
+        <p class="footnote">
+          Local demo only. Production identity, durable state, real provider
+          adapters and distributed coordination remain future work.
+        </p>
+        <div class="dialog-actions">
+          <button class="button primary">Back to workbench</button>
+        </div>
+      </form>
+    </dialog>
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

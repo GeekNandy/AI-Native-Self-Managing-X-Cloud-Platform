@@ -1,0 +1,13 @@
+{
+  "name": "x-cloud-workbench-checks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser checks for the Spring Boot workbench; no frontend build step required.",
+  "scripts": {
+    "check": "node --check src/main/resources/static/app.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}
