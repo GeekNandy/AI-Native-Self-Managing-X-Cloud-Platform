@@ -31,3 +31,14 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Local workbench and browser tests ###
+node_modules/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.log
+__pycache__/
+*.pyc

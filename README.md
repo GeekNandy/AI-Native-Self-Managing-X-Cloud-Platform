@@ -2,6 +2,56 @@
 
 An AI-native control plane for translating high-level software and infrastructure intent into governed, deployable, and self-managing cloud environments.
 
+## Working Proof of Concept
+
+The repository now includes a runnable **governed agent workbench**: describe a Java service, review its structured intent and policy checks, inspect generated code and manifests, approve a sandbox plan, introduce drift, and review its recovery. Reviewed feedback becomes regression evidence.
+
+![The working agent workbench with a compiled production-service proposal](docs/images/workbench.png)
+
+### Run in two commands
+
+Requirements: **JDK 21**. No external services, API keys or frontend build are needed for the offline demo.
+
+```bash
+./mvnw verify
+java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar
+```
+
+Open **http://127.0.0.1:8080**. Choose **Production service**, compile the intent and inspect the proposal. After approval, open **Environments**, inject a fault and review the recovery plan.
+
+| Implemented | Demonstrable behavior |
+| --- | --- |
+| Typed intent and independent policy | Semantic validation and eight versioned policy checks, including residency, encryption, networking, availability and quota |
+| Deterministic compilation | Ordered logical resource operations; Java source, Dockerfile and Kubernetes review previews |
+| Explicit change review | SHA-256 digest bound to the complete plan; fifteen-minute expiry; state revision and current-policy checks at apply |
+| Sandbox lifecycle | Committed desired state, separate observations, retry deduplication and per-environment concurrency control |
+| Drift and recovery | Replica loss, opened egress and lost observation; remediation uses the same approval and execution boundary |
+| Measured feedback | Versioned golden scenarios, isolated execution-safety checks and operator-specified regression cases |
+| Full-stack workbench | Responsive same-origin browser client, HTTP API, activity history and exportable artifacts/evaluation reports |
+| Optional live extraction | Configurable Gemini structured-output adapter with bounded concurrency, deadlines and strict response validation |
+
+**Scope:** default interpretation is exact replay of curated examples; execution is an in-memory simulator. No cloud resources are provisioned. Encryption and residency are policy requirements, not deployed guarantees. Gemini needs explicit configuration and a live evaluation. Feedback does not train a model or alter policy. The target architecture below extends beyond the implemented slice.
+
+### Reproduce the evidence
+
+With the app running:
+
+```bash
+python3 scripts/demo.py --evidence target/demo-evidence.json --artifacts-dir target/generated-workload
+python3 scripts/benchmark.py --requests 128 --concurrency 8 --output target/local-plan-benchmark.json
+```
+
+The demo verifies the complete HTTP control loop, retry deduplication, policy denial, clarification, recovery and feedback evaluation. The benchmark measures the local structured-plan endpoint; it excludes model inference and cloud execution. [Recorded results](docs/evidence/README.md) disclose their source digest and limits.
+
+### Start here
+
+- [Five-minute demo and live Gemini setup](docs/demo-guide.md)
+- [CodeAI relevance, honest claims and next increments](docs/poc-positioning.md)
+- [Decision: one governed sandbox slice](docs/adr/0001-governed-sandbox-slice.md)
+- [Architecture](docs/architecture.md), [domain model](docs/domain-model.md), [intent compiler](docs/intent-compiler.md) and [security model](docs/security-model.md)
+
+For browser checks: `npm ci`, `npx playwright install chromium`, then `npm run test:e2e`. The Java build and browser workflows also run in GitHub Actions.
+
 ## Problem
 
 Modern engineering platforms expose developers to a growing set of infrastructure, security, networking, identity, compliance, and operational decisions.
@@ -288,33 +338,16 @@ This project explores:
 
 ## Project Status
 
-### Phase 1
-
-Architecture, domain model, security model, and architectural decisions
-
-### Phase 2
-
-Intent representation, validation, policy engine, and environment compiler
-
-### Phase 3
-
-Execution planner, lifecycle management, and cloud/provider adapters
-
-### Phase 4
-
-MCP interfaces and agent orchestration
-
-### Phase 5
-
-Observability, drift detection, and remediation
-
-### Phase 6
-
-Developer productivity and self-maintaining codebase capabilities
-
-### Phase 7
-
-Evaluation, failure testing, security hardening, and production-oriented optimization
+| Area | Current state |
+| --- | --- |
+| Architecture and domain contracts | Documented in the original design work |
+| Intent, validation, policy and compilation | Working Java 21 slice |
+| Planning and lifecycle | Working local simulator; real providers remain future work |
+| AI integration | Exact offline examples and a configurable Gemini interpreter; no MCP server yet |
+| Observation and remediation | Working simulator faults, unknown-state handling and governed recovery |
+| Developer workflows | Browser review and generated workload files; repository repair/IDE tools remain future work |
+| Evaluation and feedback | Executable control-plane checks, interpreter smoke suite and regression capture |
+| Production foundations | Authentication, durable state, distributed orchestration, real provider guarantees and independent live-model quality evidence remain future work |
 
 ## Repository Structure
 
