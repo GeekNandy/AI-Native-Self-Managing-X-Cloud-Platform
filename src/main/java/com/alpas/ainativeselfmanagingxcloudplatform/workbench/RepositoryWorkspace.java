@@ -60,7 +60,7 @@ public class RepositoryWorkspace {
                         400,
                         "INVALID_REPOSITORY",
                         "Only bounded UTF-8 Java files under src/main/java and src/test/java are"
-                            + " accepted.");
+                                + " accepted.");
             total += content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             main |= path.startsWith("src/main/");
             test |= path.startsWith("src/test/");
@@ -73,7 +73,7 @@ public class RepositoryWorkspace {
                     400,
                     "INVALID_REPOSITORY",
                     "A source file and matching test entrypoint are required within the 200 KB"
-                        + " budget.");
+                            + " budget.");
     }
 
     public synchronized Repository create(
@@ -111,6 +111,10 @@ public class RepositoryWorkspace {
     }
 
     public Repository require(String id) {
+        if (id == null
+                || !id.matches("[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"))
+            throw new PlatformException(
+                    404, "REPOSITORY_NOT_FOUND", "Managed repository not found.");
         var r = repositories.get(id);
         if (r == null)
             throw new PlatformException(
@@ -120,7 +124,8 @@ public class RepositoryWorkspace {
 
     public Repository current(String id) {
         var r = require(id);
-        return new Repository(r.id(), r.name(), r.testClass(), head(id), r.origin(), r.createdAt());
+        return new Repository(
+                r.id(), r.name(), r.testClass(), head(r.id()), r.origin(), r.createdAt());
     }
 
     public List<Repository> list() {
@@ -131,22 +136,22 @@ public class RepositoryWorkspace {
     }
 
     public Object lock(String id) {
-        require(id);
-        return locks.computeIfAbsent(id, unused -> new Object());
+        var repository = require(id);
+        return locks.computeIfAbsent(repository.id(), unused -> new Object());
     }
 
     public String head(String id) {
-        require(id);
-        return commands.require(root.resolve(id), "git", "rev-parse", "HEAD");
+        var repository = require(id);
+        return commands.require(root.resolve(repository.id()), "git", "rev-parse", "HEAD");
     }
 
     public Path worktree(String id, String run, String base) {
-        require(id);
+        var repository = require(id);
         if (!run.matches("[a-z0-9-]{1,100}") || !base.matches("[a-f0-9]{40,64}"))
             throw new IllegalArgumentException("Unsafe managed worktree coordinates");
         Path path = root.resolve("worktrees").resolve(run);
         commands.require(
-                root.resolve(id),
+                root.resolve(repository.id()),
                 "git",
                 "-c",
                 "core.hooksPath=/dev/null",
@@ -159,7 +164,16 @@ public class RepositoryWorkspace {
     }
 
     public void discard(String id, Path path) {
-        commands.require(root.resolve(id), "git", "worktree", "remove", "--force", path.toString());
+        var repository = require(id);
+        if (!path.toAbsolutePath().normalize().startsWith(root.resolve("worktrees")))
+            throw new IllegalArgumentException("Worktree outside the managed root");
+        commands.require(
+                root.resolve(repository.id()),
+                "git",
+                "worktree",
+                "remove",
+                "--force",
+                path.toString());
     }
 
     public Map<String, String> sources(Path path) {
@@ -209,7 +223,7 @@ public class RepositoryWorkspace {
 
     public boolean matchesApprovedCommit(String id, String base, String run, String digest) {
         try {
-            Path path = root.resolve(id);
+            Path path = root.resolve(require(id).id());
             return commands.require(path, "git", "rev-parse", "HEAD^").equals(base)
                     && commands.require(path, "git", "log", "-1", "--format=%B")
                             .equals("Apply reviewed repair " + run + "\n\nPlan-Digest: " + digest);
@@ -240,8 +254,14 @@ public class RepositoryWorkspace {
                 "Apply reviewed repair " + run + "\n\nPlan-Digest: " + digest);
         String commit = commands.require(worktree, "git", "rev-parse", "HEAD");
         // Compare-and-swap the managed branch. The root checkout is never used for execution.
-        commands.require(root.resolve(id), "git", "update-ref", "refs/heads/main", commit, base);
-        commands.require(root.resolve(id), "git", "reset", "--hard", commit);
+        commands.require(
+                root.resolve(require(id).id()),
+                "git",
+                "update-ref",
+                "refs/heads/main",
+                commit,
+                base);
+        commands.require(root.resolve(require(id).id()), "git", "reset", "--hard", commit);
         var r = require(id);
         var updated =
                 new Repository(r.id(), r.name(), r.testClass(), commit, r.origin(), r.createdAt());

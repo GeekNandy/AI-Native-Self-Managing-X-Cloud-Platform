@@ -115,7 +115,7 @@ class RepositoryWorkflowTest {
 
     @Test
     void commandRunnerBoundsOutputTimeAndDoesNotPassCredentials() {
-        var runner = new CommandRunner();
+        var runner = CommandRunner.forDiagnostics();
         var deadline = runner.run(null, Duration.ofMillis(50), List.of("sleep", "5"));
         assertTrue(deadline.timedOut());
         assertTrue(deadline.durationMs() < 2000);
@@ -128,7 +128,7 @@ class RepositoryWorkflowTest {
     void sourceArchiveUsesValidTarHeadersAndFixedArguments() {
         var task = new RepairTasks().examples().getFirst();
         var result =
-                new CommandRunner()
+                CommandRunner.forDiagnostics()
                         .run(
                                 null,
                                 Duration.ofSeconds(3),
@@ -146,7 +146,7 @@ class RepositoryWorkflowTest {
                         .start(
                                 () -> {
                                     try {
-                                        new CommandRunner()
+                                        CommandRunner.forDiagnostics()
                                                 .run(
                                                         null,
                                                         Duration.ofSeconds(60),
@@ -161,5 +161,40 @@ class RepositoryWorkflowTest {
         assertEquals("RUN_CANCELLED", result.get(2, java.util.concurrent.TimeUnit.SECONDS));
         thread.join(2000);
         assertFalse(thread.isAlive());
+    }
+
+    @Test
+    void apiRepositoryIdentifiersCannotReachCommandOrWorkingDirectoryArguments() {
+        var runner =
+                new CommandRunner() {
+                    @Override
+                    public String require(Path cwd, String... command) {
+                        throw new AssertionError("Unresolved API identity reached a process");
+                    }
+                };
+        var repositories =
+                new RepositoryWorkspace(StateStore.volatileStore(), runner, Clock.systemUTC());
+        for (String id :
+                List.of("../outside", "--git-dir=/tmp", "00000000-0000-0000-0000-000000000000"))
+            assertEquals(
+                    "REPOSITORY_NOT_FOUND",
+                    assertThrows(PlatformException.class, () -> repositories.head(id)).code());
+    }
+
+    @Test
+    void productionToolBoundaryRejectsShellsAndDiagnosticExecutables() {
+        var runner = new CommandRunner();
+        for (String executable :
+                List.of("sh", "bash", "python", "env", "sleep", "tar", "/tmp/untrusted"))
+            assertEquals(
+                    "TOOL_DENIED",
+                    assertThrows(
+                                    PlatformException.class,
+                                    () ->
+                                            runner.run(
+                                                    null,
+                                                    Duration.ofSeconds(1),
+                                                    List.of(executable)))
+                            .code());
     }
 }

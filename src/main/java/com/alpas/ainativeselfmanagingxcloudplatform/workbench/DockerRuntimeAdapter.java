@@ -76,13 +76,13 @@ public class DockerRuntimeAdapter implements RuntimeAdapter {
                         "dataClassification",
                         !s.dataClassification().equals("pii") && !s.encryptedStorage(),
                         "Ephemeral public/internal workloads only; encrypted storage and PII are"
-                            + " unsupported."),
+                                + " unsupported."),
                 new PolicyCheck(
                         "DOCKER_ROLLBACK",
                         "rollback",
                         !s.rollback(),
                         "Automatic rollback is unsupported; review a fresh plan to restore an"
-                            + " earlier configuration."));
+                                + " earlier configuration."));
     }
 
     @Override
@@ -106,11 +106,11 @@ public class DockerRuntimeAdapter implements RuntimeAdapter {
                         main,
                         "Health.java",
                         "import java.net.*; public class Health { public static void main(String[]"
-                            + " a) throws Exception { var c=(HttpURLConnection)new"
-                            + " URL(\"http://127.0.0.1:8080/health\").openConnection();"
-                            + " c.setConnectTimeout(1000); c.setReadTimeout(1000);"
-                            + " if(c.getResponseCode()!=200) System.exit(1);"
-                            + " System.out.println(\"healthy\"); } }");
+                                + " a) throws Exception { var c=(HttpURLConnection)new"
+                                + " URL(\"http://127.0.0.1:8080/health\").openConnection();"
+                                + " c.setConnectTimeout(1000); c.setReadTimeout(1000);"
+                                + " if(c.getResponseCode()!=200) System.exit(1);"
+                                + " System.out.println(\"healthy\"); } }");
         for (int index = 0; index < target.replicas(); index++) {
             String name =
                     "xcloud-runtime-"
@@ -167,7 +167,7 @@ public class DockerRuntimeAdapter implements RuntimeAdapter {
                     "sh",
                     "-c",
                     "mkdir /tmp/classes && javac -J-Xmx128m -proc:none --release 21 -d /tmp/classes"
-                        + " /workspace/Main.java /workspace/Health.java");
+                            + " /workspace/Main.java /workspace/Health.java");
             run(
                     "exec",
                     "--detach",
@@ -218,7 +218,7 @@ public class DockerRuntimeAdapter implements RuntimeAdapter {
         int healthy = 0;
         boolean restricted = true, privateNetwork = true;
         try {
-            for (String container : containers(id)) {
+            for (String container : containers(s.id())) {
                 var state = json.readTree(run("inspect", container)).path(0);
                 restricted &= state.path("HostConfig").path("NetworkMode").asText().equals("none");
                 privateNetwork &= state.path("HostConfig").path("PortBindings").isEmpty();
@@ -268,7 +268,7 @@ public class DockerRuntimeAdapter implements RuntimeAdapter {
         boolean unavailable = s.unavailable();
         switch (kind) {
             case "replica-loss" -> {
-                var containers = containers(id);
+                var containers = containers(s.id());
                 if (!containers.isEmpty()) run("rm", "--force", containers.getFirst());
             }
             case "observation-lost" -> unavailable = true;
@@ -310,7 +310,7 @@ public class DockerRuntimeAdapter implements RuntimeAdapter {
                     502,
                     "DOCKER_RUNTIME_FAILED",
                     "The local Docker operation failed. Check the daemon and pre-pulled image;"
-                        + " refresh observations before retrying.");
+                            + " refresh observations before retrying.");
         return result.output().strip();
     }
 

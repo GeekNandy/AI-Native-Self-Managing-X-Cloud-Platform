@@ -72,7 +72,7 @@ public class RepairService {
                         committed
                                 ? "Recovered the reviewed commit after restart."
                                 : "The worker stopped before completion. No automatic replay; start"
-                                      + " a new run.";
+                                        + " a new run.";
                 e.completedAt = clock.instant();
                 run = e.freeze();
                 store.put("repair-runs", run.id(), run);
@@ -151,7 +151,7 @@ public class RepairService {
                     400,
                     "INVALID_REPAIR_BUDGET",
                     "Provide a task, mutation-search or gemini, 1-12 attempts (Gemini <=3), and a"
-                        + " 20-120 second budget.");
+                            + " 20-120 second budget.");
         if ("gemini".equals(provider) && !model.configured())
             throw new PlatformException(
                     503,
@@ -165,7 +165,7 @@ public class RepairService {
                     503,
                     "SANDBOX_UNAVAILABLE",
                     "Install Docker and pre-pull the configured Java 21 image. Source code is never"
-                        + " executed on the host.");
+                            + " executed on the host.");
         String id = UUID.randomUUID().toString();
         var policy = active;
         var run =
@@ -256,7 +256,7 @@ public class RepairService {
                         422,
                         "INVALID_BASELINE",
                         "Baseline timed out or exceeded the output budget; no repair search was"
-                            + " attempted.");
+                                + " attempted.");
             var candidates =
                     RepairSearch.candidates(files, policy.mutationOrder(), initial.maxAttempts());
             for (int i = 0; i < initial.maxAttempts(); i++) {
@@ -322,14 +322,14 @@ public class RepairService {
                     e.status = "AWAITING_REVIEW";
                     e.detail =
                             "The patch passes the unchanged regression tests. Review the diff and"
-                                + " digest before committing.";
+                                    + " digest before committing.";
                     return;
                 }
             }
             e.status = "FAILED";
             e.detail =
                     "No passing patch was found within the candidate budget. Repository head is"
-                        + " unchanged.";
+                            + " unchanged.";
         } catch (PlatformException failure) {
             e.status =
                     failure.code().equals("RUN_CANCELLED") || Thread.currentThread().isInterrupted()
@@ -424,7 +424,7 @@ public class RepairService {
             try {
                 worktree =
                         repositories.worktree(
-                                run.repositoryId(), "approval-" + id, run.baseCommit());
+                                run.repositoryId(), "approval-" + run.id(), run.baseCommit());
                 var files =
                         RepairSearch.validateAndApply(
                                 repositories.sources(worktree), run.changes());
@@ -766,7 +766,7 @@ public class RepairService {
                     409,
                     "PROMOTION_DENIED",
                     "Promotion requires completed safety checks, no task regression, fewer"
-                        + " attempts, and the current baseline version.");
+                            + " attempts, and the current baseline version.");
         store.put("repair-policy", "active", c.candidate());
         active = c.candidate();
         audit.append("REPAIR_POLICY_PROMOTED", "local-operator", null, id, active.version());

@@ -5,12 +5,65 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
 /** Fixed-argument process runner. No shell interpolation; bounded time and captured output. */
 @Component
 public class CommandRunner {
+    private final boolean diagnostics;
+
+    public CommandRunner() {
+        this(false);
+    }
+
+    private CommandRunner(boolean diagnostics) {
+        this.diagnostics = diagnostics;
+    }
+
+    static CommandRunner forDiagnostics() {
+        return new CommandRunner(true);
+    }
+
+    private List<String> commandLine(Path cwd, List<String> command) {
+        if (command == null || command.isEmpty()) throw denied();
+        // Select the executable from literals. API values can only occupy subsequent argument
+        // positions; no endpoint or model output can choose a host executable or shell.
+        var selected = new ArrayList<String>();
+        switch (command.getFirst()) {
+            case "git" -> selected.add("git");
+            case "docker" -> selected.add("docker");
+            case "sleep" -> {
+                if (!diagnostics) throw denied();
+                selected.add("sleep");
+            }
+            case "env" -> {
+                if (!diagnostics) throw denied();
+                selected.add("env");
+            }
+            case "tar" -> {
+                if (!diagnostics) throw denied();
+                selected.add("tar");
+            }
+            default -> throw denied();
+        }
+        if (cwd != null) {
+            if (!command.getFirst().equals("git")) throw denied();
+            // Git's explicit directory option keeps working-directory values out of process
+            // executable resolution. RepositoryWorkspace supplies only retained managed identities.
+            selected.add("-C");
+            selected.add(cwd.toAbsolutePath().normalize().toString());
+        }
+        selected.addAll(command.subList(1, command.size()));
+        return selected;
+    }
+
+    private static PlatformException denied() {
+        return new PlatformException(
+                400, "TOOL_DENIED", "The host tool is not in the fixed execution allowlist.");
+    }
+
     public record Result(
             int exitCode, String output, boolean timedOut, boolean truncated, long durationMs) {}
 
@@ -19,12 +72,12 @@ public class CommandRunner {
     }
 
     public Result run(Path cwd, Duration timeout, List<String> command, byte[] input) {
+        List<String> selected = commandLine(cwd, command);
         long start = System.nanoTime();
         Process process = null;
         var io = Executors.newVirtualThreadPerTaskExecutor();
         try {
-            var builder = new ProcessBuilder(command).redirectErrorStream(true);
-            if (cwd != null) builder.directory(cwd.toFile());
+            var builder = new ProcessBuilder(selected).redirectErrorStream(true);
             // Children receive no API keys, bearer credentials, SSH agent, proxy credentials or
             // cloud environment.
             builder.environment().clear();

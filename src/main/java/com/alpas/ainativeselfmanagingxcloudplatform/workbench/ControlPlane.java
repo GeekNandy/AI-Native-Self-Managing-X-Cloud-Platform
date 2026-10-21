@@ -413,8 +413,8 @@ public class ControlPlane {
         store.requireAvailable();
         var environment = requireEnvironment(id);
         synchronized (environment) {
-            adapter.inject(id, kind);
-            environment.observed = adapter.observe(id);
+            adapter.inject(environment.id, kind);
+            environment.observed = adapter.observe(environment.id);
             environment.revision++;
             persist(environment);
             var state = view(environment);
@@ -435,7 +435,7 @@ public class ControlPlane {
         store.requireAvailable();
         var e = requireEnvironment(id);
         synchronized (e) {
-            var observed = adapter.observe(id);
+            var observed = adapter.observe(e.id);
             if (!Objects.equals(e.observed, observed)) {
                 e.observed = observed;
                 e.revision++;

@@ -36,6 +36,8 @@ Only existing `src/main/java` files can change: up to five replacements, 65,536 
 | Time | 20-120 seconds per run; at most twenty seconds per test process; bounded initialization/cleanup allowance |
 | Cancellation | Interrupt the active tool and forcibly remove its disposable container; queued cancellation prevents execution |
 
+The host process boundary selects Git or Docker from a fixed executable allowlist. Repository IDs resolve to retained server identities, and Git uses an explicit managed directory argument. Model output cannot select a host executable, shell, or working directory.
+
 The Docker daemon is trusted and powerful. This is a local single-operator PoC, not a hostile multi-tenant execution service. Kernel isolation and Docker limits do not replace a microVM boundary. No host-JVM execution fallback exists. Pre-pull the configured image; requests cannot pull arbitrary images. Set `platform.sandbox.image` to a reviewed immutable image digest for reproducible deployments.
 
 ## Providers and evidence
