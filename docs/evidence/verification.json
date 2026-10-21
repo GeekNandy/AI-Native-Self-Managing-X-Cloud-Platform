@@ -21,5 +21,11 @@
   "repairComparison": "PASS",
   "cancellationCleanup": "PASS",
   "localRuntimeRecovery": "PASS",
-  "liveModelEvaluation": "NOT_RUN_NO_KEY"
+  "liveModelEvaluation": "NOT_RUN_NO_KEY",
+  "screenshotProvenance": {
+    "commit": "6c5380f183e3c5d824d48c2b3de75e3a406d289e",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39633080471",
+    "artifactId": 12359687980,
+    "artifactDigest": "sha256:bc722ca74d400e0e7d5025ccf552701da28234bb89b468564b2d15de8be04587"
+  }
 }
