@@ -324,11 +324,13 @@ Evaluation, failure testing, security hardening, and production-oriented optimiz
 ├── docs/
 │   ├── architecture.md
 │   ├── domain-model.md
-│   ├── security-model.md
-│   └── adr/
+│   ├── intent-compiler.md
+│   ├── control-plane.md
+│   └── security-model.md
 └── README.md
 ```
-The `docs` directory contains the architecture model, domain definitions, security boundaries, and key architectural decisions. Implementation is introduced incrementally against these contracts.
+
+The `docs` directory contains the architecture, domain model, intent compilation, control-plane lifecycle, and security contracts. Implementation is introduced incrementally against these contracts.
 
 ## Design Goal
 
