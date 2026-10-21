@@ -30,8 +30,8 @@ public class IntentCompiler {
         if (!"java21".equals(spec.runtime())) errors.add("This slice supports runtime java21 only.");
         if (!List.of("development", "production").contains(String.valueOf(spec.tier())))
             errors.add("tier must be development or production.");
-        if (!List.of("germany", "eu", "us").contains(String.valueOf(spec.region())))
-            errors.add("region must be germany, eu or us.");
+        if (!List.of("germany", "eu", "us", "local").contains(String.valueOf(spec.region())))
+            errors.add("region must be germany, eu, us or local.");
         if (!List.of("public", "internal", "pii").contains(String.valueOf(spec.dataClassification())))
             errors.add("dataClassification must be public, internal or pii.");
         if (spec.zones() < 1 || spec.zones() > 3) errors.add("zones must be between 1 and 3.");

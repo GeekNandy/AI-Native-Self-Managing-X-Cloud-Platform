@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class EvaluationService {
@@ -24,10 +25,17 @@ public class EvaluationService {
     private final Semaphore slot = new Semaphore(1);
     private final ArrayDeque<EvaluationReport> history = new ArrayDeque<>();
 
+    private final StateStore store;
+    public record History(List<EvaluationReport> reports) {}
     public EvaluationService(ScenarioCatalog catalog, IntentCompiler compiler, IntentInterpreter interpreter,
                              FeedbackStore feedback, AgentService agents, Clock clock, AuditLog audit, MeterRegistry metrics) {
+        this(catalog, compiler, interpreter, feedback, agents, clock, audit, metrics, StateStore.volatileStore());
+    }
+    @Autowired public EvaluationService(ScenarioCatalog catalog, IntentCompiler compiler, IntentInterpreter interpreter,
+                             FeedbackStore feedback, AgentService agents, Clock clock, AuditLog audit, MeterRegistry metrics, StateStore store) {
         this.catalog = catalog; this.compiler = compiler; this.interpreter = interpreter; this.feedback = feedback;
-        this.agents = agents; this.clock = clock; this.audit = audit; this.metrics = metrics;
+        this.agents = agents; this.clock = clock; this.audit = audit; this.metrics = metrics; this.store = store;
+        store.all("evaluations", History.class).forEach(h -> history.addAll(h.reports()));
     }
 
     public EvaluationReport evaluate(String requestedMode) {
@@ -63,6 +71,7 @@ public class EvaluationService {
         synchronized (history) {
             history.addFirst(result);
             if (history.size() > 20) history.removeLast();
+            store.put("evaluations", "history", new History(List.copyOf(history)));
         }
         audit.append("EVALUATION_COMPLETED", "evaluation-harness", null, result.id(), evidence + ": " + passed + "/" + cases.size());
         metrics.counter("platform.evaluation.cases", "mode", evidence, "result", "passed").increment(passed);

@@ -37,10 +37,14 @@ public class WorkbenchController {
                                   @NotNull IntentSpec expectedSpec, @NotBlank String expectedDecision) {}
 
     @GetMapping("/config") public Map<String, Object> config() {
-        return Map.of("provider", interpreter.provider(), "model", interpreter.model(), "executionMode", "in-memory-sandbox",
-                "policyVersion", PolicyEngine.VERSION, "planTtlMinutes", 15, "authentication", "local-demo-only",
-                "capabilities", List.of("intent-compilation", "policy-checks", "plan-review", "sandbox-execution", "drift-recovery", "regression-evaluation"));
+        return Map.of("provider", interpreter.provider(), "model", interpreter.model(), "executionMode", control.executionMode(),
+                "policyVersion", PolicyEngine.VERSION, "planTtlMinutes", 15, "authentication", "scoped-bearer",
+                "capabilities", List.of("intent-compilation", "policy-checks", "plan-review", "sandbox-execution", "drift-recovery", "regression-evaluation", "durable-state", "scoped-access", "mcp-tools", "repository-repair"));
     }
+    @GetMapping("/session") public Map<String, Object> session(jakarta.servlet.http.HttpServletRequest request) {
+        return Map.of("role", request.getAttribute("accessRole"));
+    }
+    @PostMapping(value="/environments/{id}/refresh", consumes="application/json") public EnvironmentView refresh(@PathVariable String id) { return control.refresh(id); }
     @GetMapping("/examples") public List<Scenario> examples() { return catalog.examples(); }
     @PostMapping(value = "/runs", consumes = "application/json") public AgentRun run(@Valid @RequestBody RunRequest request) { return agents.run(request.prompt()); }
     @GetMapping("/runs/{id}") public AgentRun run(@PathVariable String id) { return agents.requireRun(id); }

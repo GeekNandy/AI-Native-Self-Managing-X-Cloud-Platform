@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Semaphore;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class AgentService {
@@ -21,12 +22,18 @@ public class AgentService {
     private final ConcurrentHashMap<String, AgentRun> runs = new ConcurrentHashMap<>();
     private final Semaphore retentionSlots = new Semaphore(500);
 
+    private final StateStore store;
     public AgentService(IntentInterpreter interpreter, ControlPlane control, Clock clock, AuditLog audit, MeterRegistry metrics) {
-        this.interpreter = interpreter; this.control = control; this.clock = clock; this.audit = audit; this.metrics = metrics;
+        this(interpreter, control, clock, audit, metrics, StateStore.volatileStore());
+    }
+    @Autowired public AgentService(IntentInterpreter interpreter, ControlPlane control, Clock clock, AuditLog audit, MeterRegistry metrics, StateStore store) {
+        this.interpreter = interpreter; this.control = control; this.clock = clock; this.audit = audit; this.metrics = metrics; this.store = store;
+        store.all("runs", AgentRun.class).forEach(r -> runs.put(r.id(), r));
+        retentionSlots.acquireUninterruptibly(runs.size());
     }
 
     public AgentRun run(String prompt) {
-        if (!retentionSlots.tryAcquire()) throw new PlatformException(429, "RUN_CAPACITY", "The local workbench reached its run retention limit. Restart to clear it.");
+        if (!retentionSlots.tryAcquire()) throw new PlatformException(429, "RUN_CAPACITY", "The local workbench reached its run retention limit. Export evidence and use a new data directory for another session.");
         try { return captureRun(prompt);
         } catch (RuntimeException failure) { retentionSlots.release(); throw failure; }
     }
@@ -53,6 +60,7 @@ public class AgentService {
             messages.addAll(failure.details());
         }
         var result = new AgentRun(id, clock.instant(), prompt, interpreter.provider(), status, interpretationMs, plan, messages);
+        store.put("runs", id, result);
         runs.put(id, result);
         metrics.timer("platform.agent.run", "provider", interpreter.provider(), "status", status)
                 .record(System.nanoTime() - started, TimeUnit.NANOSECONDS);

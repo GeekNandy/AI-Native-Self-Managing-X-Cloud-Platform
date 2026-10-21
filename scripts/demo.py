@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run a real HTTP demo against a running local workbench. No external Python packages needed."""
 import argparse
+import os
 import hashlib
 import json
 import time
@@ -16,7 +17,9 @@ def main():
     parser.add_argument('--base-url', default='http://127.0.0.1:8080')
     parser.add_argument('--evidence', type=Path, help='Write actual operation and evaluation results as JSON.')
     parser.add_argument('--artifacts-dir', type=Path, help='Export the generated workload and manifest previews.')
+    parser.add_argument('--token-file', type=Path, default=Path(os.environ.get('PLATFORM_DATA_DIR', '.workbench')) / 'operator.token')
     args = parser.parse_args()
+    token = os.environ.get('PLATFORM_OPERATOR_TOKEN') or args.token_file.read_text().strip()
     parsed = urllib.parse.urlparse(args.base_url)
     if parsed.scheme != 'http' or parsed.hostname not in ('127.0.0.1', 'localhost') or parsed.path not in ('', '/'):
         parser.error('Use the local workbench origin, for example http://127.0.0.1:8080.')
@@ -26,7 +29,7 @@ def main():
     def call(path, body=None):
         data = json.dumps(body).encode() if body is not None else None
         request = urllib.request.Request(base + '/api' + path, data=data,
-                                         headers={'Content-Type': 'application/json'} if data is not None else {})
+                                         headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token})
         try:
             with transport.open(request, timeout=60) as response:
                 return json.load(response)

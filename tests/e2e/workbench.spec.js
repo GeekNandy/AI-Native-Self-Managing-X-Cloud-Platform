@@ -7,6 +7,8 @@ test.beforeEach(async ({ page }) => {
   errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
+  await page.getByLabel("Access token", {exact:true}).fill("e2e-operator-token-0123456789");
+  await page.getByRole("button", {name:"Connect to workspace"}).click();
   await expect(
     page.getByText("Control plane connected", { exact: true }),
   ).toBeVisible();
@@ -146,4 +148,24 @@ test("mobile layout stays within the viewport and keeps navigation usable", asyn
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
+});
+
+test("repository workflow creates a real task snapshot and discloses runner availability", async ({ page }) => {
+  await page.getByRole("link", {name:"Repository agent", exact:true}).click();
+  await expect(page.getByRole("heading", {name:"A failing test. A reviewed fix."})).toBeVisible();
+  await page.getByRole("button", {name:"Create task repository"}).click();
+  await expect(page.locator("#code-repository")).not.toHaveValue("");
+  await expect(page.getByLabel("Repair request")).toHaveValue(/Fix the discount/);
+  await expect(page.locator("#code-notice")).toContainText(/Isolated runner ready|Docker runner unavailable/);
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("invalid credentials cannot unlock the workspace", async ({ page }) => {
+  await page.evaluate(() => sessionStorage.clear());
+  await page.reload();
+  await page.getByLabel("Access token", {exact:true}).fill("invalid-token-with-enough-characters");
+  await page.getByRole("button", {name:"Connect to workspace"}).click();
+  await expect(page.locator("#login-error")).toContainText("bearer token");
+  await expect(page.locator("#login-dialog")).toBeVisible();
 });

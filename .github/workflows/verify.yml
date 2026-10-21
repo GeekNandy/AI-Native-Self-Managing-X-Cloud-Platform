@@ -22,11 +22,22 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - run: docker pull eclipse-temurin:21-jdk
       - run: ./mvnw -B verify
+        env:
+          RUN_DOCKER_TESTS: true
       - run: npm ci
       - run: npm run check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: execution-evidence
+          path: |
+            target/docker-*-evidence.json
+            target/surefire-reports/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

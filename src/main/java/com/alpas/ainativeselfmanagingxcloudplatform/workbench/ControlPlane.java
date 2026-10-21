@@ -12,13 +12,15 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /** Serializes mutations per environment. Model output can create proposals, never invoke apply. */
 @Service
 public class ControlPlane {
     private static final Duration PLAN_TTL = Duration.ofMinutes(15);
     private final IntentCompiler compiler;
-    private final SandboxAdapter adapter;
+    private final RuntimeAdapter adapter;
+    private final StateStore store;
     private final AuditLog audit;
     private final Clock clock;
     private final MeterRegistry metrics;
@@ -33,16 +35,46 @@ public class ControlPlane {
         long desiredVersion;
         IntentSpec desired;
         IntentSpec observed;
+        String pendingPlan;
         final HashMap<String, Receipt> receipts = new HashMap<>();
         Environment(String id) { this.id = id; }
     }
 
-    public ControlPlane(IntentCompiler compiler, SandboxAdapter adapter, AuditLog audit, Clock clock, MeterRegistry metrics) {
-        this.compiler = compiler; this.adapter = adapter; this.audit = audit; this.clock = clock; this.metrics = metrics;
+    public record EnvironmentSnapshot(String id, long revision, long desiredVersion, IntentSpec desired,
+            IntentSpec observed, List<Receipt> receipts, String pendingPlan) {}
+    public ControlPlane(IntentCompiler compiler, RuntimeAdapter adapter, AuditLog audit, Clock clock, MeterRegistry metrics) {
+        this(compiler, adapter, audit, clock, metrics, StateStore.volatileStore());
+    }
+    @Autowired public ControlPlane(IntentCompiler compiler, RuntimeAdapter adapter, AuditLog audit, Clock clock, MeterRegistry metrics, StateStore store) {
+        this.compiler = compiler; this.adapter = adapter; this.audit = audit; this.clock = clock; this.metrics = metrics; this.store = store;
+        for (var saved : store.all("environments", EnvironmentSnapshot.class)) {
+            var e = new Environment(saved.id()); e.revision = saved.revision(); e.desiredVersion = saved.desiredVersion();
+            e.desired = saved.desired(); e.observed = saved.observed(); e.pendingPlan = saved.pendingPlan();
+            saved.receipts().forEach(r -> { e.receipts.put(r.idempotencyKey(), r); completedPlans.put(r.planId(), r); });
+            environments.put(e.id, e);
+            if (e.pendingPlan != null) {
+                String interrupted = e.pendingPlan; e.observed = null; e.revision++; e.pendingPlan = null; persist(e);
+                audit.append("OPERATION_RECOVERY_REQUIRED", "recovery", e.id, interrupted, "Execution was interrupted. Observation is unknown; refresh and review a new plan.");
+            }
+        }
+        for (var saved : store.all("plans", Plan.class)) {
+            if (saved.expiresAt().isAfter(clock.instant())) plans.put(saved.id(), saved);
+            else store.remove("plans", saved.id());
+        }
+    }
+    private void persist(Environment e) {
+        store.put("environments", e.id, new EnvironmentSnapshot(e.id, e.revision, e.desiredVersion, e.desired, e.observed,
+                List.copyOf(e.receipts.values()), e.pendingPlan));
+    }
+    public String executionMode() { return adapter.mode(); }
+    private PolicyReport analyze(IntentSpec spec) {
+        var base = compiler.analyze(spec); var checks = new ArrayList<>(base.checks()); checks.addAll(adapter.capabilityChecks(spec));
+        return new PolicyReport(base.version(), base.allowed() && checks.stream().allMatch(PolicyCheck::passed) ? "ALLOW" : "DENY", checks);
     }
 
     public Plan propose(IntentSpec spec) {
-        PolicyReport policy = compiler.analyze(spec);
+        store.requireAvailable();
+        PolicyReport policy = analyze(spec);
         var environment = reserveEnvironment(spec.environmentId());
         synchronized (environment) {
             return savePlan(environment, spec, environment.desired == null ? "PROVISION" : "UPDATE", policy,
@@ -51,6 +83,7 @@ public class ControlPlane {
     }
 
     public Plan proposeReconciliation(String environmentId) {
+        store.requireAvailable();
         var environment = requireEnvironment(environmentId);
         synchronized (environment) {
             var state = view(environment);
@@ -61,7 +94,7 @@ public class ControlPlane {
             var actions = new ArrayList<Action>();
             for (var drift : state.drift()) actions.add(new Action(actions.size() + 1, drift.field(), "RESTORE",
                     "Restore " + drift.field() + " from " + drift.observed() + " to " + drift.expected(), List.of()));
-            return savePlan(environment, environment.desired, "RECONCILE", compiler.analyze(environment.desired), actions);
+            return savePlan(environment, environment.desired, "RECONCILE", analyze(environment.desired), actions);
         }
     }
 
@@ -75,8 +108,13 @@ public class ControlPlane {
         var plan = new Plan(id, environment.id, kind, policy.allowed() ? "AWAITING_APPROVAL" : "BLOCKED",
                 environment.revision, target, policy, actions, artifacts, digest, created, expires);
         synchronized (plans) {
-            plans.entrySet().removeIf(entry -> entry.getValue().expiresAt().isBefore(clock.instant()));
-            if (plans.size() >= 500) throw new PlatformException(429, "PLAN_CAPACITY", "The local workbench has reached its plan limit. Wait for plans to expire or restart.");
+            plans.entrySet().removeIf(entry -> {
+                if (!entry.getValue().expiresAt().isBefore(clock.instant())) return false;
+                store.remove("plans", entry.getKey()); return true;
+            });
+            if (plans.size() >= 500) throw new PlatformException(429, "PLAN_CAPACITY", "The local workbench has reached its plan limit. Wait for plans to expire.");
+            persist(environment);
+            store.put("plans", id, plan);
             plans.put(id, plan);
         }
         metrics.counter("platform.plans", "decision", policy.decision()).increment();
@@ -93,6 +131,7 @@ public class ControlPlane {
     }
 
     public ApplyResult apply(String id, String approvedDigest, String idempotencyKey) {
+        store.requireAvailable();
         if (idempotencyKey == null || !idempotencyKey.matches("[A-Za-z0-9_-]{8,100}"))
             throw new PlatformException(400, "INVALID_IDEMPOTENCY_KEY", "Use an 8-100 character idempotency key containing letters, digits, hyphens or underscores.");
         var completed = completedPlans.get(id);
@@ -115,19 +154,22 @@ public class ControlPlane {
             if (!"AWAITING_APPROVAL".equals(plan.status())) reject(plan, "POLICY_DENIED", "A denied plan cannot be executed.");
             if (!clock.instant().isBefore(plan.expiresAt())) reject(plan, "PLAN_EXPIRED", "This plan expired. Generate and review a fresh plan.");
             if (environment.revision != plan.baseRevision()) reject(plan, "STALE_PLAN", "Environment state changed after planning. Generate and review a fresh plan.");
-            if (!compiler.analyze(plan.intent()).allowed()) reject(plan, "POLICY_CHANGED", "The current policy no longer permits this plan.");
+            if (!analyze(plan.intent()).allowed()) reject(plan, "POLICY_CHANGED", "The current policy no longer permits this plan.");
             if (environment.receipts.size() >= 200) throw new PlatformException(429, "OPERATION_CAPACITY", "The environment reached its local operation limit.");
             String operationId = UUID.randomUUID().toString();
             audit.append("PLAN_APPROVED", "local-operator", environment.id, id, "Reviewed digest " + plan.digest());
             audit.append("OPERATION_STARTED", "control-plane", environment.id, id, operationId);
+            environment.pendingPlan = id;
+            persist(environment); // Write-ahead marker precedes every external side effect.
             IntentSpec observed;
             try {
                 observed = adapter.apply(environment.id, plan.intent());
                 if (!plan.intent().equals(observed)) throw new IllegalStateException("Adapter did not converge");
             } catch (RuntimeException failure) {
                 // Preserve the last committed desired state and invalidate proposals after uncertain execution.
-                environment.observed = adapter.observe(environment.id);
+                try { environment.observed = adapter.observe(environment.id); } catch (RuntimeException unavailable) { environment.observed = null; }
                 environment.revision++;
+                environment.pendingPlan = null; persist(environment);
                 audit.append("OPERATION_FAILED", "control-plane", environment.id, id, "Adapter failed; refresh and replan.");
                 metrics.counter("platform.operations", "outcome", "failed").increment();
                 throw new PlatformException(502, "ADAPTER_FAILED", "Sandbox execution failed. State was re-observed; review a fresh plan before retrying.");
@@ -140,6 +182,8 @@ public class ControlPlane {
             environment.revision++;
             var receipt = new Receipt(operationId, id, plan.digest(), idempotencyKey, view(environment), clock.instant());
             environment.receipts.put(idempotencyKey, receipt);
+            environment.pendingPlan = null;
+            persist(environment);
             completedPlans.put(id, receipt);
             audit.append("OPERATION_SUCCEEDED", "control-plane", environment.id, id, operationId + "; " + receipt.environment().convergence());
             metrics.counter("platform.operations", "outcome", "succeeded").increment();
@@ -153,17 +197,29 @@ public class ControlPlane {
     }
 
     public EnvironmentView injectFault(String id, String kind) {
+        store.requireAvailable();
         var environment = requireEnvironment(id);
         synchronized (environment) {
             adapter.inject(id, kind);
             environment.observed = adapter.observe(id);
             environment.revision++;
+            persist(environment);
             var state = view(environment);
             audit.append("SANDBOX_FAULT_INJECTED", "local-operator", id, "fault", kind);
             audit.append("UNKNOWN".equals(state.convergence()) ? "OBSERVATION_LOST" : "DRIFT_DETECTED",
                     "observer", id, "fault", state.convergence());
             metrics.counter("platform.drift.observations", "convergence", state.convergence()).increment();
             return state;
+        }
+    }
+
+    public EnvironmentView refresh(String id) {
+        store.requireAvailable();
+        var e = requireEnvironment(id);
+        synchronized (e) {
+            var observed = adapter.observe(id);
+            if (!Objects.equals(e.observed, observed)) { e.observed = observed; e.revision++; persist(e); }
+            return view(e);
         }
     }
 
@@ -180,7 +236,7 @@ public class ControlPlane {
     private Environment reserveEnvironment(String id) {
         synchronized (environments) {
             if (!environments.containsKey(id) && environments.size() >= 100)
-                throw new PlatformException(429, "ENVIRONMENT_CAPACITY", "The local workbench supports at most 100 environments per process.");
+                throw new PlatformException(429, "ENVIRONMENT_CAPACITY", "The local workbench supports at most 100 retained environments.");
             return environments.computeIfAbsent(id, Environment::new);
         }
     }

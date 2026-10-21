@@ -4,10 +4,22 @@ import static com.alpas.ainativeselfmanagingxcloudplatform.workbench.Model.*;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
-/** Actual runtime for this demo: an in-memory simulator, never a cloud SDK or shell. */
+/** Durable simulator. It models transitions without provisioning infrastructure. */
 @Component
-public class SandboxAdapter {
+@ConditionalOnProperty(name="platform.runtime", havingValue="sandbox", matchIfMissing=true)
+public class SandboxAdapter implements RuntimeAdapter {
+    private final StateStore store;
+    public record Snapshot(String id, IntentSpec intent, boolean unavailable) {}
+    public SandboxAdapter() { this(StateStore.volatileStore()); }
+    @Autowired public SandboxAdapter(StateStore store) {
+        this.store = store;
+        for (var item : store.all("sandbox", Snapshot.class)) { runtime.put(item.id(), item.intent()); if (item.unavailable()) unavailable.add(item.id()); }
+    }
+    private void save(String id) { store.put("sandbox", id, new Snapshot(id, runtime.get(id), unavailable.contains(id))); }
+    @Override public String mode() { return "durable-simulator"; }
     private final ConcurrentHashMap<String, IntentSpec> runtime = new ConcurrentHashMap<>();
     private final Set<String> unavailable = ConcurrentHashMap.newKeySet();
 
@@ -18,6 +30,7 @@ public class SandboxAdapter {
     public IntentSpec apply(String environmentId, IntentSpec target) {
         runtime.put(environmentId, target);
         unavailable.remove(environmentId);
+        save(environmentId);
         return target;
     }
 
@@ -31,5 +44,6 @@ public class SandboxAdapter {
             case "observation-restored" -> unavailable.remove(environmentId);
             default -> throw new PlatformException(400, "UNKNOWN_FAULT", "Choose replica-loss, egress-open, observation-lost or observation-restored.");
         }
+        save(environmentId);
     }
 }

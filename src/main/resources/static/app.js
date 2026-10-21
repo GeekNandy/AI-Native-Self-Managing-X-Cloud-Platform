@@ -10,6 +10,7 @@ const esc = (value) =>
 const pretty = (value) => JSON.stringify(value, null, 2);
 const labels = {
   workbench: "Agent workbench",
+  code: "Repository agent",
   environments: "Environments",
   evaluations: "Evaluations",
   activity: "Activity log",
@@ -36,22 +37,21 @@ let toastTimeout;
 async function api(path, body) {
   let response;
   try {
-    response = await fetch(
-      `/api${path}`,
-      body === undefined
-        ? {}
-        : {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          },
-    );
+    response = await fetch(`/api${path}`, {
+      method: body === undefined ? "GET" : "POST",
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        ...(sessionStorage.getItem("workbench-token") ? { Authorization: `Bearer ${sessionStorage.getItem("workbench-token")}` } : {}),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
   } catch {
     throw new Error(
       "The workbench is unreachable. Check the server, then retry. Apply retries reuse the same operation key.",
     );
   }
   const result = await response.json();
+  if (response.status === 401) $("#login-dialog").showModal();
   if (!response.ok) {
     const error = new Error(
       result.message || result.detail || `Request failed (${response.status}).`,
@@ -147,7 +147,7 @@ function renderConfig() {
     ? `Gemini · ${state.config.model}`
     : "Offline example mode";
   $("#mode-notice").innerHTML =
-    `<span class="notice-symbol">i</span><span>${live ? "<strong>Live model extraction</strong> · Proposals still pass independent validation and policy checks." : "<strong>Offline examples</strong> · Choose a curated request below. Configure Gemini to interpret new requests."} Every execution uses the local sandbox.</span>`;
+    `<span class="notice-symbol">i</span><span>${live ? "<strong>Live model extraction</strong> · Proposals still pass independent validation and policy checks." : "<strong>Offline examples</strong> · Choose a curated request below. Configure Gemini to interpret new requests."} Runtime: ${esc(state.config.executionMode)}.</span>`;
   $("#connection-status").textContent = "Control plane connected";
   $("#evaluation-mode-label").textContent = live
     ? "Control-plane + live interpreter evaluation"
@@ -156,7 +156,7 @@ function renderConfig() {
     ? "Evaluate Gemini interpreter ↗"
     : "Check example replay ↗";
   $("#workbench-boundary").textContent =
-    "In-memory sandbox · No cloud resources created";
+    state.config.executionMode === "docker-local" ? "Docker runtime · Local containers" : "Durable simulator · No cloud resources created";
 }
 
 function renderExamples() {
@@ -597,6 +597,17 @@ document.addEventListener("change", (event) => {
 });
 window.addEventListener("hashchange", showView);
 
+$("#login-dialog").addEventListener("cancel", (event) => event.preventDefault());
+$("#login-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  sessionStorage.setItem("workbench-token", $("#access-token").value.trim());
+  try {
+    await api("/session"); $("#access-token").value = ""; $("#login-dialog").close();
+    $("#connection-error").hidden = true; $("#compile-button").disabled = false;
+    await initialize();
+  } catch (error) { sessionStorage.removeItem("workbench-token"); $("#login-error").textContent = error.message; }
+});
+
 async function initialize() {
   showView();
   renderStats();
@@ -605,6 +616,7 @@ async function initialize() {
   renderEvaluations();
   renderActivity();
   try {
+    if (!sessionStorage.getItem("workbench-token")) { $("#login-dialog").showModal(); return; }
     [state.config, state.examples] = await Promise.all([
       api("/config"),
       api("/examples"),
@@ -613,6 +625,7 @@ async function initialize() {
     if (state.examples.length) $("#prompt").value = state.examples[0].prompt;
     renderExamples();
     await refresh();
+    document.dispatchEvent(new Event("workspace-connected"));
   } catch (error) {
     $("#connection-status").textContent = "Connection unavailable";
     $("#connection-error").hidden = false;
@@ -621,3 +634,5 @@ async function initialize() {
   }
 }
 void initialize();
+
+export { api, esc, pretty, toast, fail };

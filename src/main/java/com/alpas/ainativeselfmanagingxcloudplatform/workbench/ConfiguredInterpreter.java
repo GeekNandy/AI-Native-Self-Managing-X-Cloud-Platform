@@ -73,7 +73,7 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                 Every field must be explicitly specified or unambiguously implied. Do not invent missing requirements.
                 Return intent=null and concise questions if requirements are missing or contradictory.
                 Return an intent with questions=[] only when complete. The supported runtime is java21.
-                Region is germany, eu or us; tier is development or production; classification is public, internal or pii.
+                Region is germany, eu, us or local; tier is development or production; classification is public, internal or pii.
                 """;
         var body = Map.of("systemInstruction", Map.of("parts", List.of(Map.of("text", system))),
                 "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", prompt)))),

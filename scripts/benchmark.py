@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Measure the local structured-plan API. Excludes inference, provider calls and apply operations."""
 import argparse
+import os
 import concurrent.futures
 import datetime
 import json
@@ -18,7 +19,9 @@ def main():
     parser.add_argument('--concurrency', type=int, default=8)
     parser.add_argument('--environments', type=int, default=8)
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--token-file', type=Path, default=Path(os.environ.get('PLATFORM_DATA_DIR', '.workbench')) / 'operator.token')
     args = parser.parse_args()
+    token = os.environ.get('PLATFORM_OPERATOR_TOKEN') or args.token_file.read_text().strip()
     origin = urllib.parse.urlparse(args.base_url)
     if origin.scheme != 'http' or origin.hostname not in ('127.0.0.1', 'localhost') or origin.path not in ('', '/'):
         parser.error('Use the local workbench origin.')
@@ -31,7 +34,7 @@ def main():
                     encryptedStorage=True, zones=1, replicas=1, monitoring=True, rollback=True)
         transport = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         payload = urllib.request.Request(args.base_url.rstrip('/') + '/api/plans',
-                                         data=json.dumps({'spec': spec}).encode(), headers={'Content-Type': 'application/json'})
+                                         data=json.dumps({'spec': spec}).encode(), headers={'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token})
         start = time.perf_counter()
         try:
             with transport.open(payload, timeout=30) as response:
@@ -59,7 +62,7 @@ def main():
                   requests=args.requests, concurrency=args.concurrency, environmentIdentities=args.environments,
                   elapsedSeconds=elapsed, completedRequestsPerSecond=args.requests / elapsed,
                   errors=len(errors), errorDetails=errors[:10], p50Ms=percentile(.50), p95Ms=percentile(.95), p99Ms=percentile(.99),
-                  limitations='One local JVM and loopback HTTP; client wall-clock timings include Python scheduling. No model, cloud execution, durability or distributed scaling measured.')
+                  limitations='One local JVM and loopback HTTP; client wall-clock timings include Python scheduling. Embedded state commits included; no model, cloud execution or distributed scaling measured.')
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + '\n')
