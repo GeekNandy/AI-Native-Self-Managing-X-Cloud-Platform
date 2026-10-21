@@ -1,13 +1,13 @@
 {
   "provenance": {
-    "commit": "e650f632809a1225e547c16877782b16c190add9",
-    "implementationDigest": "636f87843e88f4e4f4cc2c675a830d438934395f2f0c9693658a5da6c7380ffa",
-    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39632194511",
-    "artifactId": 12358669627,
-    "artifactDigest": "sha256:f56ea4a44b430c30cef8993ead605268d6762b70e9b669a28a9d940f18165d35"
+    "commit": "6fa7268c6f14431be11e5e3d62f1252701201507",
+    "implementationDigest": "0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39637509909",
+    "artifactId": 12361379539,
+    "artifactDigest": "sha256:96b62ceff475b783e7daa2087355c9b388bd1c7032384a0645f968eabf271d42"
   },
   "java": {
-    "tests": 37,
+    "tests": 40,
     "failures": 0,
     "errors": 0,
     "skipped": 0
@@ -27,5 +27,16 @@
     "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39633080471",
     "artifactId": 12359687980,
     "artifactDigest": "sha256:bc722ca74d400e0e7d5025ccf552701da28234bb89b468564b2d15de8be04587"
+  },
+  "codeScanning": {
+    "conclusion": "success",
+    "summary": "No new alerts in code changed by this pull request",
+    "checkRunId": 119352148440,
+    "languages": [
+      "java-kotlin",
+      "javascript-typescript",
+      "python",
+      "actions"
+    ]
   }
 }

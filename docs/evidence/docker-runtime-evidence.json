@@ -1,93 +1,6 @@
 {
-  "recovery": {
-    "receipt": {
-      "operationId": "9fbebe8f-df66-4531-8603-0223379535cb",
-      "planId": "cb34d5e5-8c93-422f-bf1d-9de95b2176fb",
-      "digest": "071b385bb18d7703130f5b11c30fbd9d9202029b32917f5aafe8c05c0a7d33eb",
-      "idempotencyKey": "docker-recovery-key",
-      "environment": {
-        "id": "container-demo-development",
-        "revision": 3,
-        "desiredVersion": 1,
-        "convergence": "CONVERGED",
-        "desired": {
-          "serviceName": "container-demo",
-          "runtime": "java21",
-          "tier": "development",
-          "region": "local",
-          "privateNetwork": true,
-          "restrictedEgress": true,
-          "dataClassification": "internal",
-          "encryptedStorage": false,
-          "zones": 1,
-          "replicas": 2,
-          "monitoring": true,
-          "rollback": false
-        },
-        "observed": {
-          "serviceName": "container-demo",
-          "runtime": "java21",
-          "tier": "development",
-          "region": "local",
-          "privateNetwork": true,
-          "restrictedEgress": true,
-          "dataClassification": "internal",
-          "encryptedStorage": false,
-          "zones": 1,
-          "replicas": 2,
-          "monitoring": true,
-          "rollback": false
-        },
-        "drift": []
-      },
-      "completedAt": "2026-10-21T16:10:29.299435420Z"
-    },
-    "replayed": false
-  },
-  "drift": {
-    "id": "container-demo-development",
-    "revision": 2,
-    "desiredVersion": 1,
-    "convergence": "DRIFT_DETECTED",
-    "desired": {
-      "serviceName": "container-demo",
-      "runtime": "java21",
-      "tier": "development",
-      "region": "local",
-      "privateNetwork": true,
-      "restrictedEgress": true,
-      "dataClassification": "internal",
-      "encryptedStorage": false,
-      "zones": 1,
-      "replicas": 2,
-      "monitoring": true,
-      "rollback": false
-    },
-    "observed": {
-      "serviceName": "container-demo",
-      "runtime": "java21",
-      "tier": "development",
-      "region": "local",
-      "privateNetwork": true,
-      "restrictedEgress": true,
-      "dataClassification": "internal",
-      "encryptedStorage": false,
-      "zones": 1,
-      "replicas": 1,
-      "monitoring": true,
-      "rollback": false
-    },
-    "drift": [
-      {
-        "field": "replicas",
-        "expected": 2,
-        "observed": 1,
-        "severity": "HIGH"
-      }
-    ]
-  },
   "provision": {
-    "id": "7256212e-4ae4-42e2-a103-32bcdcfafbda",
+    "id": "5ec65914-2b16-4643-a9a8-9b3f7c250324",
     "environmentId": "container-demo-development",
     "kind": "PROVISION",
     "status": "AWAITING_APPROVAL",
@@ -260,15 +173,102 @@
         "content": "FROM eclipse-temurin:21-jdk AS build\nWORKDIR /src\nCOPY Main.java .\nRUN javac --release 21 Main.java\nFROM eclipse-temurin:21-jre\nWORKDIR /app\nCOPY --from=build /src/Main.class .\nUSER 10001:10001\nEXPOSE 8080\nENTRYPOINT [\"java\", \"-XX:MaxRAMPercentage=75\", \"Main\"]\n"
       }
     ],
-    "digest": "6c2e1f75aee52cb0b2a2a18c604997ebd6b47092ddb96ecf29369bf6d0dc2b23",
-    "createdAt": "2026-10-21T16:10:15.372766448Z",
-    "expiresAt": "2026-10-21T16:25:15.372766448Z"
+    "digest": "40c1ec76ba455c10c673dde9f5e671d184ecf5c4f5ac08eb016a3b42315e2006",
+    "createdAt": "2026-10-21T16:45:37.669268801Z",
+    "expiresAt": "2026-10-21T17:00:37.669268801Z"
+  },
+  "recovery": {
+    "receipt": {
+      "operationId": "f86dcae8-d934-4e6a-86ee-75bbb9beb51c",
+      "planId": "f0289c9a-7458-4dcd-a6e0-12332fdd6ef5",
+      "digest": "af380fdbc9eb708d211155f4c4526fb9145884fc393e0ebea186caef2e82f9d3",
+      "idempotencyKey": "docker-recovery-key",
+      "environment": {
+        "id": "container-demo-development",
+        "revision": 3,
+        "desiredVersion": 1,
+        "convergence": "CONVERGED",
+        "desired": {
+          "serviceName": "container-demo",
+          "runtime": "java21",
+          "tier": "development",
+          "region": "local",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "internal",
+          "encryptedStorage": false,
+          "zones": 1,
+          "replicas": 2,
+          "monitoring": true,
+          "rollback": false
+        },
+        "observed": {
+          "serviceName": "container-demo",
+          "runtime": "java21",
+          "tier": "development",
+          "region": "local",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "internal",
+          "encryptedStorage": false,
+          "zones": 1,
+          "replicas": 2,
+          "monitoring": true,
+          "rollback": false
+        },
+        "drift": []
+      },
+      "completedAt": "2026-10-21T16:45:54.353654949Z"
+    },
+    "replayed": false
+  },
+  "drift": {
+    "id": "container-demo-development",
+    "revision": 2,
+    "desiredVersion": 1,
+    "convergence": "DRIFT_DETECTED",
+    "desired": {
+      "serviceName": "container-demo",
+      "runtime": "java21",
+      "tier": "development",
+      "region": "local",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "internal",
+      "encryptedStorage": false,
+      "zones": 1,
+      "replicas": 2,
+      "monitoring": true,
+      "rollback": false
+    },
+    "observed": {
+      "serviceName": "container-demo",
+      "runtime": "java21",
+      "tier": "development",
+      "region": "local",
+      "privateNetwork": true,
+      "restrictedEgress": true,
+      "dataClassification": "internal",
+      "encryptedStorage": false,
+      "zones": 1,
+      "replicas": 1,
+      "monitoring": true,
+      "rollback": false
+    },
+    "drift": [
+      {
+        "field": "replicas",
+        "expected": 2,
+        "observed": 1,
+        "severity": "HIGH"
+      }
+    ]
   },
   "provenance": {
-    "commit": "e650f632809a1225e547c16877782b16c190add9",
-    "implementationDigest": "636f87843e88f4e4f4cc2c675a830d438934395f2f0c9693658a5da6c7380ffa",
-    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39632194511",
-    "artifactId": 12358669627,
-    "artifactDigest": "sha256:f56ea4a44b430c30cef8993ead605268d6762b70e9b669a28a9d940f18165d35"
+    "commit": "6fa7268c6f14431be11e5e3d62f1252701201507",
+    "implementationDigest": "0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39637509909",
+    "artifactId": 12361379539,
+    "artifactDigest": "sha256:96b62ceff475b783e7daa2087355c9b388bd1c7032384a0645f968eabf271d42"
   }
 }

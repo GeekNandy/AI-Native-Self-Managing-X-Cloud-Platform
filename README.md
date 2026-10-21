@@ -67,7 +67,7 @@ RUN_DOCKER_TESTS=true ./mvnw verify
 
 [Recorded evidence](docs/evidence/README.md) identifies the tested source, harness and limitations. GitHub Actions runs Java, Docker, restart and browser checks and retains execution reports as artifacts.
 
-Verified: **37 Java tests, eight browser scenarios, actual Docker repair/recovery and SIGKILL restart checks**. See the [execution summary](docs/evidence/verification.json) and [recorded repair screen](docs/images/repository-repair.png).
+Verified: **40 Java tests, eight browser scenarios, actual Docker repair/recovery and SIGKILL restart checks**. See the [execution summary](docs/evidence/verification.json) and [recorded repair screen](docs/images/repository-repair.png).
 
 ### Documentation
 
