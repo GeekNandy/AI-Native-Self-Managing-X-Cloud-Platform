@@ -2,6 +2,8 @@
 
 Deploy the repository's **feature** branch as one Docker web service. The root Dockerfile compiles Java 21, installs Git in a separate non-root runtime, binds to `0.0.0.0:$PORT`, and requires username/password access before serving the UI, configuration, API, metrics or MCP. `/actuator/health` is public liveness and contains no details.
 
+Use the **Free** plan for the initial demonstration, select **Docker**, keep the repository root as the build context, and deploy the **feature** branch. Set the HTTP health-check path to `/actuator/health` so readiness does not depend on an authenticated UI request.
+
 Configure runtime environment variables privately in Render:
 
 | Variable | Value |

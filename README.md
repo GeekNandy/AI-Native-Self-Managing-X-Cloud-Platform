@@ -47,7 +47,7 @@ Open **Repository agent**, create the **Discount calculation** example, run the 
 | Full-stack client | Material 3 light/dark UI, Google open source assets, keyboard navigation, mobile layouts, scoped controls, filters, history selection and evidence exports |
 | Optional Gemini / Nebius | Bounded intent extraction and typed source-patch proposals with no shell or approval capability |
 
-**Evidence boundary:** offline environment interpretation uses curated examples. Offline repository repair is real bounded mutation search, labelled separately from Gemini. The default environment adapter is a durable simulator; Docker enforces a narrow local development profile and denies unsupported cloud requirements. Public smoke tasks do not establish general model quality. Production cloud IAM, multi-tenant identity, distributed workers and live-model quality evidence remain outside this PoC.
+**Evidence boundary:** offline environment interpretation uses curated examples. Offline repository repair is real bounded mutation search, labelled separately from model inference. The default environment adapter is a durable simulator; Docker enforces a narrow local development profile and denies unsupported cloud requirements. Public smoke tasks do not establish general model quality. Production cloud IAM, multi-tenant identity, distributed workers and live-model quality evidence remain outside this PoC.
 
 ### Reproduce the evidence
 
@@ -67,13 +67,13 @@ RUN_DOCKER_TESTS=true ./mvnw verify
 
 [Recorded evidence](docs/evidence/README.md) identifies the tested source, harness and limitations. GitHub Actions runs Java, Docker, restart and browser checks and retains execution reports as artifacts.
 
-Verified: **40 Java tests, eight browser scenarios, actual Docker repair/recovery and SIGKILL restart checks**. See the [execution summary](docs/evidence/verification.json) and [recorded repair screen](docs/images/repository-repair.png).
+Verified: **45 Java tests, 15 browser scenarios, actual Docker repair/recovery, SIGKILL restart and password-protected deployment-image checks**. Automated WCAG checks found zero violations across eleven page/dialog states. See the [execution summary](docs/evidence/verification.json) and [recorded repair screen](docs/images/repository-repair.png).
 
 ### Documentation
 
 - [Material 3 UI and Google open source assets](docs/frontend.md)
 - [Render hosting, username/password and Nebius configuration](docs/deploy-render.md)
-- [Demo walkthrough and Gemini setup](docs/demo-guide.md)
+- [Demo walkthrough and live provider setup](docs/demo-guide.md)
 - [Repository repair, budgets and feedback promotion](docs/repository-workflow.md)
 - [Runtime capabilities, durable state and recovery](docs/runtime-and-state.md)
 - [MCP connection and tool contract](docs/mcp.md)

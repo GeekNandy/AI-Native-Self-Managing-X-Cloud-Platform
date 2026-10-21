@@ -12,4 +12,10 @@ The packaged app needs no Node runtime or frontend build step. To edit theme gen
 
 Google's [Material Web component library is in maintenance mode](https://m3.material.io/develop/web). This implementation uses the independent open source [color utilities](https://github.com/material-foundation/material-color-utilities), [symbols](https://developers.google.com/fonts/docs/material_symbols) and native controls. It is a custom Material 3 interface and uses no private Google product code.
 
+## Verification
+
+The browser suite exercises all five pages at 320, 390, 768, 1024 and 1440 pixels in both themes. It checks page/tabpanel focus, tab-scoped access, role restrictions, actual API history and exports, CSP/local assets, and hosted Basic authentication. Axe checks WCAG 2 A/AA, 2.1 AA and 2.2 AA rules across eleven page/dialog states. These automated checks supplement the retained desktop/mobile screenshots; they do not constitute a complete manual accessibility audit. See the [source-bound execution report](evidence/verification.json).
+
+Recorded views: [desktop light](images/workbench.png), [desktop dark](images/workbench-dark.png), [mobile dark](images/mobile-workbench.png) and [actual isolated repair](images/repository-repair.png).
+
 See [hosted deployment](deploy-render.md) for username/password access, live inference and hosted execution/persistence boundaries.

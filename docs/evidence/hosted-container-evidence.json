@@ -1,0 +1,26 @@
+{
+  "image": "x-cloud-workbench:verify",
+  "checks": {
+    "protected:/": true,
+    "protected:/app.js": true,
+    "protected:/api/config": true,
+    "protected:/actuator/metrics": true,
+    "protected:/mcp": true,
+    "authenticated-config": true,
+    "ephemeral-profile-declared": true,
+    "authenticated-ui": true,
+    "authenticated-session": true,
+    "foreign-origin-denied": true,
+    "non-root": true
+  },
+  "passed": true,
+  "liveModelCalls": 0,
+  "containerRuntime": "actual Docker",
+  "provenance": {
+    "commit": "d6d219b7ee31d5185ae16578a824cec5e677b1b2",
+    "implementationDigest": "6414bbc8121ae6e93ac70ceeec8634ccaf6d23bff3f352a8ebe859f763ce6063",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39675808610",
+    "artifactId": 12382701243,
+    "artifactDigest": "sha256:16de8634b7676124e2cc3c32853b20d1a9269dbd24d4bf7cd1ca37821f93c963"
+  }
+}

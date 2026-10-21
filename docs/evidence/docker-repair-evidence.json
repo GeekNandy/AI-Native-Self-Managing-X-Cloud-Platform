@@ -1,19 +1,19 @@
 {
   "activePolicy": {
-    "version": "feedback-93e3c12d7db6",
+    "version": "feedback-f75cfff065e6",
     "mutationOrder": [
       "ARITHMETIC",
       "BOUNDARY",
       "EQUALITY"
     ],
     "trainingRunIds": [
-      "4ddb4202-e5e4-4364-8aab-321331e9d8c2"
+      "2acac159-80c3-4b3f-b625-647499ff22e0"
     ]
   },
   "comparison": {
-    "id": "bb7bc596-f95f-41ea-822e-09bac5271b5d",
+    "id": "a47d3747-a273-40cf-9920-5abf1fc6f081",
     "status": "COMPLETED",
-    "createdAt": "2026-10-21T16:45:15.364105314Z",
+    "createdAt": "2026-10-21T21:05:36.924534587Z",
     "baseline": {
       "version": "mutation-v1",
       "mutationOrder": [
@@ -24,14 +24,14 @@
       "trainingRunIds": []
     },
     "candidate": {
-      "version": "feedback-93e3c12d7db6",
+      "version": "feedback-f75cfff065e6",
       "mutationOrder": [
         "ARITHMETIC",
         "BOUNDARY",
         "EQUALITY"
       ],
       "trainingRunIds": [
-        "4ddb4202-e5e4-4364-8aab-321331e9d8c2"
+        "2acac159-80c3-4b3f-b625-647499ff22e0"
       ]
     },
     "trials": [
@@ -41,16 +41,16 @@
         "policyVersion": "mutation-v1",
         "outcome": "PASS",
         "attempts": 2,
-        "durationMs": 4131,
+        "durationMs": 4088,
         "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
       },
       {
         "taskId": "holdout-fee",
         "variant": "candidate",
-        "policyVersion": "feedback-93e3c12d7db6",
+        "policyVersion": "feedback-f75cfff065e6",
         "outcome": "PASS",
         "attempts": 1,
-        "durationMs": 2883,
+        "durationMs": 2757,
         "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
       },
       {
@@ -59,16 +59,16 @@
         "policyVersion": "mutation-v1",
         "outcome": "PASS",
         "attempts": 2,
-        "durationMs": 4206,
+        "durationMs": 4184,
         "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
       },
       {
         "taskId": "holdout-hours",
         "variant": "candidate",
-        "policyVersion": "feedback-93e3c12d7db6",
+        "policyVersion": "feedback-f75cfff065e6",
         "outcome": "PASS",
         "attempts": 1,
-        "durationMs": 2897,
+        "durationMs": 2842,
         "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
       },
       {
@@ -77,32 +77,32 @@
         "policyVersion": "mutation-v1",
         "outcome": "PASS",
         "attempts": 1,
-        "durationMs": 2718,
+        "durationMs": 2749,
         "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
       },
       {
         "taskId": "holdout-boundary",
         "variant": "candidate",
-        "policyVersion": "feedback-93e3c12d7db6",
+        "policyVersion": "feedback-f75cfff065e6",
         "outcome": "PASS",
         "attempts": 1,
-        "durationMs": 2759,
+        "durationMs": 2622,
         "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
       }
     ],
     "safety": {
-      "immutable-tests": true,
       "disjoint-task-ids": true,
       "container-isolation": true,
-      "path-boundary": true
+      "path-boundary": true,
+      "immutable-tests": true
     },
     "promotable": true,
     "detail": "Paired bounded mutation search on public tasks held separate from accepted feedback. Measures search efficiency, not general model quality."
   },
   "repair": {
-    "id": "4ddb4202-e5e4-4364-8aab-321331e9d8c2",
-    "repositoryId": "15651dc0-a71d-46f5-a0c5-9e65e597cc44",
-    "baseCommit": "389f57306c5aae321b3c3e07f183b61ec16d1330",
+    "id": "2acac159-80c3-4b3f-b625-647499ff22e0",
+    "repositoryId": "3da98855-f32a-45a9-9533-3bcb0bddae9b",
+    "baseCommit": "a328c98b8f9d52fa4b8a0083604664b0ee12bb33",
     "instruction": "Fix the discount calculation while preserving rejection of negative amounts. Run the existing tests without editing them.",
     "provider": "mutation-search",
     "policyVersion": "mutation-v1",
@@ -110,21 +110,21 @@
     "maxAttempts": 8,
     "timeoutSeconds": 120,
     "attempts": 2,
-    "createdAt": "2026-10-21T16:45:10.915365587Z",
-    "completedAt": "2026-10-21T16:45:15.201674737Z",
+    "createdAt": "2026-10-21T21:05:32.339210116Z",
+    "completedAt": "2026-10-21T21:05:36.727865095Z",
     "steps": [
       {
         "sequence": 1,
         "tool": "repository.inspect",
         "outcome": "PASS",
         "durationMs": 0,
-        "output": "Detached worktree at 389f57306c5aae321b3c3e07f183b61ec16d1330; 2 immutable source/test inputs."
+        "output": "Detached worktree at a328c98b8f9d52fa4b8a0083604664b0ee12bb33; 2 immutable source/test inputs."
       },
       {
         "sequence": 2,
         "tool": "sandbox.test.baseline",
         "outcome": "FAIL",
-        "durationMs": 1408,
+        "durationMs": 1541,
         "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
       },
       {
@@ -138,7 +138,7 @@
         "sequence": 4,
         "tool": "sandbox.test.candidate",
         "outcome": "FAIL",
-        "durationMs": 1301,
+        "durationMs": 1312,
         "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
       },
       {
@@ -152,7 +152,7 @@
         "sequence": 6,
         "tool": "sandbox.test.candidate",
         "outcome": "PASS",
-        "durationMs": 1371,
+        "durationMs": 1277,
         "output": "All regression checks passed\n"
       }
     ],
@@ -161,7 +161,7 @@
       "exitCode": 1,
       "timedOut": false,
       "truncated": false,
-      "durationMs": 1408,
+      "durationMs": 1541,
       "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
     },
     "verification": {
@@ -169,7 +169,7 @@
       "exitCode": 0,
       "timedOut": false,
       "truncated": false,
-      "durationMs": 1371,
+      "durationMs": 1277,
       "output": "All regression checks passed\n"
     },
     "changes": [
@@ -180,16 +180,16 @@
       }
     ],
     "patch": "diff --git a/src/main/java/Rules.java b/src/main/java/Rules.java\nindex 96ea22a..788c153 100644\n--- a/src/main/java/Rules.java\n+++ b/src/main/java/Rules.java\n@@ -1 +1 @@\n-public class Rules { static int price(int amount) { if (amount < 0) throw new IllegalArgumentException(); return amount + 5; } }\n+public class Rules { static int price(int amount) { if (amount < 0) throw new IllegalArgumentException(); return amount - 5; } }",
-    "digest": "566442d4582a92dd4f51bda14b5bb6d7cc7f1046fa1b63df2ea8e1ca725241fd",
+    "digest": "b5d28c70d79ea4da458cad9fc63f45937de8595a8102c01983cc1a4e497645c1",
     "mutationKind": "ARITHMETIC",
-    "approvedCommit": "ca130c70bf5c5153c90e5a58bd414eacfd9580c6",
+    "approvedCommit": "4473592fb69f039de9a0592e734d3e1d79f03cd4",
     "detail": "Reviewed patch committed to the managed repository."
   },
   "provenance": {
-    "commit": "6fa7268c6f14431be11e5e3d62f1252701201507",
-    "implementationDigest": "0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014",
-    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39637509909",
-    "artifactId": 12361379539,
-    "artifactDigest": "sha256:96b62ceff475b783e7daa2087355c9b388bd1c7032384a0645f968eabf271d42"
+    "commit": "d6d219b7ee31d5185ae16578a824cec5e677b1b2",
+    "implementationDigest": "6414bbc8121ae6e93ac70ceeec8634ccaf6d23bff3f352a8ebe859f763ce6063",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39675808610",
+    "artifactId": 12382701243,
+    "artifactDigest": "sha256:16de8634b7676124e2cc3c32853b20d1a9269dbd24d4bf7cd1ca37821f93c963"
   }
 }
