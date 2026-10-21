@@ -48,6 +48,12 @@ test("review, approve, drift and reconcile through the real UI", async ({
     "public class Main",
   );
   await page.getByRole("tab", { name: "Intent", exact: true }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  fs.mkdirSync("target/screenshots", { recursive: true });
+  await page.screenshot({
+    path: "target/screenshots/workbench.png",
+    fullPage: true,
+  });
   if (process.env.CAPTURE_DEMO) {
     fs.mkdirSync("docs/images", { recursive: true });
     await page.screenshot({

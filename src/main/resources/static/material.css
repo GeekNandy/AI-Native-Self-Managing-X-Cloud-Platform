@@ -1702,3 +1702,76 @@ dialog li {
     text-decoration: line-through;
   }
 }
+/* Override legacy component colors with semantic Material roles in both themes. */
+:root .code-layout .panel,
+:root .panel {
+  background: var(--panel);
+  color: var(--ink);
+}
+:root input:not([type="checkbox"]),
+:root textarea,
+:root select {
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root input::placeholder,
+:root textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+:root #access-token,
+:root #prompt,
+:root #feedback-spec,
+:root #code-instruction {
+  background: var(--subtle);
+  color: var(--ink);
+  border-color: var(--line);
+}
+:root .pipeline-step.done {
+  color: var(--green);
+}
+:root .pipeline-step.current {
+  color: var(--purple);
+}
+:root .intent-field strong.enabled {
+  color: var(--green);
+}
+:root .feedback-card summary > div > strong {
+  color: var(--ink);
+}
+:root .feedback-card summary > div > span {
+  color: var(--muted);
+}
+:root .report-table thead th,
+:root .state-comparison thead th,
+:root table thead th {
+  color: var(--muted);
+  background: var(--subtle);
+}
+:root .report-table tbody td {
+  background: transparent;
+  color: var(--ink);
+}
+:root .report-table tbody td:nth-child(2) {
+  color: var(--muted);
+}
+:root .environment-card .table-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+:root .environment-card header h2 {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  max-width: 100%;
+}
+:root .code-task-panel label,
+:root .code-budget label {
+  color: var(--muted);
+}
+:root .code-facts {
+  background: var(--subtle);
+  color: var(--ink);
+}

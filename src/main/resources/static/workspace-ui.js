@@ -331,6 +331,15 @@ $("#activity-export").addEventListener("click", () =>
   ),
 );
 function decorate() {
+  for (const table of document.querySelectorAll(".state-comparison")) {
+    if (!table.parentElement.classList.contains("table-wrap")) {
+      const wrap = document.createElement("div");
+      wrap.className = "table-wrap";
+      table.before(wrap);
+      wrap.append(table);
+    }
+  }
+
   for (const el of document.querySelectorAll(
     ".empty-icon,.notice-symbol,.stat-decoration,.feedback-symbol,.dialog-icon,.check-icon,.example-button i,.pipeline-step i,button>span",
   )) {
@@ -355,6 +364,12 @@ function decorate() {
   }
   for (const tab of document.querySelectorAll("[role=tab]"))
     tab.tabIndex = tab.getAttribute("aria-selected") === "true" ? 0 : -1;
+  if (state.config?.dataRetention === "ephemeral" && !$("#retention-notice")) {
+    $("main").insertAdjacentHTML(
+      "afterbegin",
+      `<div id="retention-notice" class="mode-notice role-notice">${icon("info")}<span><strong>Hosted demo storage</strong> · State can reset when this instance restarts or redeploys. Export evidence you want to keep.</span></div>`,
+    );
+  }
   const agent = state.role === "agent";
   for (const el of document.querySelectorAll(
     "#review-button,[data-fault],#feedback-save,#evaluate-controls,#evaluate-interpreter,#refresh-environments",

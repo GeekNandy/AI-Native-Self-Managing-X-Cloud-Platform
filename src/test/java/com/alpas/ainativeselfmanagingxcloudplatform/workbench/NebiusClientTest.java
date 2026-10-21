@@ -59,6 +59,38 @@ class NebiusClientTest {
             assertEquals(2048, sent.path("max_tokens").asInt());
             assertFalse(sent.path("chat_template_kwargs").path("enable_thinking").asBoolean(true));
             assertFalse(captured.get().contains("test-key"));
+            var catalog = new ScenarioCatalog(json);
+            var spec = catalog.examples().getFirst().spec();
+            var completeEnvelope =
+                    json.writeValueAsString(Map.of("intent", spec, "questions", List.of()));
+            reply.set(
+                    json.writeValueAsString(
+                            Map.of(
+                                    "choices",
+                                    List.of(
+                                            Map.of(
+                                                    "finish_reason",
+                                                    "stop",
+                                                    "message",
+                                                    Map.of("content", completeEnvelope))))));
+            var interpreter = new ConfiguredInterpreter("nebius", "", "", catalog, json, client);
+            assertEquals(spec, interpreter.interpret("Create the fully specified service."));
+            var unclear = new LinkedHashMap<String, Object>();
+            unclear.put("intent", null);
+            unclear.put("questions", List.of("Which region?"));
+            reply.set(
+                    json.writeValueAsString(
+                            Map.of(
+                                    "choices",
+                                    List.of(
+                                            Map.of(
+                                                    "finish_reason",
+                                                    "stop",
+                                                    "message",
+                                                    Map.of(
+                                                            "content",
+                                                            json.writeValueAsString(unclear)))))));
+            assertThrows(PlatformException.class, () -> interpreter.interpret("Create something."));
             reply.set(
                     "{\"choices\":[{\"finish_reason\":\"length\",\"message\":{\"content\":\"{}\"}}]}");
             assertThrows(
@@ -68,7 +100,7 @@ class NebiusClientTest {
                                     "Extract", "input", Map.of(), 2048, Duration.ofSeconds(2)));
             reply.set(
                     "{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":\"not"
-                        + " json\"}}]}");
+                            + " json\"}}]}");
             assertThrows(
                     PlatformException.class,
                     () ->

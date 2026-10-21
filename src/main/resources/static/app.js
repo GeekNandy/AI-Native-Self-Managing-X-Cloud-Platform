@@ -42,7 +42,7 @@ async function api(path, body) {
       method: body === undefined ? "GET" : "POST",
       headers: {
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-        ...(sessionStorage.getItem("workbench-token")
+        ...(path !== "/config" && sessionStorage.getItem("workbench-token")
           ? {
               Authorization: `Bearer ${sessionStorage.getItem("workbench-token")}`,
             }
@@ -206,7 +206,12 @@ function renderIntent(spec) {
     ["Replicas", spec.replicas],
     ["Monitoring", spec.monitoring],
     ["Rollback", spec.rollback],
-    ["Execution", "Local sandbox"],
+    [
+      "Execution",
+      state.config?.executionMode === "docker-local"
+        ? "Local Docker"
+        : "Durable simulator",
+    ],
   ];
   return `<div class="intent-table">${fields.map(([key, value]) => `<div class="intent-field"><span>${esc(key)}</span><strong class="${value === true ? "enabled" : ""}">${esc(format(value))}</strong></div>`).join("")}</div>`;
 }

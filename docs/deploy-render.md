@@ -14,6 +14,7 @@ Configure runtime environment variables privately in Render:
 | `NEBIUS_API_KEY` | Your private Token Factory credential, required for `nebius` |
 | `NEBIUS_MODEL` | `nvidia/Nemotron-3.5-Super-VL` initially; verify access before changing |
 | `PLATFORM_RUNTIME` | `sandbox` for the hosted environment simulator |
+| `DEMO_EPHEMERAL` | `true` for the baseline demo; set `false` only after persistent storage is configured |
 | `PLATFORM_DATA_DIR` | `/app/.workbench`, or a writable persistent-disk mount when configured |
 
 The browser uses its native HTTPS username/password prompt. The UI then opens without the local operator-token dialog. Scoped bearer credentials still support separate agent/MCP clients; an agent cannot approve, commit, promote or mutate operator-only resources. Foreign Host and Origin headers remain rejected. Missing/partial public authentication configuration stops startup.
