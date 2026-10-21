@@ -46,7 +46,7 @@ The demo verifies the complete HTTP control loop, retry deduplication, policy de
 ### Start here
 
 - [Five-minute demo and live Gemini setup](docs/demo-guide.md)
-- [CodeAI relevance, honest claims and next increments](docs/poc-positioning.md)
+- [Engineering roadmap](docs/roadmap.md)
 - [Decision: one governed sandbox slice](docs/adr/0001-governed-sandbox-slice.md)
 - [Architecture](docs/architecture.md), [domain model](docs/domain-model.md), [intent compiler](docs/intent-compiler.md) and [security model](docs/security-model.md)
 
