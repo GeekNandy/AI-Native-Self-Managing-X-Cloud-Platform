@@ -2,7 +2,7 @@
 
 The local server exposes `/mcp` using stateless Streamable HTTP, pinned to **2025-11-25**. It implements initialize, ping, tools/list, tools/call and notification acknowledgement. It returns JSON responses; GET/DELETE return 405 because server-initiated SSE and sessions are not offered. This is an explicitly supported protocol version, not a claim of compatibility with every future revision.
 
-Use the proposal-only credential from `.workbench/agent.token`. Supply `Authorization: Bearer <token>` on every request, `Content-Type: application/json` and `Accept: application/json, text/event-stream`. Subsequent messages use `MCP-Protocol-Version: 2025-11-25`. The server binds to loopback and validates Host/Origin. Bearer tokens implement local access; OAuth discovery and remote public hosting are outside this PoC.
+Use the proposal-only credential from `.workbench/agent.token`. Supply `Authorization: Bearer <token>` on every request, `Content-Type: application/json` and `Accept: application/json, text/event-stream`. Subsequent messages use `MCP-Protocol-Version: 2025-11-25`. The server binds to loopback by default and validates Host/Origin. The explicit [hosted profile](deploy-render.md) permits one configured HTTPS origin and adds username/password access for browsers; scoped bearer credentials remain the recommended interface for agent/MCP clients. OAuth discovery remains outside this PoC.
 
 Initialize with:
 
@@ -26,6 +26,6 @@ Send `notifications/initialized`, then discover tools using `{"jsonrpc":"2.0","i
 
 There is no environment-apply, patch-approval, fault-injection, feedback-capture or promotion tool. Those operations require the operator token through the workbench API. A prompt, repository file or tool argument cannot promote an agent credential to operator authority.
 
-For example, `tools/call` accepts `{"name":"inspect_repair","arguments":{"id":"<run-id>"}}`. `start_repair` requires `repositoryId`, `instruction`, `provider`, `maxAttempts` and `timeoutSeconds`; it accepts no shell command. Operators create source snapshots separately before agents can work on them.
+For example, `tools/call` accepts `{"name":"inspect_repair","arguments":{"id":"<run-id>"}}`. `start_repair` requires `repositoryId`, `instruction`, `provider`, `maxAttempts` and `timeoutSeconds`; it accepts no shell command. Providers are `mutation-search`, `gemini` and `nebius`; model providers require configured credentials and permit at most three attempts. An available isolated runner is required for execution. Operators create source snapshots separately before agents can work on them.
 
 The implementation follows the [pinned transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports), [lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) and [tool](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) contracts. HTTP integration tests exercise discovery, structured proposals, notifications, forbidden tool names and role enforcement.

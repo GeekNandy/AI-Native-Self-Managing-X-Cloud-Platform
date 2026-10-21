@@ -262,7 +262,7 @@ public class McpController {
                                         "type",
                                         "string",
                                         "enum",
-                                        List.of("mutation-search", "gemini")),
+                                        List.of("mutation-search", "gemini", "nebius")),
                                 "maxAttempts",
                                 Map.of("type", "integer", "minimum", 1, "maximum", 12),
                                 "timeoutSeconds",
