@@ -1,8 +1,108 @@
 {
+  "activePolicy": {
+    "version": "feedback-ddd7935cb8a0",
+    "mutationOrder": [
+      "ARITHMETIC",
+      "BOUNDARY",
+      "EQUALITY"
+    ],
+    "trainingRunIds": [
+      "60251d7b-d49d-470d-b0a0-6adb8d56b9bd"
+    ]
+  },
+  "comparison": {
+    "id": "3000ae48-c029-4777-bef4-1eb41f25187a",
+    "status": "COMPLETED",
+    "createdAt": "2026-10-21T16:09:52.274790403Z",
+    "baseline": {
+      "version": "mutation-v1",
+      "mutationOrder": [
+        "BOUNDARY",
+        "EQUALITY",
+        "ARITHMETIC"
+      ],
+      "trainingRunIds": []
+    },
+    "candidate": {
+      "version": "feedback-ddd7935cb8a0",
+      "mutationOrder": [
+        "ARITHMETIC",
+        "BOUNDARY",
+        "EQUALITY"
+      ],
+      "trainingRunIds": [
+        "60251d7b-d49d-470d-b0a0-6adb8d56b9bd"
+      ]
+    },
+    "trials": [
+      {
+        "taskId": "holdout-fee",
+        "variant": "baseline",
+        "policyVersion": "mutation-v1",
+        "outcome": "PASS",
+        "attempts": 2,
+        "durationMs": 5354,
+        "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
+      },
+      {
+        "taskId": "holdout-fee",
+        "variant": "candidate",
+        "policyVersion": "feedback-ddd7935cb8a0",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 2545,
+        "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
+      },
+      {
+        "taskId": "holdout-hours",
+        "variant": "baseline",
+        "policyVersion": "mutation-v1",
+        "outcome": "PASS",
+        "attempts": 2,
+        "durationMs": 3916,
+        "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
+      },
+      {
+        "taskId": "holdout-hours",
+        "variant": "candidate",
+        "policyVersion": "feedback-ddd7935cb8a0",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 2713,
+        "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
+      },
+      {
+        "taskId": "holdout-boundary",
+        "variant": "baseline",
+        "policyVersion": "mutation-v1",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 3040,
+        "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
+      },
+      {
+        "taskId": "holdout-boundary",
+        "variant": "candidate",
+        "policyVersion": "feedback-ddd7935cb8a0",
+        "outcome": "PASS",
+        "attempts": 1,
+        "durationMs": 2930,
+        "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
+      }
+    ],
+    "safety": {
+      "disjoint-task-ids": true,
+      "container-isolation": true,
+      "path-boundary": true,
+      "immutable-tests": true
+    },
+    "promotable": true,
+    "detail": "Paired bounded mutation search on public tasks held separate from accepted feedback. Measures search efficiency, not general model quality."
+  },
   "repair": {
-    "id": "5f6d7373-2a33-4cc4-a5f0-82a435d57001",
-    "repositoryId": "abde92f1-6295-4404-a13e-bbf2f4204b73",
-    "baseCommit": "4a7c6748a5e6bcbad7a56c194e7c5356e9bc7508",
+    "id": "60251d7b-d49d-470d-b0a0-6adb8d56b9bd",
+    "repositoryId": "1f2a8b08-ea88-471a-8d09-b6f1f14d84b5",
+    "baseCommit": "a90777b4223afd2f9cc9c8c92264312f52470fcd",
     "instruction": "Fix the discount calculation while preserving rejection of negative amounts. Run the existing tests without editing them.",
     "provider": "mutation-search",
     "policyVersion": "mutation-v1",
@@ -10,21 +110,21 @@
     "maxAttempts": 8,
     "timeoutSeconds": 120,
     "attempts": 2,
-    "createdAt": "2026-10-21T15:42:18.256233834Z",
-    "completedAt": "2026-10-21T15:42:22.400001397Z",
+    "createdAt": "2026-10-21T16:09:47.675588247Z",
+    "completedAt": "2026-10-21T16:09:52.093081515Z",
     "steps": [
       {
         "sequence": 1,
         "tool": "repository.inspect",
         "outcome": "PASS",
         "durationMs": 0,
-        "output": "Detached worktree at 4a7c6748a5e6bcbad7a56c194e7c5356e9bc7508; 2 immutable source/test inputs."
+        "output": "Detached worktree at a90777b4223afd2f9cc9c8c92264312f52470fcd; 2 immutable source/test inputs."
       },
       {
         "sequence": 2,
         "tool": "sandbox.test.baseline",
         "outcome": "FAIL",
-        "durationMs": 1536,
+        "durationMs": 1852,
         "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
       },
       {
@@ -38,7 +138,7 @@
         "sequence": 4,
         "tool": "sandbox.test.candidate",
         "outcome": "FAIL",
-        "durationMs": 1170,
+        "durationMs": 1145,
         "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
       },
       {
@@ -52,7 +152,7 @@
         "sequence": 6,
         "tool": "sandbox.test.candidate",
         "outcome": "PASS",
-        "durationMs": 1043,
+        "durationMs": 1206,
         "output": "All regression checks passed\n"
       }
     ],
@@ -61,7 +161,7 @@
       "exitCode": 1,
       "timedOut": false,
       "truncated": false,
-      "durationMs": 1536,
+      "durationMs": 1852,
       "output": "Exception in thread \"main\" java.lang.AssertionError: Subtract the discount\n\tat RulesTest.main(RulesTest.java:1)\n"
     },
     "verification": {
@@ -69,7 +169,7 @@
       "exitCode": 0,
       "timedOut": false,
       "truncated": false,
-      "durationMs": 1043,
+      "durationMs": 1206,
       "output": "All regression checks passed\n"
     },
     "changes": [
@@ -80,115 +180,16 @@
       }
     ],
     "patch": "diff --git a/src/main/java/Rules.java b/src/main/java/Rules.java\nindex 96ea22a..788c153 100644\n--- a/src/main/java/Rules.java\n+++ b/src/main/java/Rules.java\n@@ -1 +1 @@\n-public class Rules { static int price(int amount) { if (amount < 0) throw new IllegalArgumentException(); return amount + 5; } }\n+public class Rules { static int price(int amount) { if (amount < 0) throw new IllegalArgumentException(); return amount - 5; } }",
-    "digest": "15079f7e25d1578fb2aed202fb3773348ad60b0799af702e957e017210f720c8",
+    "digest": "a4e113c7dfd1fbda37f2464d26556bf78482164e83742791337bfe4983aeeb3b",
     "mutationKind": "ARITHMETIC",
-    "approvedCommit": "9aaf36cc2b4375abee3e827cafa794f7d27e4ca4",
+    "approvedCommit": "a98f0605141f5043bcf929b25a0e8e0877b32a1e",
     "detail": "Reviewed patch committed to the managed repository."
   },
-  "activePolicy": {
-    "version": "feedback-f6d168cae7d8",
-    "mutationOrder": [
-      "ARITHMETIC",
-      "BOUNDARY",
-      "EQUALITY"
-    ],
-    "trainingRunIds": [
-      "5f6d7373-2a33-4cc4-a5f0-82a435d57001"
-    ]
-  },
-  "comparison": {
-    "id": "8f75d8ab-f722-4aa0-b807-da99c817d3a1",
-    "status": "COMPLETED",
-    "createdAt": "2026-10-21T15:42:22.519314449Z",
-    "baseline": {
-      "version": "mutation-v1",
-      "mutationOrder": [
-        "BOUNDARY",
-        "EQUALITY",
-        "ARITHMETIC"
-      ],
-      "trainingRunIds": []
-    },
-    "candidate": {
-      "version": "feedback-f6d168cae7d8",
-      "mutationOrder": [
-        "ARITHMETIC",
-        "BOUNDARY",
-        "EQUALITY"
-      ],
-      "trainingRunIds": [
-        "5f6d7373-2a33-4cc4-a5f0-82a435d57001"
-      ]
-    },
-    "trials": [
-      {
-        "taskId": "holdout-fee",
-        "variant": "baseline",
-        "policyVersion": "mutation-v1",
-        "outcome": "PASS",
-        "attempts": 2,
-        "durationMs": 3819,
-        "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
-      },
-      {
-        "taskId": "holdout-fee",
-        "variant": "candidate",
-        "policyVersion": "feedback-f6d168cae7d8",
-        "outcome": "PASS",
-        "attempts": 1,
-        "durationMs": 2795,
-        "patchDigest": "ecee7d98fbf8425ed43bda91c4be090a64c870621162bdbb4e6b50e8d66f5232"
-      },
-      {
-        "taskId": "holdout-hours",
-        "variant": "baseline",
-        "policyVersion": "mutation-v1",
-        "outcome": "PASS",
-        "attempts": 2,
-        "durationMs": 3818,
-        "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
-      },
-      {
-        "taskId": "holdout-hours",
-        "variant": "candidate",
-        "policyVersion": "feedback-f6d168cae7d8",
-        "outcome": "PASS",
-        "attempts": 1,
-        "durationMs": 2767,
-        "patchDigest": "6e79e14286feba3502e4182fe606072287f1f3ce10bff817d74ce12ad0c69112"
-      },
-      {
-        "taskId": "holdout-boundary",
-        "variant": "baseline",
-        "policyVersion": "mutation-v1",
-        "outcome": "PASS",
-        "attempts": 1,
-        "durationMs": 2930,
-        "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
-      },
-      {
-        "taskId": "holdout-boundary",
-        "variant": "candidate",
-        "policyVersion": "feedback-f6d168cae7d8",
-        "outcome": "PASS",
-        "attempts": 1,
-        "durationMs": 2496,
-        "patchDigest": "c8705d261127d1badf881a12e865f2a760b27df0b107929d94d5f1d36f1dc789"
-      }
-    ],
-    "safety": {
-      "path-boundary": true,
-      "immutable-tests": true,
-      "disjoint-task-ids": true,
-      "container-isolation": true
-    },
-    "promotable": true,
-    "detail": "Paired bounded mutation search on public tasks held separate from accepted feedback. Measures search efficiency, not general model quality."
-  },
   "provenance": {
-    "commit": "e1358d2ec78c6b0bd7b4a0247d33403a23766149",
-    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39627955441",
-    "artifactId": 12357348048,
-    "artifactDigest": "sha256:4a8dc7baf0469f1b4f71308d539e87866cc46e40648ce762a450188a0da81f11"
+    "commit": "e650f632809a1225e547c16877782b16c190add9",
+    "implementationDigest": "636f87843e88f4e4f4cc2c675a830d438934395f2f0c9693658a5da6c7380ffa",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39632194511",
+    "artifactId": 12358669627,
+    "artifactDigest": "sha256:f56ea4a44b430c30cef8993ead605268d6762b70e9b669a28a9d940f18165d35"
   }
 }

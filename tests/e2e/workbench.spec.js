@@ -209,6 +209,7 @@ test("isolated repair, patch approval and evaluated promotion through the UI", a
   ).toBeEnabled({ timeout: 120000 });
   await expect(page.locator(".patch-output")).toContainText("amount - 5");
   await expect(page.locator("#code-result")).toContainText("FAIL → PASS");
+  await page.evaluate(() => window.scrollTo(0, 0));
   fs.mkdirSync("target/screenshots", { recursive: true });
   await page.screenshot({
     path: "target/screenshots/repository-repair.png",

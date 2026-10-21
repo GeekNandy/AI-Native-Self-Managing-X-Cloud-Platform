@@ -1,6 +1,6 @@
 # Recorded execution evidence
 
-These files contain outputs from actual local HTTP/process experiments and hosted Docker integration tests.
+These files contain outputs from actual local HTTP/process experiments and hosted Docker integration tests. [Verification summary](verification.json): **37 Java tests, eight browser scenarios and the process crash-restart check passed**. [Verified run](https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39632194511).
 
 | Experiment | Recorded result | Boundary |
 | --- | --- | --- |

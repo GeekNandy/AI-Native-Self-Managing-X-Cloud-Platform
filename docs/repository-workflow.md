@@ -1,5 +1,7 @@
 # Governed repository repair
 
+![Verified repository repair with source diff and test trace](images/repository-repair.png)
+
 ## Contract
 
 The operator creates a managed Git snapshot from a catalog task or `POST /api/code/repositories` with `{name, files, testClass}`. `files` maps relative paths to UTF-8 content. Accept 2-24 files, at most 200 KB total and 32 KiB per file, under `src/main/java` or `src/test/java`. The test entrypoint is an existing Java class with a `main` method. The import boundary excludes symlinks, Git metadata, build scripts, package managers and arbitrary clone URLs.
