@@ -1,5 +1,11 @@
 # Hosted demonstration
 
+## Current service
+
+The Free Frankfurt service is [x-cloud-workbench.onrender.com](https://x-cloud-workbench.onrender.com), deployed from **feature**. Its [private Environment page](https://dashboard.render.com/web/srv-dbcrvv4s728c73826th0/env) holds the dedicated `DEMO_USERNAME` and `DEMO_PASSWORD`; no credential value is published here. Add `NEBIUS_API_KEY`, set `PLATFORM_AI_PROVIDER=nebius`, and use **Save and deploy** to activate live inference. Until then, the app explicitly labels its fixture mode.
+
+The [recorded hosted verification](evidence/render-deployment.json) identifies the deployed commit, authentication checks and actual simulator workflow. Render currently uses its default TCP health check; the report separately verifies HTTP `/actuator/health`. The HTTP check path can be configured on the service's Settings page.
+
 Deploy the repository's **feature** branch as one Docker web service. The root Dockerfile compiles Java 21, installs Git in a separate non-root runtime, binds to `0.0.0.0:$PORT`, and requires username/password access before serving the UI, configuration, API, metrics or MCP. `/actuator/health` is public liveness and contains no details.
 
 Use the **Free** plan for the initial demonstration, select **Docker**, keep the repository root as the build context, and deploy the **feature** branch. Set the HTTP health-check path to `/actuator/health` so readiness does not depend on an authenticated UI request.

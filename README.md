@@ -13,6 +13,10 @@ Reviewed repairs can derive a versioned search policy. A paired evaluation on se
 
 ![The governed environment workbench](docs/images/workbench.png)
 
+### Hosted demo
+
+Open [X / Cloud on Render](https://x-cloud-workbench.onrender.com). The complete workspace requires a username/password; the owner can retrieve the dedicated credentials from the private Render Environment settings. The current deployment runs labelled offline examples and the environment simulator. Live Nebius inference requires a private API key; isolated repository execution requires a Docker-capable host. See [hosting and verification](docs/deploy-render.md).
+
 ### Start locally
 
 Requirements: **JDK 21 and Git**. Python 3 runs the evidence scripts. Docker is required for repository execution and the optional local workload adapter. The default environment simulator needs no external credentials or services.

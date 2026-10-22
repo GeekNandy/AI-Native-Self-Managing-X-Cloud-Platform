@@ -5,6 +5,7 @@ These files contain outputs from actual local HTTP/process experiments and hoste
 | Experiment | Recorded result | Boundary |
 | --- | --- | --- |
 | [Control loop](control-plane.json) | 23/23 checks; one reviewed feedback case; retry replay; two drift fields recovered | Fixture interpretation and durable simulator |
+| [Render deployment](render-deployment.json) | 23 hosted checks and 23/23 control-plane regressions pass: password access, approval/retry and reviewed drift recovery | Free Frankfurt service; fixture interpretation, ephemeral simulator; no live model key |
 | [Hosted image](hosted-container-evidence.json) | Eleven checks pass: protected UI/API/assets/metrics/MCP, valid credentials, origin rejection and non-root execution | Actual deployment image; no Render deploy or live model calls |
 | [Accessibility](ui-accessibility.json) | Zero axe violations across eleven states; responsive layout at five widths in both themes | Automated WCAG rules plus retained screenshots; manual assistive-technology testing remains separate |
 | [Crash and restart](restart.json) | Six recovery checks passed after SIGKILL and a fresh JVM | Same single-node H2 directory; no distributed failover claim |
