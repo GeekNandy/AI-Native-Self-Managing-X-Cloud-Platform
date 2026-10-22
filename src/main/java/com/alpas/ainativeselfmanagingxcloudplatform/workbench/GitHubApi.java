@@ -71,7 +71,13 @@ public final class GitHubApi {
             if (response.statusCode() < 200 || response.statusCode() > 299)
                 throw new PlatformException(
                         response.statusCode() == 404 ? 404 : 502,
-                        "GITHUB_REQUEST_FAILED",
+                        response.statusCode() == 403
+                                        && response.headers()
+                                                .firstValue("x-ratelimit-remaining")
+                                                .orElse("")
+                                                .equals("0")
+                                ? "GITHUB_RATE_LIMITED"
+                                : "GITHUB_REQUEST_FAILED",
                         "GitHub rejected the request (HTTP "
                                 + response.statusCode()
                                 + "). Check access, rate limits and repository coordinates.");

@@ -23,6 +23,97 @@ class GitHubImportTest {
     }
 
     @Test
+    void anonymousQuotaFallbackIsRestrictedAndPreservesPinnedBlobBytes() throws Exception {
+        var task = new RepairTasks().examples().getFirst();
+        var bySha = new HashMap<String, String>();
+        var tree = new StringBuilder();
+        for (var f : task.files().entrySet()) {
+            var sha = blob(f.getValue());
+            bySha.put(sha, f.getValue());
+            tree.append("100644 blob ")
+                    .append(sha)
+                    .append("\tproject/")
+                    .append(f.getKey())
+                    .append("\n");
+        }
+        var calls = new ArrayList<List<String>>();
+        var runner =
+                new CommandRunner() {
+                    @Override
+                    public Result run(
+                            java.nio.file.Path cwd,
+                            java.time.Duration budget,
+                            List<String> command,
+                            byte[] input) {
+                        calls.add(command);
+                        String result =
+                                command.contains("rev-parse")
+                                        ? "a".repeat(40) + "\n"
+                                        : command.contains("ls-tree")
+                                                ? tree.toString()
+                                                : command.contains("show")
+                                                        ? bySha.get(command.getLast())
+                                                        : "";
+                        return new Result(0, result, false, false, 1);
+                    }
+                };
+        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext(
+                "/",
+                e -> {
+                    byte[] body = "{}".getBytes(StandardCharsets.UTF_8);
+                    e.getResponseHeaders().set("x-ratelimit-remaining", "0");
+                    e.sendResponseHeaders(403, body.length);
+                    e.getResponseBody().write(body);
+                    e.close();
+                });
+        server.start();
+        try {
+            var state = StateStore.volatileStore();
+            var workspace = new RepositoryWorkspace(state, new CommandRunner(), Clock.systemUTC());
+            var importer =
+                    new GitHubRepositories(
+                            workspace,
+                            new GitHubApi(
+                                    "",
+                                    json,
+                                    URI.create(
+                                            "http://127.0.0.1:" + server.getAddress().getPort())),
+                            state,
+                            Clock.systemUTC(),
+                            runner);
+            var repo =
+                    importer.ingest(
+                            new GitHubRepositories.Import(
+                                    "GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform",
+                                    "feature",
+                                    "project",
+                                    task.testClass()));
+            assertEquals(task.files(), workspace.files(repo.id()));
+            assertEquals("a".repeat(40), importer.provenance(repo.id()).pinnedCommit());
+            assertTrue(
+                    calls.stream()
+                            .anyMatch(
+                                    c ->
+                                            c.contains("--no-recurse-submodules")
+                                                    && c.contains("--filter=blob:limit=32769")));
+            int before = calls.size();
+            assertThrows(
+                    PlatformException.class,
+                    () ->
+                            importer.ingest(
+                                    new GitHubRepositories.Import(
+                                            "unconfigured/repository",
+                                            "feature",
+                                            "project",
+                                            task.testClass())));
+            assertEquals(before, calls.size());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void pinsCommitVerifiesBlobIntegrityAndRetainsProvenance() throws Exception {
         var task = new RepairTasks().examples().getFirst();
         var responses = new HashMap<String, Object>();

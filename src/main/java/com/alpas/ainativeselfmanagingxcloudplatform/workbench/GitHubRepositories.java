@@ -28,14 +28,31 @@ public final class GitHubRepositories {
     private final GitHubApi github;
     private final StateStore store;
     private final Clock clock;
+
+    @org.springframework.beans.factory.annotation.Value(
+            "${platform.github.public-fallback-repository:GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform}")
+    private String publicFallbackRepository = "GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform";
+
+    private final CommandRunner commands;
     private final Semaphore slot = new Semaphore(1);
 
+    @org.springframework.beans.factory.annotation.Autowired
     public GitHubRepositories(
             RepositoryWorkspace workspace, GitHubApi github, StateStore store, Clock clock) {
+        this(workspace, github, store, clock, new CommandRunner());
+    }
+
+    GitHubRepositories(
+            RepositoryWorkspace workspace,
+            GitHubApi github,
+            StateStore store,
+            Clock clock,
+            CommandRunner commands) {
         this.workspace = workspace;
         this.github = github;
         this.store = store;
         this.clock = clock;
+        this.commands = commands;
     }
 
     public Provenance provenance(String id) {
@@ -145,6 +162,11 @@ public final class GitHubRepositories {
             store.put("github-provenance", repository.id(), provenance);
             return repository;
         } catch (PlatformException e) {
+            if (request.repository().equals(publicFallbackRepository)
+                    && !github.canWrite()
+                    && (e.code().equals("GITHUB_RATE_LIMITED")
+                            || e.getMessage().contains("HTTP 403")))
+                return publicGit(request, deadline);
             throw e;
         } catch (Exception invalid) {
             throw new PlatformException(
@@ -153,6 +175,172 @@ public final class GitHubRepositories {
                     "The pinned GitHub snapshot failed integrity checks.");
         } finally {
             slot.release();
+        }
+    }
+
+    private String git(java.nio.file.Path directory, long deadline, String... args) {
+        long left = deadline - System.nanoTime();
+        if (left <= 0)
+            throw new PlatformException(
+                    422, "IMPORT_DEADLINE", "Repository import exceeded 90 seconds.");
+        var result =
+                commands.run(
+                        directory,
+                        Duration.ofNanos(Math.min(left, Duration.ofSeconds(30).toNanos())),
+                        List.of(args));
+        if (result.exitCode() != 0 || result.timedOut() || result.truncated())
+            throw new PlatformException(
+                    502,
+                    "PUBLIC_GIT_IMPORT_FAILED",
+                    "The bounded public Git transport failed. Check revision, repository size and"
+                            + " network access, or configure a private GitHub read credential.");
+        return result.output().stripTrailing();
+    }
+
+    private Repository publicGit(Import request, long deadline) {
+        java.nio.file.Path temporary = null;
+        try {
+            temporary = java.nio.file.Files.createTempDirectory("xcloud-public-git-");
+            git(
+                    temporary,
+                    deadline,
+                    "git",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "init",
+                    "--template=",
+                    "--initial-branch=snapshot");
+            git(
+                    temporary,
+                    deadline,
+                    "git",
+                    "remote",
+                    "add",
+                    "origin",
+                    "https://github.com/" + request.repository() + ".git");
+            git(temporary, deadline, "git", "config", "remote.origin.promisor", "true");
+            git(
+                    temporary,
+                    deadline,
+                    "git",
+                    "config",
+                    "remote.origin.partialclonefilter",
+                    "blob:limit=32769");
+            git(
+                    temporary,
+                    deadline,
+                    "git",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "protocol.file.allow=never",
+                    "-c",
+                    "protocol.ext.allow=never",
+                    "fetch",
+                    "--depth=1",
+                    "--filter=blob:limit=32769",
+                    "--no-tags",
+                    "--no-recurse-submodules",
+                    "origin",
+                    request.ref());
+            String sha = git(temporary, deadline, "git", "rev-parse", "FETCH_HEAD");
+            if (!sha.matches("[a-f0-9]{40}")) throw new IllegalStateException();
+            String tree =
+                    git(
+                            temporary,
+                            deadline,
+                            "git",
+                            "-c",
+                            "core.quotePath=false",
+                            "ls-tree",
+                            "-r",
+                            "--full-tree",
+                            "FETCH_HEAD");
+            String prefix = request.subdirectory().isEmpty() ? "" : request.subdirectory() + "/";
+            var files = new TreeMap<String, String>();
+            for (String line : tree.split("\n")) {
+                var columns = line.split("\t", 2);
+                if (columns.length != 2 || !columns[1].startsWith(prefix)) continue;
+                String path = columns[1].substring(prefix.length());
+                var metadata = columns[0].split(" ");
+                if (metadata[0].equals("120000") || metadata[0].equals("160000"))
+                    throw new PlatformException(
+                            422,
+                            "UNSUPPORTED_REPOSITORY",
+                            "Symlinks and submodules are not accepted in the selected project.");
+                if (!(path.equals("pom.xml") || path.matches("src/(main|test)/java/.+\\.java")))
+                    continue;
+                if (files.size() >= 25 || !metadata[2].matches("[a-f0-9]{40}"))
+                    throw new PlatformException(
+                            422,
+                            "REPOSITORY_TOO_LARGE",
+                            "Import exceeds the source snapshot budget.");
+                // Blob output is bounded by CommandRunner. Preserve trailing whitespace for Git
+                // hash verification.
+                var result =
+                        commands.run(
+                                temporary,
+                                Duration.ofNanos(
+                                        Math.max(
+                                                1,
+                                                Math.min(
+                                                        deadline - System.nanoTime(),
+                                                        Duration.ofSeconds(15).toNanos()))),
+                                List.of("git", "show", metadata[2]));
+                if (result.exitCode() != 0 || result.timedOut() || result.truncated())
+                    throw new IllegalStateException();
+                String content = result.output();
+                byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+                var hash = MessageDigest.getInstance("SHA-1");
+                hash.update(("blob " + bytes.length + "\0").getBytes(StandardCharsets.UTF_8));
+                hash.update(bytes);
+                if (!HexFormat.of().formatHex(hash.digest()).equals(metadata[2]))
+                    throw new IllegalStateException();
+                files.put(path, content);
+            }
+            RepositoryWorkspace.validateFiles(files, request.testClass());
+            var repository =
+                    workspace.create(
+                            request.repository().substring(request.repository().indexOf('/') + 1),
+                            files,
+                            request.testClass(),
+                            "github:" + request.repository() + "@" + sha);
+            var immutable = new TreeMap<String, String>();
+            files.forEach(
+                    (path, content) -> {
+                        if (!path.startsWith("src/main/")) immutable.put(path, content);
+                    });
+            store.put(
+                    "github-provenance",
+                    repository.id(),
+                    new Provenance(
+                            repository.id(),
+                            request.repository(),
+                            request.ref(),
+                            sha,
+                            request.subdirectory(),
+                            BuildProfile.name(files),
+                            IntentCompiler.digest(
+                                    new WorkbenchConfiguration()
+                                            .jsonMapper()
+                                            .writeValueAsString(immutable)),
+                            clock.instant()));
+            return repository;
+        } catch (PlatformException e) {
+            throw e;
+        } catch (Exception failure) {
+            throw new PlatformException(
+                    502,
+                    "PUBLIC_GIT_IMPORT_FAILED",
+                    "Public Git snapshot failed integrity checks.");
+        } finally {
+            if (temporary != null)
+                try (var paths = java.nio.file.Files.walk(temporary)) {
+                    for (var path : paths.sorted(Comparator.reverseOrder()).toList())
+                        java.nio.file.Files.deleteIfExists(path);
+                } catch (Exception cleanup) {
+                    /* No sources are executed in this disposable transport directory. */
+                }
         }
     }
 }

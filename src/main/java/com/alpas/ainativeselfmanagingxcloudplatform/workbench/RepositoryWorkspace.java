@@ -100,9 +100,9 @@ public class RepositoryWorkspace {
         if (name == null || !name.matches("[A-Za-z0-9][A-Za-z0-9 _.-]{0,59}"))
             throw new PlatformException(
                     400, "INVALID_REPOSITORY", "Use a short repository display name.");
-        if (repositories.size() >= 25)
+        if (repositories.size() >= 100)
             throw new PlatformException(
-                    429, "REPOSITORY_CAPACITY", "At most 25 managed repositories are retained.");
+                    429, "REPOSITORY_CAPACITY", "At most 100 managed repositories are retained.");
         String id = UUID.randomUUID().toString();
         Path dir = root.resolve(id);
         writeFiles(dir, files);
@@ -232,6 +232,11 @@ public class RepositoryWorkspace {
     public Object lock(String id) {
         var repository = require(id);
         return locks.computeIfAbsent(repository.id(), unused -> new Object());
+    }
+
+    public String initialCommit(String id) {
+        return commands.require(
+                root.resolve(require(id).id()), "git", "rev-list", "--max-parents=0", "HEAD");
     }
 
     public String head(String id) {

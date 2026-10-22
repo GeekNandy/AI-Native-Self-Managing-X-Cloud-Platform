@@ -13,10 +13,16 @@ import java.util.concurrent.*;
 
 /** Asynchronous bounded agent loop: inspect, test, propose, validate, test, submit for review. */
 @Service
-public class RepairService {
+public class RepairService implements AutoCloseable {
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private PromptPolicies prompts;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private io.micrometer.core.instrument.MeterRegistry metrics;
+
     private final RepositoryWorkspace repositories;
     private final SandboxExecutor sandbox;
-    private final GeminiPatchPlanner model;
+    private final PatchPlanner model;
     private final RepairTasks tasks;
     private final StateStore store;
     private final AuditLog audit;
@@ -41,7 +47,7 @@ public class RepairService {
     public RepairService(
             RepositoryWorkspace repositories,
             SandboxExecutor sandbox,
-            GeminiPatchPlanner model,
+            PatchPlanner model,
             RepairTasks tasks,
             StateStore store,
             AuditLog audit,
@@ -98,6 +104,25 @@ public class RepairService {
         }
     }
 
+    public record ModelCall(
+            String runId,
+            int sequence,
+            InferenceUsage usage,
+            long durationMs,
+            String contextPolicy,
+            List<String> paths,
+            int contextBytes,
+            Double costUsd,
+            String pricing) {}
+
+    public List<ModelCall> modelCalls(String id) {
+        require(id);
+        return store.all("model-calls", ModelCall.class).stream()
+                .filter(c -> c.runId().equals(id))
+                .sorted(Comparator.comparingInt(ModelCall::sequence))
+                .toList();
+    }
+
     public Map<String, Object> config() {
         return Map.of(
                 "sandbox",
@@ -113,7 +138,13 @@ public class RepairService {
                 "maxModelCalls",
                 3,
                 "maxOutputTokensPerCall",
-                4096);
+                4096,
+                "maxInputBytesPerCall",
+                40000,
+                "maxAggregateTokens",
+                160000,
+                "contextPolicy",
+                SourceContext.VERSION);
     }
 
     public List<RepairRun> list() {
@@ -135,12 +166,29 @@ public class RepairService {
             String provider,
             int maxAttempts,
             int timeoutSeconds) {
+        return submitWithPolicy(
+                repositoryId,
+                instruction,
+                provider,
+                maxAttempts,
+                timeoutSeconds,
+                active,
+                prompts == null ? null : prompts.active());
+    }
+
+    synchronized RepairRun submitWithPolicy(
+            String repositoryId,
+            String instruction,
+            String provider,
+            int maxAttempts,
+            int timeoutSeconds,
+            RepairPolicy selectedPolicy,
+            PromptPolicies.Policy promptPolicy) {
         repositories.require(repositoryId);
         if (instruction == null
                 || instruction.isBlank()
                 || instruction.length() > 4000
-                || !List.of("mutation-search", "gemini", "nebius")
-                        .contains(String.valueOf(provider))
+                || !("mutation-search".equals(provider) || model.supports(String.valueOf(provider)))
                 || maxAttempts < 1
                 || maxAttempts > 12
                 || timeoutSeconds < 20
@@ -156,9 +204,9 @@ public class RepairService {
                     503,
                     "MODEL_NOT_CONFIGURED",
                     "Configure the selected model provider before starting a repair.");
-        if (runs.size() >= 200)
+        if (runs.size() >= 500)
             throw new PlatformException(
-                    429, "REPAIR_CAPACITY", "At most 200 repair runs are retained per workspace.");
+                    429, "REPAIR_CAPACITY", "At most 500 repair runs are retained per workspace.");
         if (!Boolean.TRUE.equals(sandbox.capabilities().get("available")))
             throw new PlatformException(
                     503,
@@ -166,7 +214,7 @@ public class RepairService {
                     "Install Docker and pre-pull the configured Java 21 image. Source code is never"
                             + " executed on the host.");
         String id = UUID.randomUUID().toString();
-        var policy = active;
+        var policy = selectedPolicy;
         var run =
                 new RepairRun(
                         id,
@@ -174,7 +222,9 @@ public class RepairService {
                         repositories.head(repositoryId),
                         instruction,
                         provider,
-                        policy.version(),
+                        !provider.equals("mutation-search") && promptPolicy != null
+                                ? promptPolicy.version()
+                                : policy.version(),
                         "QUEUED",
                         maxAttempts,
                         timeoutSeconds,
@@ -194,7 +244,7 @@ public class RepairService {
         var future =
                 new FutureTask<Void>(
                         () -> {
-                            execute(run, policy);
+                            execute(run, policy, promptPolicy);
                             return null;
                         });
         futures.put(id, future);
@@ -216,7 +266,8 @@ public class RepairService {
         return run;
     }
 
-    private void execute(RepairRun initial, RepairPolicy policy) {
+    private void execute(
+            RepairRun initial, RepairPolicy policy, PromptPolicies.Policy promptPolicy) {
         var e = new Execution(initial);
         Path worktree = null;
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(initial.timeoutSeconds());
@@ -226,6 +277,7 @@ public class RepairService {
             save(e.freeze());
             worktree = repositories.worktree(e.repositoryId, e.id, e.baseCommit);
             var files = repositories.sources(worktree);
+            Map<String, String> working = files;
             e.step(
                     "repository.inspect",
                     "PASS",
@@ -269,21 +321,94 @@ public class RepairService {
                 List<Change> changes;
                 String kind;
                 if (!e.provider.equals("mutation-search")) {
-                    changes =
-                            model.propose(
-                                    e.provider,
+                    var context =
+                            SourceContext.select(
+                                    working,
                                     e.instruction,
-                                    files,
-                                    e.verification == null ? e.baseline : e.verification,
-                                    e.steps,
-                                    remaining(deadline));
+                                    e.verification == null
+                                            ? e.baseline.output()
+                                            : e.verification.output());
+                    e.step(
+                            "repository.search",
+                            "PASS",
+                            0,
+                            "Policy "
+                                    + SourceContext.VERSION
+                                    + "; terms: "
+                                    + String.join(", ", context.terms())
+                                    + "; omitted paths: "
+                                    + String.join(", ", context.omitted()));
+                    e.step(
+                            "repository.read",
+                            "PASS",
+                            0,
+                            context.files().size()
+                                    + " full files, "
+                                    + context.bytes()
+                                    + " bytes: "
+                                    + String.join(", ", context.files().keySet()));
+                    long callStart = System.nanoTime();
+                    try {
+                        changes =
+                                model.propose(
+                                        e.provider,
+                                        prompts == null || promptPolicy == null
+                                                ? e.instruction
+                                                : prompts.instruction(promptPolicy, e.instruction),
+                                        context.files(),
+                                        e.verification == null ? e.baseline : e.verification,
+                                        e.steps,
+                                        remaining(deadline));
+                    } finally {
+                        var usage = model.usage();
+                        if (usage != null)
+                            store.put(
+                                    "model-calls",
+                                    e.id + "-" + (i + 1),
+                                    new ModelCall(
+                                            e.id,
+                                            i + 1,
+                                            usage,
+                                            (System.nanoTime() - callStart) / 1_000_000,
+                                            SourceContext.VERSION,
+                                            List.copyOf(context.files().keySet()),
+                                            context.bytes(),
+                                            null,
+                                            "unpriced"));
+                    }
+                    var calls = modelCalls(e.id);
+                    long tokens =
+                            calls.stream()
+                                    .mapToLong(c -> Math.max(0, c.usage().totalTokens()))
+                                    .sum();
+                    e.step(
+                            "model.propose",
+                            "PASS",
+                            (System.nanoTime() - callStart) / 1_000_000,
+                            "Provider "
+                                    + e.provider
+                                    + "; requested model "
+                                    + model.model(e.provider)
+                                    + "; call "
+                                    + (i + 1)
+                                    + "/3; reported cumulative tokens "
+                                    + tokens
+                                    + " (missing usage remains unknown). Cost unpriced.");
+                    if (tokens > 160000)
+                        throw new PlatformException(
+                                422,
+                                "MODEL_TOKEN_BUDGET",
+                                "Aggregate reported token budget exceeded; no further calls or"
+                                        + " verification.");
                     kind = "GENERATIVE";
                 } else {
                     if (i >= candidates.size()) break;
                     changes = candidates.get(i).changes();
                     kind = candidates.get(i).kind();
                 }
-                var candidate = RepairSearch.validateAndApply(files, changes);
+                var candidate =
+                        RepairSearch.validateAndApply(
+                                e.provider.equals("mutation-search") ? files : working, changes);
                 e.attempts++;
                 e.step(
                         "patch.validate",
@@ -311,7 +436,22 @@ public class RepairService {
                 if (e.verification.passed()) {
                     RepositoryWorkspace.writeFiles(worktree, candidate);
                     e.patch = repositories.diff(worktree);
-                    e.changes = List.copyOf(changes);
+                    e.changes =
+                            files.entrySet().stream()
+                                    .filter(
+                                            f ->
+                                                    f.getKey().startsWith("src/main/")
+                                                            && !f.getValue()
+                                                                    .equals(
+                                                                            candidate.get(
+                                                                                    f.getKey())))
+                                    .map(
+                                            f ->
+                                                    new Change(
+                                                            f.getKey(),
+                                                            IntentCompiler.digest(f.getValue()),
+                                                            candidate.get(f.getKey())))
+                                    .toList();
                     e.mutationKind = kind;
                     e.digest =
                             IntentCompiler.digest(
@@ -324,13 +464,14 @@ public class RepairService {
                                                     e.changes,
                                                     e.patch,
                                                     e.verification,
-                                                    policy.version())));
+                                                    e.policyVersion)));
                     e.status = "AWAITING_REVIEW";
                     e.detail =
                             "The patch passes the unchanged regression tests. Review the diff and"
                                     + " digest before committing.";
                     return;
                 }
+                if (!e.provider.equals("mutation-search")) working = candidate;
             }
             e.status = "FAILED";
             e.detail =
@@ -366,6 +507,12 @@ public class RepairService {
                 }
                 save(e.freeze());
                 futures.remove(e.id);
+            }
+            if (metrics != null) {
+                metrics.counter("platform.repair.runs", "provider", e.provider, "status", e.status)
+                        .increment();
+                metrics.timer("platform.repair.duration", "provider", e.provider)
+                        .record(Duration.between(initial.createdAt(), e.completedAt));
             }
             audit.append(
                     "REPAIR_COMPLETED",
@@ -413,6 +560,11 @@ public class RepairService {
         var run = require(id);
         synchronized (repositories.lock(run.repositoryId())) {
             run = require(id);
+            if (repositories.require(run.repositoryId()).origin().startsWith("benchmark:"))
+                throw new PlatformException(
+                        409,
+                        "EVALUATION_READ_ONLY",
+                        "Benchmark repairs cannot be approved or used as training feedback.");
             if (run.digest() == null || !run.digest().equals(digest))
                 throw new PlatformException(
                         409,
@@ -782,7 +934,7 @@ public class RepairService {
     }
 
     @PreDestroy
-    void close() {
+    public void close() {
         workers.shutdownNow();
         try {
             workers.awaitTermination(10, TimeUnit.SECONDS);

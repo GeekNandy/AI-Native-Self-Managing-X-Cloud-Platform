@@ -10,6 +10,9 @@ on:
     branches: [feature]
     paths:
       - '.github/workflows/repair-worker.yml'
+      - 'sandbox/java21/**'
+      - 'src/main/java/**/WorkerAgent.java'
+      - 'src/main/java/**/DockerSandbox.java'
 permissions:
   contents: read
   id-token: write

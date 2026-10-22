@@ -101,7 +101,7 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
             }
             request.setAttribute("workerIdentity", worker);
             response.setHeader("Cache-Control", "no-store");
-            chain.doFilter(request, response);
+            chain.doFilter(new BoundedRequest(request), response);
             return;
         }
         String accessRole = tokens.role(header);
@@ -146,7 +146,7 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
             deny(response, 413, "REQUEST_TOO_LARGE", "Requests are limited to 1 MiB.");
             return;
         }
-        chain.doFilter(request, response);
+        chain.doFilter(new BoundedRequest(request), response);
     }
 
     private static void deny(HttpServletResponse response, int status, String code, String message)

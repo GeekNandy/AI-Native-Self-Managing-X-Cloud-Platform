@@ -2,7 +2,7 @@
 
 The web coordinator queues bounded test jobs. A pull-only Docker worker claims a job with a unique lease token, renews it every five seconds, and returns an input-bound result. A 20-second heartbeat expiry permits one redelivery; stale tokens cannot complete, cancel or renew a replacement lease. Cancellation revokes the lease. Coordinator restart marks unfinished jobs interrupted and does not replay a repair or approval.
 
-Run the **Hosted repair worker** Actions workflow on `feature` for a 20-minute review window. The workflow uses a GitHub-issued OIDC token bound to the coordinator audience, repository and owner numeric IDs, exact workflow/ref, and push/manual event. Worker credentials only authorize `/api/worker/*`; operator credentials cannot claim jobs. A Docker-capable machine may instead use a distinct private `PLATFORM_WORKER_TOKEN` (at least 32 characters).
+Run the **Hosted repair worker** Actions workflow on `feature` for a 20-minute review window. Before that workflow exists on the default branch, rerun the latest worker job from Actions; manual workflow dispatch requires the file on the default branch. The workflow uses a GitHub-issued OIDC token bound to the coordinator audience, repository and owner numeric IDs, exact workflow/ref, and push/manual event. Worker credentials only authorize `/api/worker/*`; operator credentials cannot claim jobs. Standalone workers retain their owner identity in `.workbench/worker` (override with `PLATFORM_WORKER_DATA_DIR`), so a restarted worker can reap only its own orphan containers. A Docker-capable machine may instead use a distinct private `PLATFORM_WORKER_TOKEN` (at least 32 characters).
 
 ```sh
 docker build -f sandbox/java21/Dockerfile -t xcloud-java21-runner:1 .
@@ -16,7 +16,7 @@ Set credentials privately, not in shell history. Test containers have no network
 
 # Repository profiles
 
-GitHub ingestion accepts a bounded public repository (or a privately configured GitHub token), resolves a ref to a commit, verifies blob hashes and retains provenance. The managed Git commit is a separate snapshot identifier. Symlinks, submodules, oversized/truncated trees and unsupported build configurations are rejected.
+GitHub ingestion accepts a bounded public repository (or a privately configured GitHub token), resolves a ref to a commit, verifies blob hashes and retains provenance. The managed Git commit is a separate snapshot identifier. Symlinks, submodules, oversized/truncated trees and unsupported build configurations are rejected. If an anonymous GitHub API quota is exhausted, a fixed server-configured public sample repository may use a hook-free, shallow Git transport. This fallback does not accept arbitrary clone URLs or credentials. Other repositories require available API quota or a private read credential.
 
 `java21-main-v1` runs a Java test main class. `java21-junit6-v1` supports Java 21 plus Jupiter 6.0.3 and the fixed offline Maven runner. The original POM is immutable evidence; repository plugins, parents, profiles and dependency downloads are not executed. `examples/ledger-service` is a public sample project with an intentional debit defect.
 

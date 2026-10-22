@@ -1,0 +1,281 @@
+{
+  "version": "repair-v1",
+  "harness": "java21-main-v1",
+  "tasks": [
+    {
+      "id": "dev-clamp",
+      "split": "development",
+      "category": "bounds",
+      "instruction": "Clamp an integer to an inclusive lower/upper range.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static int clamp(int x,int lo,int hi){return Math.min(lo,Math.max(hi,x));} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.clamp(5,0,10)==5);check(Rules.clamp(-2,0,10)==0);check(Rules.clamp(20,0,10)==10); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "dev-null",
+      "split": "development",
+      "category": "nullability",
+      "instruction": "Normalize optional text: null is empty, other strings are trimmed.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static String normalize(String s){return s.trim();} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.normalize(null).equals(\"\"));check(Rules.normalize(\" x \").equals(\"x\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "dev-boundary",
+      "split": "development",
+      "category": "validation",
+      "instruction": "Eligibility starts at age 18, including the boundary.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static boolean eligible(int age){return age>18;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.eligible(18));check(!Rules.eligible(17));check(Rules.eligible(30)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "dev-sum",
+      "split": "development",
+      "category": "aggregation",
+      "instruction": "Sum all supplied integers; the empty sum is zero.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static int sum(List<Integer> xs){return xs.stream().reduce(1,Integer::sum);} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.sum(List.of())==0);check(Rules.sum(List.of(2,3,-1))==4); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "dev-discount",
+      "split": "development",
+      "category": "arithmetic",
+      "instruction": "Subtract a five-unit discount, rejecting negative input.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static int price(int n){if(n<0)throw new IllegalArgumentException();return n+5;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.price(12)==7);check(Rules.price(5)==0);reject(()->Rules.price(-1)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-mean",
+      "split": "evaluation",
+      "category": "overflow",
+      "instruction": "Compute the mean of two integers without overflow.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static double mean(int a,int b){return (a+b)/2.0;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.mean(Integer.MAX_VALUE,Integer.MAX_VALUE)==Integer.MAX_VALUE);check(Rules.mean(2,3)==2.5);check(Rules.mean(Integer.MIN_VALUE,Integer.MIN_VALUE)==Integer.MIN_VALUE); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-unicode",
+      "split": "evaluation",
+      "category": "unicode",
+      "instruction": "Count Unicode code points, not UTF-16 code units.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static int length(String s){return s.length();} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.length(\"a😀b\")==3);check(Rules.length(\"\")==0);check(Rules.length(\"abc\")==3); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-locale",
+      "split": "evaluation",
+      "category": "locale",
+      "instruction": "Canonical keys must lowercase consistently using the root locale.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static String key(String s){return s.toLowerCase(Locale.forLanguageTag(\"tr\"));} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.key(\"ID\").equals(\"id\"));check(Rules.key(\"Hello\").equals(\"hello\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-unique",
+      "split": "evaluation",
+      "category": "collections",
+      "instruction": "Remove duplicates while preserving first occurrence order.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static List<String> unique(List<String> xs){return new ArrayList<>(new TreeSet<>(xs));} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.unique(List.of(\"b\",\"a\",\"b\",\"c\")).equals(List.of(\"b\",\"a\",\"c\")));check(Rules.unique(List.of()).isEmpty()); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-copy",
+      "split": "evaluation",
+      "category": "immutability",
+      "instruction": "Return a sorted copy without mutating or requiring mutable input.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static List<Integer> sorted(List<Integer> xs){xs.sort(Integer::compare);return xs;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { var input=new ArrayList<>(List.of(3,1,2));check(Rules.sorted(input).equals(List.of(1,2,3)));check(input.equals(List.of(3,1,2)));check(Rules.sorted(List.of(2,1)).equals(List.of(1,2))); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-page",
+      "split": "evaluation",
+      "category": "pagination",
+      "instruction": "Return the requested zero-based page with positive page size.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static List<String> page(List<String> xs,int page,int size){if(page<0||size<=0)throw new IllegalArgumentException();return xs.stream().skip(page).limit(size).toList();} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.page(List.of(\"a\",\"b\",\"c\",\"d\",\"e\"),1,2).equals(List.of(\"c\",\"d\")));check(Rules.page(List.of(\"a\"),2,2).isEmpty());reject(()->Rules.page(List.of(),-1,2)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-leap",
+      "split": "evaluation",
+      "category": "calendar",
+      "instruction": "Implement Gregorian leap-year rules including century exceptions.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static boolean leap(int year){return year%4==0;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(!Rules.leap(1900));check(Rules.leap(2000));check(Rules.leap(2024));check(!Rules.leap(2023)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-expiry",
+      "split": "evaluation",
+      "category": "time",
+      "instruction": "An entry is expired at or after its expiration instant.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static boolean expired(long now,long until){return now>until;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.expired(100,100));check(Rules.expired(101,100));check(!Rules.expired(99,100)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-round",
+      "split": "evaluation",
+      "category": "decimal",
+      "instruction": "Round currency to two decimal places using HALF_UP.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static BigDecimal money(String s){return new BigDecimal(s).setScale(2,RoundingMode.DOWN);} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.money(\"1.235\").toPlainString().equals(\"1.24\"));check(Rules.money(\"1.234\").toPlainString().equals(\"1.23\"));check(Rules.money(\"-1.235\").toPlainString().equals(\"-1.24\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-url",
+      "split": "evaluation",
+      "category": "encoding",
+      "instruction": "Encode a UTF-8 query value using percent escapes, including spaces as %20.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static String encode(String s){return URLEncoder.encode(s,StandardCharsets.UTF_8);} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.encode(\"a b\").equals(\"a%20b\"));check(Rules.encode(\"é+\").equals(\"%C3%A9%2B\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-unsigned",
+      "split": "evaluation",
+      "category": "numeric",
+      "instruction": "Compare 32-bit integers as unsigned values.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static int compare(int a,int b){return Integer.compare(a,b);} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.compare(-1,1)>0);check(Rules.compare(0,-1)<0);check(Rules.compare(1,1)==0); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-hex",
+      "split": "evaluation",
+      "category": "parsing",
+      "instruction": "Parse hexadecimal input and reject invalid digits.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static int hex(String s){return Integer.parseInt(s,10);} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.hex(\"ff\")==255);check(Rules.hex(\"10\")==16);reject(()->Rules.hex(\"zz\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-factorial",
+      "split": "evaluation",
+      "category": "iteration",
+      "instruction": "Compute factorial for nonnegative inputs up to 12, including zero.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static int factorial(int n){if(n<0||n>12)throw new IllegalArgumentException();int r=1;for(int i=2;i<n;i++)r*=i;return r;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.factorial(0)==1);check(Rules.factorial(5)==120);reject(()->Rules.factorial(-1)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-path",
+      "split": "evaluation",
+      "category": "paths",
+      "instruction": "Accept relative POSIX paths whose normalized form stays within a root; reject absolute paths and traversal outside it.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static boolean safe(String s){return !s.contains(\"..\");} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.safe(\"data/x\"));check(Rules.safe(\"a/../b\"));check(!Rules.safe(\"../../x\"));check(!Rules.safe(\"/etc/x\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-csv",
+      "split": "evaluation",
+      "category": "state-machine",
+      "instruction": "Parse a CSV record with quoted commas and doubled quotes; reject an unterminated quoted field.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static List<String> csv(String s){return Arrays.asList(s.split(\",\",-1));} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.csv(\"alpha,\\\"b,c\\\",d\").equals(List.of(\"alpha\",\"b,c\",\"d\")));check(Rules.csv(\"\\\"a\\\"\\\"b\\\",c\").equals(List.of(\"a\\\"b\",\"c\")));check(Rules.csv(\"a,\").equals(List.of(\"a\",\"\")));reject(()->Rules.csv(\"\\\"bad\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-backoff",
+      "split": "evaluation",
+      "category": "saturation",
+      "instruction": "Compute capped exponential backoff without long overflow; invalid negative inputs must be rejected.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static long backoff(long base,int attempt,long cap){if(base<0||attempt<0||cap<0)throw new IllegalArgumentException();return Math.min(cap,base<<attempt);} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.backoff(2,3,100)==16);check(Rules.backoff(2,63,100)==100);check(Rules.backoff(0,1000000,100)==0);reject(()->Rules.backoff(-1,2,10)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-first",
+      "split": "evaluation",
+      "category": "conflict-resolution",
+      "instruction": "Index the first occurrence of each key; later duplicates must not overwrite it.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static Map<String,Integer> first(List<String> keys){var result=new LinkedHashMap<String,Integer>();for(int i=0;i<keys.size();i++)result.put(keys.get(i),i);return result;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.first(List.of(\"x\",\"y\",\"x\")).equals(Map.of(\"x\",0,\"y\",1)));check(Rules.first(List.of()).isEmpty()); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-interval",
+      "split": "evaluation",
+      "category": "intervals",
+      "instruction": "Detect overlap of nonempty half-open intervals; touching endpoints do not overlap.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static boolean overlap(int a,int b,int c,int d){return a<=d&&c<=b;} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(!Rules.overlap(0,2,2,4));check(Rules.overlap(0,3,2,4));check(!Rules.overlap(1,1,0,2)); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-median",
+      "split": "evaluation",
+      "category": "statistics",
+      "instruction": "Find the median without mutating input, averaging the two middle values for even lengths.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static double median(int[] xs){if(xs.length==0)throw new IllegalArgumentException();return xs[xs.length/2];} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { int[] xs={5,1,3};check(Rules.median(xs)==3);check(Arrays.equals(xs,new int[]{5,1,3}));check(Rules.median(new int[]{4,1,2,3})==2.5);reject(()->Rules.median(new int[]{})); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    },
+    {
+      "id": "eval-boolean",
+      "split": "evaluation",
+      "category": "strict-validation",
+      "instruction": "Parse trimmed case-insensitive true/false text and reject any other value.",
+      "files": {
+        "src/main/java/Rules.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class Rules { static boolean bool(String s){return Boolean.parseBoolean(s);} }\n",
+        "src/test/java/RulesTest.java": "import java.util.*; import java.math.*; import java.time.*; import java.net.*; import java.nio.charset.*;\npublic class RulesTest {\n static void check(boolean ok) { if(!ok) throw new AssertionError(\"Regression contract violated\"); }\n static void reject(Runnable r) { try { r.run(); } catch(IllegalArgumentException expected) { return; } throw new AssertionError(\"Invalid input was accepted\"); }\n public static void main(String[] args) { check(Rules.bool(\" TRUE \"));check(!Rules.bool(\"false\"));reject(()->Rules.bool(\"yes\")); System.out.println(\"Regression checks passed\"); }\n}\n"
+      },
+      "testClass": "RulesTest"
+    }
+  ]
+}

@@ -163,10 +163,16 @@ test("repository workflow creates a real task snapshot and discloses runner avai
     .getByRole("link", { name: "Repository agent", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A failing test. A reviewed fix." }),
+    page.getByRole("heading", { name: "From regression to reviewed repair." }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Create task repository" }).click();
   await expect(page.locator("#code-repository")).not.toHaveValue("");
+  await expect(page.locator("#code-source")).toContainText("class Rules");
+  await page.getByRole("button", { name: /RulesTest.java/ }).click();
+  await expect(page.locator("#code-file-access")).toHaveText("Immutable input");
+  await expect(page.locator("#code-source")).toContainText("AssertionError");
+  fs.mkdirSync("target/screenshots", { recursive: true });
+  await page.screenshot({ path: "target/screenshots/repository-workspace.png", fullPage: true });
   await expect(page.getByLabel("Repair request")).toHaveValue(
     /Fix the discount/,
   );

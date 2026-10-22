@@ -41,6 +41,10 @@ public final class RemoteJobBroker implements SandboxExecutor {
 
     private final LinkedHashMap<String, Job> jobs = new LinkedHashMap<>();
     private final Map<String, Worker> workers = new HashMap<>();
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private io.micrometer.core.instrument.MeterRegistry metrics;
+
     private final StateStore store;
     private final Clock clock;
 
@@ -103,6 +107,9 @@ public final class RemoteJobBroker implements SandboxExecutor {
 
     private void save(Job j) {
         store.put("worker-jobs", j.id(), j);
+        var previous = jobs.get(j.id());
+        if (metrics != null && (previous == null || !previous.status().equals(j.status())))
+            metrics.counter("platform.worker.jobs", "state", j.status()).increment();
         jobs.put(j.id(), j);
         notifyAll();
     }

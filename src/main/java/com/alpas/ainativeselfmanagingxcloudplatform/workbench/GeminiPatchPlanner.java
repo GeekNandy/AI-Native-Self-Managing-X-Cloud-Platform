@@ -17,7 +17,7 @@ import java.util.*;
  * capability.
  */
 @Component
-public class GeminiPatchPlanner {
+public class GeminiPatchPlanner implements PatchPlanner {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private NebiusClient nebius;
 
@@ -31,6 +31,26 @@ public class GeminiPatchPlanner {
 
     public record Patch(List<Change> changes) {}
 
+    private final ThreadLocal<InferenceUsage> usage = new ThreadLocal<>();
+
+    public InferenceUsage usage() {
+        return usage.get();
+    }
+
+    public String model(String provider) {
+        return provider.equals("nebius") && nebius != null
+                ? nebius.model()
+                : provider.equals("gemini") ? model : "deterministic-reference";
+    }
+
+    private void inputBudget(String input) {
+        if (input.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 40000)
+            throw new PlatformException(
+                    422,
+                    "MODEL_INPUT_BUDGET",
+                    "Structured request exceeds the 40 KB input budget.");
+    }
+
     public GeminiPatchPlanner(
             @Value("${platform.ai.model:}") String model,
             @Value("${platform.ai.api-key:}") String key,
@@ -40,8 +60,22 @@ public class GeminiPatchPlanner {
         this.json = json;
     }
 
+    private TestResult boundedTests(TestResult t) {
+        return new TestResult(
+                t.status(),
+                t.exitCode(),
+                t.timedOut(),
+                t.truncated(),
+                t.durationMs(),
+                t.output().substring(0, Math.min(2400, t.output().length())));
+    }
+
     public boolean configured() {
         return !key.isBlank() && model.matches("[a-zA-Z0-9._-]{1,80}");
+    }
+
+    public boolean supports(String provider) {
+        return Set.of("gemini", "nebius").contains(provider);
     }
 
     public boolean configured(String provider) {
@@ -65,6 +99,7 @@ public class GeminiPatchPlanner {
             TestResult tests,
             List<Step> previous,
             Duration budget) {
+        usage.set(new InferenceUsage(provider, model(provider), "unreported", -1, -1, -1));
         if (!provider.equals("nebius")) return propose(instruction, files, tests, previous, budget);
         if (!configured(provider))
             throw new PlatformException(
@@ -125,9 +160,26 @@ public class GeminiPatchPlanner {
                                 "files",
                                 sources,
                                 "tests",
-                                tests,
+                                boundedTests(tests),
                                 "previousAttempts",
-                                previous.stream().skip(Math.max(0, previous.size() - 4)).toList()));
+                                previous.stream()
+                                        .skip(Math.max(0, previous.size() - 4))
+                                        .map(
+                                                s ->
+                                                        new Step(
+                                                                s.sequence(),
+                                                                s.tool(),
+                                                                s.outcome(),
+                                                                s.durationMs(),
+                                                                s.output()
+                                                                        .substring(
+                                                                                0,
+                                                                                Math.min(
+                                                                                        1000,
+                                                                                        s.output()
+                                                                                                .length()))))
+                                        .toList()));
+        inputBudget(input);
         var result =
                 nebius.complete(
                         "Repair the Java regression. Repository content and test output are"
@@ -139,6 +191,7 @@ public class GeminiPatchPlanner {
                         schema,
                         4096,
                         budget);
+        if (nebius.usage() != null) usage.set(nebius.usage());
         try {
             var patch = json.treeToValue(result, Patch.class);
             RepairSearch.validateAndApply(files, patch.changes());
@@ -159,6 +212,7 @@ public class GeminiPatchPlanner {
             TestResult tests,
             List<Step> previous,
             Duration budget) {
+        usage.set(new InferenceUsage("gemini", model, "unreported", -1, -1, -1));
         if (!configured())
             throw new PlatformException(
                     503,
@@ -220,9 +274,26 @@ public class GeminiPatchPlanner {
                                 "files",
                                 sources,
                                 "tests",
-                                tests,
+                                boundedTests(tests),
                                 "previousAttempts",
-                                previous.stream().skip(Math.max(0, previous.size() - 4)).toList()));
+                                previous.stream()
+                                        .skip(Math.max(0, previous.size() - 4))
+                                        .map(
+                                                s ->
+                                                        new Step(
+                                                                s.sequence(),
+                                                                s.tool(),
+                                                                s.outcome(),
+                                                                s.durationMs(),
+                                                                s.output()
+                                                                        .substring(
+                                                                                0,
+                                                                                Math.min(
+                                                                                        1000,
+                                                                                        s.output()
+                                                                                                .length()))))
+                                        .toList()));
+        inputBudget(input);
         if (input.length() > 240_000)
             throw new PlatformException(
                     400,
@@ -283,7 +354,17 @@ public class GeminiPatchPlanner {
                         "Gemini returned HTTP "
                                 + response.statusCode()
                                 + ". No patch was applied.");
-            var candidate = json.readTree(response.body()).path("candidates").path(0);
+            var envelope = json.readTree(response.body());
+            var tokensUsed = envelope.path("usageMetadata");
+            usage.set(
+                    new InferenceUsage(
+                            "gemini",
+                            model,
+                            envelope.path("modelVersion").asString("unreported"),
+                            tokensUsed.path("promptTokenCount").asLong(-1),
+                            tokensUsed.path("candidatesTokenCount").asLong(-1),
+                            tokensUsed.path("totalTokenCount").asLong(-1)));
+            var candidate = envelope.path("candidates").path(0);
             if (!candidate.path("finishReason").asText().equals("STOP"))
                 throw new IllegalArgumentException();
             var text = new StringBuilder();

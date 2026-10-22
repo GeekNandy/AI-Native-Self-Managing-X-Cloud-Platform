@@ -197,7 +197,8 @@ public class DockerSandbox implements SandboxExecutor {
                                     "sh",
                                     "-c",
                                     maven
-                                            ? "MAVEN_OPTS='-Xmx256m -XX:ActiveProcessorCount=1' mvn"
+                                            ? "MAVEN_OPTS='-Xmx256m -XX:ActiveProcessorCount=1"
+                                                  + " -Djansi.mode=strip -Dstyle.color=never' mvn"
                                                   + " -o -B -ntp -f /opt/runner/pom.xml"
                                                   + " -Dmaven.repo.local=/opt/runner/repository"
                                                   + " -Dtest=\"$1\" test &&"

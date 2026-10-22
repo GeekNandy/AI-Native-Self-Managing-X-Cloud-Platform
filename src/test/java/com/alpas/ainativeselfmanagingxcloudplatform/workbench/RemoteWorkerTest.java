@@ -33,6 +33,22 @@ class RemoteWorkerTest {
     }
 
     @Test
+    void secondExpiredLeaseFailsTheJobAndDeadlineCannotBeRenewed() throws Exception {
+        try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            var result = pool.submit(() -> jobs.test(files, "ExampleTest", Duration.ofSeconds(90)));
+            claim("one");
+            clock.now = clock.now.plusSeconds(21);
+            var second = claim("two");
+            clock.now = clock.now.plusSeconds(21);
+            jobs.summary();
+            assertEquals("WORKER_LOST", result.get(2, TimeUnit.SECONDS).status());
+            assertThrows(
+                    PlatformException.class,
+                    () -> jobs.heartbeat(second.id(), "two", second.fence()));
+        }
+    }
+
+    @Test
     void staleLeaseCannotCompleteAfterReassignmentAndDuplicateCompletionIsIdempotent()
             throws Exception {
         try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {

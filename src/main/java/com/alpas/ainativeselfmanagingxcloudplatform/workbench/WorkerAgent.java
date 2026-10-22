@@ -118,7 +118,14 @@ public final class WorkerAgent {
                 Integer.parseInt(System.getenv().getOrDefault("PLATFORM_WORKER_SECONDS", "1200"));
         if (seconds < 10 || seconds > 3600)
             throw new IllegalArgumentException("Worker lifetime must be 10–3600 seconds");
-        var directory = Files.createTempDirectory("xcloud-worker-");
+        var directory =
+                java.nio.file.Path.of(
+                                System.getenv()
+                                        .getOrDefault(
+                                                "PLATFORM_WORKER_DATA_DIR", ".workbench/worker"))
+                        .toAbsolutePath()
+                        .normalize();
+        Files.createDirectories(directory);
         try (var state = new StateStore(json, directory.toString());
                 var tasks = Executors.newVirtualThreadPerTaskExecutor();
                 var beats = Executors.newSingleThreadScheduledExecutor()) {
@@ -186,11 +193,6 @@ public final class WorkerAgent {
                         if (retry < 2) Thread.sleep(500);
                     }
                 }
-            }
-        } finally {
-            try (var paths = Files.walk(directory)) {
-                for (var path : paths.sorted(Comparator.reverseOrder()).toList())
-                    Files.deleteIfExists(path);
             }
         }
     }
