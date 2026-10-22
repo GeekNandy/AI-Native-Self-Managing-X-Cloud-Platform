@@ -1,0 +1,47 @@
+name: Hosted repair worker
+on:
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: 'Worker window in seconds (60–1200)'
+        default: '1200'
+        required: true
+  push:
+    branches: [feature]
+    paths:
+      - '.github/workflows/repair-worker.yml'
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: hosted-repair-worker
+  cancel-in-progress: false
+jobs:
+  worker:
+    if: github.repository == 'GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: docker build -f sandbox/java21/Dockerfile -t xcloud-java21-runner:1 .
+      - run: ./mvnw -B -DskipTests package
+      - name: Serve bounded repair jobs
+        shell: bash
+        env:
+          PLATFORM_NODE_ROLE: worker
+          PLATFORM_SANDBOX_IMAGE: xcloud-java21-runner:1
+          PLATFORM_COORDINATOR_URL: https://x-cloud-workbench.onrender.com
+          PLATFORM_WORKER_SECONDS: ${{ inputs.seconds || '1200' }}
+        run: |
+          if ! [[ "$PLATFORM_WORKER_SECONDS" =~ ^[0-9]+$ ]] || (( PLATFORM_WORKER_SECONDS < 60 || PLATFORM_WORKER_SECONDS > 1200 )); then
+            echo 'Worker lifetime must be 60–1200 seconds.'
+            exit 1
+          fi
+          java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar

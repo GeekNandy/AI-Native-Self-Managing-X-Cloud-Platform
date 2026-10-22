@@ -15,6 +15,8 @@ public class CodeController {
     private final RepositoryWorkspace repositories;
     private final RepairService repairs;
     private final RepairTasks tasks;
+    @org.springframework.beans.factory.annotation.Autowired private GitHubRepositories github;
+    @org.springframework.beans.factory.annotation.Autowired private RemoteJobBroker workerJobs;
 
     public CodeController(
             RepositoryWorkspace repositories, RepairService repairs, RepairTasks tasks) {
@@ -44,6 +46,11 @@ public class CodeController {
         return repairs.config();
     }
 
+    @GetMapping("/workers/jobs")
+    List<Map<String, Object>> workerJobs() {
+        return workerJobs.summary();
+    }
+
     @GetMapping("/tasks")
     List<Task> tasks() {
         return tasks.examples();
@@ -52,6 +59,22 @@ public class CodeController {
     @GetMapping("/repositories")
     List<Repository> repositories() {
         return repositories.list();
+    }
+
+    @PostMapping(value = "/repositories/github", consumes = "application/json")
+    Repository github(@RequestBody GitHubRepositories.Import request) {
+        return github.ingest(request);
+    }
+
+    @GetMapping("/repositories/{id}/provenance")
+    Object provenance(@PathVariable String id) {
+        var p = github.provenance(id);
+        return p == null ? Map.of("source", "managed-snapshot") : p;
+    }
+
+    @GetMapping("/repositories/{id}/files")
+    Map<String, String> files(@PathVariable String id) {
+        return repositories.files(id);
     }
 
     @PostMapping(value = "/repositories", consumes = "application/json")

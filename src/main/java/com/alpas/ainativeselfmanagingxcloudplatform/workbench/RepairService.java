@@ -15,7 +15,7 @@ import java.util.concurrent.*;
 @Service
 public class RepairService {
     private final RepositoryWorkspace repositories;
-    private final DockerSandbox sandbox;
+    private final SandboxExecutor sandbox;
     private final GeminiPatchPlanner model;
     private final RepairTasks tasks;
     private final StateStore store;
@@ -40,7 +40,7 @@ public class RepairService {
 
     public RepairService(
             RepositoryWorkspace repositories,
-            DockerSandbox sandbox,
+            SandboxExecutor sandbox,
             GeminiPatchPlanner model,
             RepairTasks tasks,
             StateStore store,
@@ -150,7 +150,7 @@ public class RepairService {
                     400,
                     "INVALID_REPAIR_BUDGET",
                     "Provide a task, a configured provider, 1-12 attempts (model providers <=3),"
-                        + " and a 20-120 second budget.");
+                            + " and a 20-120 second budget.");
         if (!"mutation-search".equals(provider) && !model.configured(provider))
             throw new PlatformException(
                     503,
@@ -239,7 +239,9 @@ public class RepairService {
                     sandbox.test(
                             files,
                             repositories.require(e.repositoryId).testClass(),
-                            remaining(deadline));
+                            remaining(deadline),
+                            e.id,
+                            "baseline");
             e.step(
                     "sandbox.test.baseline",
                     e.baseline.status(),
@@ -250,7 +252,9 @@ public class RepairService {
                 e.detail = "The existing tests already pass. No patch is proposed.";
                 return;
             }
-            if (e.baseline.timedOut() || e.baseline.truncated())
+            if (!e.baseline.status().equals("FAIL")
+                    || e.baseline.timedOut()
+                    || e.baseline.truncated())
                 throw new PlatformException(
                         422,
                         "INVALID_BASELINE",
@@ -296,7 +300,9 @@ public class RepairService {
                         sandbox.test(
                                 candidate,
                                 repositories.require(e.repositoryId).testClass(),
-                                remaining(deadline));
+                                remaining(deadline),
+                                e.id,
+                                "attempt-" + e.attempts);
                 e.step(
                         "sandbox.test.candidate",
                         e.verification.status(),

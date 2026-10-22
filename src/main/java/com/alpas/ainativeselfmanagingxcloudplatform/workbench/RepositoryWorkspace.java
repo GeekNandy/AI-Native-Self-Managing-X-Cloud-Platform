@@ -19,6 +19,8 @@ public class RepositoryWorkspace {
             new java.util.concurrent.ConcurrentHashMap<>();
     private final Map<String, Object> locks = new java.util.concurrent.ConcurrentHashMap<>();
 
+    public record Archive(String repositoryId, String head, String digest, String base64) {}
+
     public RepositoryWorkspace(StateStore store, CommandRunner commands, Clock clock) {
         this.store = store;
         this.commands = commands;
@@ -33,12 +35,26 @@ public class RepositoryWorkspace {
             throw new IllegalStateException("Cannot create managed repository directory.", e);
         }
         store.all("repositories", Repository.class).forEach(r -> repositories.put(r.id(), r));
+        var archives = new HashMap<String, Archive>();
+        store.all("repository-archives", Archive.class)
+                .forEach(a -> archives.put(a.repositoryId(), a));
+        for (var repository : repositories.values()) {
+            require(repository.id());
+            Path path = root.resolve(repository.id());
+            boolean matching = false;
+            if (Files.isDirectory(path.resolve(".git")))
+                try {
+                    matching = head(repository.id()).equals(repository.head());
+                } catch (RuntimeException ignored) {
+                }
+            if (!matching) restore(repository, archives.get(repository.id()));
+        }
     }
 
     public static void validateFiles(Map<String, String> files, String testClass) {
         if (files == null
                 || files.size() < 2
-                || files.size() > 24
+                || files.size() > 25
                 || testClass == null
                 || !testClass.matches("[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*){0,8}"))
             throw new PlatformException(
@@ -51,8 +67,9 @@ public class RepositoryWorkspace {
             String path = entry.getKey(), content = entry.getValue();
             if (path == null
                     || path.length() > 100
-                    || !path.matches(
-                            "src/(main|test)/java/([A-Za-z][A-Za-z0-9_]*/)*[A-Za-z][A-Za-z0-9_]*\\.java")
+                    || !(path.equals("pom.xml")
+                            || path.matches(
+                                    "src/(main|test)/java/([A-Za-z][A-Za-z0-9_]*/)*[A-Za-z][A-Za-z0-9_]*\\.java"))
                     || content == null
                     || content.length() > 32_768
                     || content.indexOf('\0') >= 0)
@@ -61,6 +78,7 @@ public class RepositoryWorkspace {
                         "INVALID_REPOSITORY",
                         "Only bounded UTF-8 Java files under src/main/java and src/test/java are"
                                 + " accepted.");
+            if (path.equals("pom.xml")) BuildProfile.validatePom(content);
             total += content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             main |= path.startsWith("src/main/");
             test |= path.startsWith("src/test/");
@@ -89,7 +107,7 @@ public class RepositoryWorkspace {
         Path dir = root.resolve(id);
         writeFiles(dir, files);
         commands.require(dir, "git", "init", "--initial-branch=main");
-        commands.require(dir, "git", "add", "--", "src");
+        commands.require(dir, "git", "add", "--", ".");
         commands.require(
                 dir,
                 "git",
@@ -105,9 +123,85 @@ public class RepositoryWorkspace {
                 "Import bounded Java source snapshot");
         String head = commands.require(dir, "git", "rev-parse", "HEAD");
         var repository = new Repository(id, name, testClass, head, origin, clock.instant());
-        store.put("repositories", id, repository);
+        persist(repository, dir);
         repositories.put(id, repository);
         return repository;
+    }
+
+    private void persist(Repository repository, Path path) {
+        Path bundle = root.resolve("archive-" + repository.id() + ".bundle");
+        try {
+            Files.deleteIfExists(bundle);
+            commands.require(path, "git", "bundle", "create", bundle.toString(), "--all");
+            if (Files.size(bundle) > 2_000_000)
+                throw new IllegalStateException("Repository archive exceeds 2 MB");
+            byte[] bytes = Files.readAllBytes(bundle);
+            var archive =
+                    new Archive(
+                            repository.id(),
+                            repository.head(),
+                            IntentCompiler.digest(Base64.getEncoder().encodeToString(bytes)),
+                            Base64.getEncoder().encodeToString(bytes));
+            store.putBatch(
+                    List.of(
+                            new StateStore.Write("repositories", repository.id(), repository),
+                            new StateStore.Write("repository-archives", repository.id(), archive)));
+        } catch (PlatformException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new PlatformException(
+                    503, "REPOSITORY_ARCHIVE_FAILED", "Cannot persist the managed Git archive.");
+        } finally {
+            try {
+                Files.deleteIfExists(bundle);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private void restore(Repository repository, Archive archive) {
+        if (archive == null
+                || !archive.head().equals(repository.head())
+                || archive.base64().length() > 2_700_000
+                || !IntentCompiler.digest(archive.base64()).equals(archive.digest()))
+            throw new IllegalStateException(
+                    "A managed repository is missing and has no verified archive. Restore its data"
+                            + " directory.");
+        Path destination = root.resolve(repository.id()),
+                bundle = root.resolve("restore-" + repository.id() + ".bundle");
+        try {
+            if (Files.exists(destination))
+                try (var paths = Files.walk(destination)) {
+                    for (var path : paths.sorted(Comparator.reverseOrder()).toList())
+                        Files.deleteIfExists(path);
+                }
+            Files.write(bundle, Base64.getDecoder().decode(archive.base64()));
+            commands.require(
+                    root,
+                    "git",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "clone",
+                    "--no-hardlinks",
+                    bundle.toString(),
+                    destination.toString());
+            if (!head(repository.id()).equals(repository.head()))
+                throw new IllegalStateException("Archive head mismatch");
+        } catch (Exception e) {
+            throw new IllegalStateException("Cannot restore the managed Git archive.");
+        } finally {
+            try {
+                Files.deleteIfExists(bundle);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    public Map<String, String> files(String id) {
+        var repository = require(id);
+        synchronized (lock(id)) {
+            return sources(root.resolve(repository.id()));
+        }
     }
 
     public Repository require(String id) {
@@ -190,6 +284,13 @@ public class RepositoryWorkspace {
             throw new PlatformException(
                     409, "REPOSITORY_CONFLICT", "Cannot read the managed source snapshot.");
         }
+        try {
+            if (Files.isRegularFile(path.resolve("pom.xml")))
+                result.put("pom.xml", Files.readString(path.resolve("pom.xml")));
+        } catch (Exception e) {
+            throw new PlatformException(
+                    409, "REPOSITORY_CONFLICT", "Cannot read immutable build configuration.");
+        }
         return result;
     }
 
@@ -265,7 +366,7 @@ public class RepositoryWorkspace {
         var r = require(id);
         var updated =
                 new Repository(r.id(), r.name(), r.testClass(), commit, r.origin(), r.createdAt());
-        store.put("repositories", id, updated);
+        persist(updated, root.resolve(id));
         repositories.put(id, updated);
         return commit;
     }

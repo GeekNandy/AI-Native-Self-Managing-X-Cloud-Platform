@@ -15,6 +15,21 @@ class RepositoryWorkflowTest {
     @TempDir Path directory;
 
     @Test
+    void managedGitHistoryRestoresAfterTheLocalCheckoutIsLost() throws Exception {
+        var json = new WorkbenchConfiguration().jsonMapper();
+        var state = StateStore.volatileStore();
+        var workspace =
+                new RepositoryWorkspace(state, new CommandRunner(), java.time.Clock.systemUTC());
+        var task = new RepairTasks().examples().getFirst();
+        var repository = workspace.create(task.name(), task.files(), task.testClass(), task.id());
+        // A second workspace has a new empty filesystem and only the stored archive.
+        var restored =
+                new RepositoryWorkspace(state, new CommandRunner(), java.time.Clock.systemUTC());
+        assertEquals(repository.head(), restored.head(repository.id()));
+        assertEquals(task.files(), restored.files(repository.id()));
+    }
+
+    @Test
     void actualWorktreeProducesReviewableDiffAndComparesHeadBeforeCommit() {
         try (var store =
                 new StateStore(new WorkbenchConfiguration().jsonMapper(), directory.toString())) {

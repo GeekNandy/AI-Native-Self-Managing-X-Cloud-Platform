@@ -15,7 +15,7 @@ import java.util.*;
  * No host bind mounts, credentials, repository scripts or network. No host-JVM execution fallback.
  */
 @Component
-public class DockerSandbox {
+public class DockerSandbox implements SandboxExecutor {
     private final CommandRunner commands;
     private final String image;
     private final String owner;
@@ -70,7 +70,13 @@ public class DockerSandbox {
                     commands.run(
                             null,
                             Duration.ofSeconds(3),
-                            List.of("docker", "image", "inspect", image, "--format", "{{.Id}}"));
+                            List.of(
+                                    "docker",
+                                    "image",
+                                    "inspect",
+                                    image,
+                                    "--format",
+                                    "{{.Id}}|{{index .Config.Labels \"xcloud.profile\"}}"));
             return Map.of(
                     "available",
                     check.exitCode() == 0,
@@ -85,7 +91,11 @@ public class DockerSandbox {
                     "memoryMiB",
                     384,
                     "pids",
-                    96);
+                    96,
+                    "profiles",
+                    check.output().contains("java21-junit6-v1")
+                            ? List.of("java21-main-v1", "java21-junit6-v1")
+                            : List.of("java21-main-v1"));
         } catch (PlatformException unavailable) {
             return Map.of(
                     "available",
@@ -100,6 +110,15 @@ public class DockerSandbox {
 
     public TestResult test(Map<String, String> files, String testClass, Duration budget) {
         RepositoryWorkspace.validateFiles(files, testClass);
+        boolean maven = files.containsKey("pom.xml");
+        if (maven
+                && !((List<?>) capabilities().getOrDefault("profiles", List.of()))
+                        .contains("java21-junit6-v1"))
+            throw new PlatformException(
+                    503,
+                    "MAVEN_RUNNER_REQUIRED",
+                    "Build and preload the pinned sandbox/java21 runner image for this Maven"
+                            + " profile.");
         long start = System.nanoTime();
         long deadline = start + budget.toNanos();
         String name = "xcloud-test-" + UUID.randomUUID();
@@ -125,13 +144,15 @@ public class DockerSandbox {
                                     "--cap-drop=ALL",
                                     "--security-opt=no-new-privileges",
                                     "--cpus=1",
-                                    "--memory=384m",
-                                    "--memory-swap=384m",
-                                    "--pids-limit=96",
+                                    maven ? "--memory=768m" : "--memory=384m",
+                                    maven ? "--memory-swap=768m" : "--memory-swap=384m",
+                                    maven ? "--pids-limit=128" : "--pids-limit=96",
                                     "--tmpfs",
                                     "/workspace:rw,nosuid,nodev,noexec,size=4m,mode=755",
                                     "--tmpfs",
-                                    "/tmp:rw,nosuid,nodev,size=48m,mode=1777",
+                                    maven
+                                            ? "/tmp:rw,nosuid,nodev,size=192m,mode=1777"
+                                            : "/tmp:rw,nosuid,nodev,size=48m,mode=1777",
                                     "--ulimit",
                                     "nofile=128:128",
                                     "--log-driver=none",
@@ -164,7 +185,7 @@ public class DockerSandbox {
             var result =
                     commands.run(
                             null,
-                            phaseBudget(deadline, 20),
+                            phaseBudget(deadline, maven ? 40 : 20),
                             List.of(
                                     "docker",
                                     "exec",
@@ -175,10 +196,22 @@ public class DockerSandbox {
                                     name,
                                     "sh",
                                     "-c",
-                                    "mkdir /tmp/classes && find src -name '*.java' -print >"
-                                        + " /tmp/sources && javac -J-Xmx192m -proc:none --release"
-                                        + " 21 -d /tmp/classes @/tmp/sources && java -Xmx192m"
-                                        + " -XX:ActiveProcessorCount=1 -cp /tmp/classes \"$1\"",
+                                    maven
+                                            ? "MAVEN_OPTS='-Xmx256m -XX:ActiveProcessorCount=1' mvn"
+                                                  + " -o -B -ntp -f /opt/runner/pom.xml"
+                                                  + " -Dmaven.repo.local=/opt/runner/repository"
+                                                  + " -Dtest=\"$1\" test &&"
+                                                  + " report=/tmp/build/surefire-reports/TEST-\"$1\".xml"
+                                                  + " && test -s \"$report\" && grep -Eq"
+                                                  + " 'tests=\"[1-9][0-9]*\"' \"$report\" && grep"
+                                                  + " -q 'errors=\"0\"' \"$report\" && grep -q"
+                                                  + " 'failures=\"0\"' \"$report\" && grep -q"
+                                                  + " 'skipped=\"0\"' \"$report\""
+                                            : "mkdir /tmp/classes && find src -name '*.java' -print"
+                                                  + " > /tmp/sources && javac -J-Xmx192m -proc:none"
+                                                  + " --release 21 -d /tmp/classes @/tmp/sources &&"
+                                                  + " java -Xmx192m -XX:ActiveProcessorCount=1 -cp"
+                                                  + " /tmp/classes \"$1\"",
                                     "sandbox",
                                     testClass));
             return new TestResult(

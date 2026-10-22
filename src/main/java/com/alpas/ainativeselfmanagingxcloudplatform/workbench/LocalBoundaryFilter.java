@@ -19,6 +19,8 @@ import java.util.Set;
 public class LocalBoundaryFilter extends OncePerRequestFilter {
     private final AccessTokens tokens;
     private final HostedAccess hosted;
+    @org.springframework.beans.factory.annotation.Autowired private StateStore state;
+    @org.springframework.beans.factory.annotation.Autowired private WorkerIdentity workers;
 
     public LocalBoundaryFilter(AccessTokens tokens, HostedAccess hosted) {
         this.tokens = tokens;
@@ -70,7 +72,38 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
             return;
         }
         String path = request.getRequestURI();
+        if (state != null && !path.equals("/actuator/health")) {
+            try {
+                state.requireAvailable();
+            } catch (PlatformException unavailable) {
+                deny(
+                        response,
+                        503,
+                        "STATE_UNAVAILABLE",
+                        "This coordinator has been replaced or its state is unavailable.");
+                return;
+            }
+        }
         String header = request.getHeader("Authorization");
+        if (path.startsWith("/api/worker/")) {
+            String worker = workers == null ? null : workers.authenticate(header);
+            if (worker == null) {
+                deny(response, 401, "WORKER_REQUIRED", "Use a scoped worker credential.");
+                return;
+            }
+            if (!request.getMethod().equals("POST")) {
+                deny(response, 405, "METHOD_NOT_ALLOWED", "Worker protocol accepts POST only.");
+                return;
+            }
+            if (request.getContentLengthLong() > 1_048_576) {
+                deny(response, 413, "REQUEST_TOO_LARGE", "Requests are limited to 1 MiB.");
+                return;
+            }
+            request.setAttribute("workerIdentity", worker);
+            response.setHeader("Cache-Control", "no-store");
+            chain.doFilter(request, response);
+            return;
+        }
         String accessRole = tokens.role(header);
         if (accessRole == null) accessRole = hosted.role(header);
         if (hosted.enabled() && !path.equals("/actuator/health") && accessRole == null) {
