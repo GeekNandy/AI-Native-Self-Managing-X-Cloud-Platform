@@ -1,0 +1,59 @@
+{
+  "sourceRevision": "a6e8cbbf33c4766c856af4ac2a7aaedf9c0af4cb",
+  "branch": "feature",
+  "recordedAt": "2026-10-22T14:13:29.435729+00:00",
+  "ci": {
+    "runId": 39791156720,
+    "url": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39791156720",
+    "conclusion": "success",
+    "artifactId": 12430873988,
+    "java": {
+      "tests": 68,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "browser": {
+      "scenarios": 16,
+      "passed": 16
+    },
+    "accessibility": {
+      "states": 11,
+      "violations": 0,
+      "recordedReceiptThemes": [
+        "light",
+        "dark"
+      ]
+    },
+    "containerImageChecks": 11
+  },
+  "corpus": {
+    "version": "repair-v1",
+    "developmentCases": 5,
+    "evaluationCases": 20,
+    "dockerValidatedBaselines": 25,
+    "dockerValidatedReferencePatches": 25,
+    "evidenceType": "corpus-validation-not-model-quality"
+  },
+  "hosted": {
+    "url": "https://x-cloud-workbench.onrender.com/#code",
+    "deployId": "dep-dbd1eco473hc73ahk2c0",
+    "sourceRevision": "a6e8cbbf33c4766c856af4ac2a7aaedf9c0af4cb",
+    "pinnedGithubImport": "b71dd7c471111fbd6079f22e2adffadb952dc92c",
+    "profile": "java21-junit6-v1",
+    "baseline": "FAIL",
+    "verification": "PASS",
+    "approval": "APPROVED",
+    "approvalRetry": "same commit returned",
+    "provider": "mutation-search",
+    "workerWindowSeconds": 1200,
+    "receipt": "Private final receipt retained; earlier public execution receipt remains unchanged."
+  },
+  "activation": {
+    "liveModelQuality": "NOT_MEASURED; private model credential and accessible model ID required",
+    "hostedPersistence": "POSTGRES_PROVISIONED_NOT_CONNECTED; private internal DATABASE_URL required",
+    "liveDraftPublication": "CONTRACT_VERIFIED_NOT_LIVE; private fixed-destination GitHub write credential required",
+    "freeDatabaseExpiresAt": "2026-11-21T12:37:59Z",
+    "automaticDeploys": "branch updates did not trigger observed deploys; revision verified after manual deploy"
+  }
+}

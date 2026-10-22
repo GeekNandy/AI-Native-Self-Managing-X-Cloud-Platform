@@ -81,7 +81,7 @@ RUN_DOCKER_TESTS=true ./mvnw verify
 
 [Recorded evidence](docs/evidence/README.md) identifies the tested source, harness and limitations. GitHub Actions runs Java, Docker, restart and browser checks and retains execution reports as artifacts.
 
-The earlier release verified **45 Java tests, 15 browser scenarios, Docker repair/recovery, SIGKILL restart and password-protected deployment-image checks**. The repository-engineering release adds worker, persistence, import, inference-loop and publication contract checks plus isolated validation of the 25-task corpus. Automated WCAG checks found zero violations across eleven page/dialog states. See the [execution summary](docs/evidence/verification.json) and [recorded repair screen](docs/images/repository-repair.png).
+Verified on the repository-engineering release: **68 Java checks, 16 browser scenarios, all 25 corpus baselines failing and reference fixes passing in real Docker, PostgreSQL fencing/archive recovery, SIGKILL restart and deployment-image authentication checks**. Automated WCAG checks found zero violations across eleven states; a separate recorded-receipt check covers the long test output and diff in both themes. See [release evidence](docs/evidence/repository-release.json). Live-model quality remains unmeasured until private inference access is configured.
 
 ### Documentation
 
