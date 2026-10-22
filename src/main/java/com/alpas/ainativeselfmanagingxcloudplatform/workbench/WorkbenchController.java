@@ -17,6 +17,8 @@ import java.util.Map;
 @RequestMapping("/api")
 public class WorkbenchController {
     private final ControlPlane control;
+    private final HostedAccess hosted;
+    private final boolean ephemeral;
     private final AgentService agents;
     private final IntentInterpreter interpreter;
     private final ScenarioCatalog catalog;
@@ -31,7 +33,12 @@ public class WorkbenchController {
             ScenarioCatalog catalog,
             AuditLog audit,
             FeedbackStore feedback,
-            EvaluationService evaluations) {
+            EvaluationService evaluations,
+            HostedAccess hosted,
+            @org.springframework.beans.factory.annotation.Value("${platform.web.ephemeral:false}")
+                    boolean ephemeral) {
+        this.ephemeral = ephemeral;
+        this.hosted = hosted;
         this.control = control;
         this.agents = agents;
         this.interpreter = interpreter;
@@ -73,7 +80,9 @@ public class WorkbenchController {
                 "planTtlMinutes",
                 15,
                 "authentication",
-                "scoped-bearer",
+                hosted.enabled() ? "username-password" : "scoped-bearer",
+                "dataRetention",
+                ephemeral ? "ephemeral" : "durable",
                 "capabilities",
                 List.of(
                         "intent-compilation",

@@ -13,6 +13,10 @@ Reviewed repairs can derive a versioned search policy. A paired evaluation on se
 
 ![The governed environment workbench](docs/images/workbench.png)
 
+### Hosted demo
+
+Open [X / Cloud on Render](https://x-cloud-workbench.onrender.com). The complete workspace requires a username/password; the owner can retrieve the dedicated credentials from the private Render Environment settings. The current deployment runs labelled offline examples and the environment simulator. Live Nebius inference requires a private API key; isolated repository execution requires a Docker-capable host. See [hosting and verification](docs/deploy-render.md).
+
 ### Start locally
 
 Requirements: **JDK 21 and Git**. Python 3 runs the evidence scripts. Docker is required for repository execution and the optional local workload adapter. The default environment simulator needs no external credentials or services.
@@ -44,10 +48,10 @@ Open **Repository agent**, create the **Discount calculation** example, run the 
 | Measured feedback | Accepted repairs derive a versioned candidate; paired public smoke tasks and isolation checks gate promotion |
 | MCP | Nine inspection/proposal tools over stateless Streamable HTTP, pinned to protocol 2025-11-25 |
 | Actual local workloads | Optional Docker adapter runs generated Java services, observes health/replica counts and restores lost replicas |
-| Full-stack client | Responsive workflow, patch/trace review, approval dialogs, activity history and evidence exports |
-| Optional Gemini | Bounded intent extraction and typed source-patch proposals with no shell or approval capability |
+| Full-stack client | Material 3 light/dark UI, Google open source assets, keyboard navigation, mobile layouts, scoped controls, filters, history selection and evidence exports |
+| Optional Gemini / Nebius | Bounded intent extraction and typed source-patch proposals with no shell or approval capability |
 
-**Evidence boundary:** offline environment interpretation uses curated examples. Offline repository repair is real bounded mutation search, labelled separately from Gemini. The default environment adapter is a durable simulator; Docker enforces a narrow local development profile and denies unsupported cloud requirements. Public smoke tasks do not establish general model quality. Production cloud IAM, multi-tenant identity, distributed workers and live-model quality evidence remain outside this PoC.
+**Evidence boundary:** offline environment interpretation uses curated examples. Offline repository repair is real bounded mutation search, labelled separately from model inference. The default environment adapter is a durable simulator; Docker enforces a narrow local development profile and denies unsupported cloud requirements. Public smoke tasks do not establish general model quality. Production cloud IAM, multi-tenant identity, distributed workers and live-model quality evidence remain outside this PoC.
 
 ### Reproduce the evidence
 
@@ -67,11 +71,13 @@ RUN_DOCKER_TESTS=true ./mvnw verify
 
 [Recorded evidence](docs/evidence/README.md) identifies the tested source, harness and limitations. GitHub Actions runs Java, Docker, restart and browser checks and retains execution reports as artifacts.
 
-Verified: **40 Java tests, eight browser scenarios, actual Docker repair/recovery and SIGKILL restart checks**. See the [execution summary](docs/evidence/verification.json) and [recorded repair screen](docs/images/repository-repair.png).
+Verified: **45 Java tests, 15 browser scenarios, actual Docker repair/recovery, SIGKILL restart and password-protected deployment-image checks**. Automated WCAG checks found zero violations across eleven page/dialog states. See the [execution summary](docs/evidence/verification.json) and [recorded repair screen](docs/images/repository-repair.png).
 
 ### Documentation
 
-- [Demo walkthrough and Gemini setup](docs/demo-guide.md)
+- [Material 3 UI and Google open source assets](docs/frontend.md)
+- [Render hosting, username/password and Nebius configuration](docs/deploy-render.md)
+- [Demo walkthrough and live provider setup](docs/demo-guide.md)
 - [Repository repair, budgets and feedback promotion](docs/repository-workflow.md)
 - [Runtime capabilities, durable state and recovery](docs/runtime-and-state.md)
 - [MCP connection and tool contract](docs/mcp.md)

@@ -26,6 +26,7 @@ import java.util.concurrent.Semaphore;
  */
 @Component
 public class ConfiguredInterpreter implements IntentInterpreter {
+    private NebiusClient nebius;
     private final String provider;
     private final String model;
     private final String apiKey;
@@ -40,7 +41,8 @@ public class ConfiguredInterpreter implements IntentInterpreter {
             @Value("${platform.ai.model}") String model,
             @Value("${platform.ai.api-key}") String apiKey,
             ScenarioCatalog catalog,
-            JsonMapper json) {
+            JsonMapper json,
+            NebiusClient nebius) {
         this(
                 provider,
                 model,
@@ -51,6 +53,18 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                         .connectTimeout(Duration.ofSeconds(8))
                         .followRedirects(HttpClient.Redirect.NEVER)
                         .build());
+        this.nebius = nebius;
+        if (provider.equals("nebius") && !nebius.configured())
+            throw new IllegalArgumentException("Nebius mode requires NEBIUS_API_KEY.");
+    }
+
+    public ConfiguredInterpreter(
+            String provider,
+            String model,
+            String apiKey,
+            ScenarioCatalog catalog,
+            JsonMapper json) {
+        this(provider, model, apiKey, catalog, json, HttpClient.newHttpClient());
     }
 
     ConfiguredInterpreter(
@@ -60,8 +74,9 @@ public class ConfiguredInterpreter implements IntentInterpreter {
             ScenarioCatalog catalog,
             JsonMapper json,
             HttpClient http) {
-        if (!List.of("fixture", "gemini").contains(provider))
-            throw new IllegalArgumentException("PLATFORM_AI_PROVIDER must be fixture or gemini.");
+        if (!List.of("fixture", "gemini", "nebius").contains(provider))
+            throw new IllegalArgumentException(
+                    "PLATFORM_AI_PROVIDER must be fixture, gemini or nebius.");
         if ("gemini".equals(provider)
                 && (apiKey.isBlank() || !model.matches("[a-zA-Z0-9._-]{1,80}")))
             throw new IllegalArgumentException(
@@ -81,7 +96,9 @@ public class ConfiguredInterpreter implements IntentInterpreter {
 
     @Override
     public String model() {
-        return "fixture".equals(provider) ? "curated-example-replay" : model;
+        return "fixture".equals(provider)
+                ? "curated-example-replay"
+                : "nebius".equals(provider) && nebius != null ? nebius.model() : model;
     }
 
     @Override
@@ -99,7 +116,7 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                         422,
                         "CLARIFICATION_REQUIRED",
                         "Offline mode replays the curated examples only. Select an example, use the"
-                                + " structured intent API, or configure Gemini.");
+                                + " structured intent API, or configure a live model provider.");
             if (scenario.get().spec() == null)
                 throw new PlatformException(
                         422,
@@ -130,6 +147,19 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                 Return an intent with questions=[] only when complete. The supported runtime is java21.
                 Region is germany, eu, us or local; tier is development or production; classification is public, internal or pii.
                 """;
+        if (provider.equals("nebius")) {
+            try {
+                return parseEnvelope(
+                        nebius.complete(system, prompt, schema(), 2048, Duration.ofSeconds(30)));
+            } catch (PlatformException expected) {
+                throw expected;
+            } catch (RuntimeException malformed) {
+                throw new PlatformException(
+                        502,
+                        "INVALID_MODEL_OUTPUT",
+                        "The model did not return the required intent schema.");
+            }
+        }
         var body =
                 Map.of(
                         "systemInstruction",
@@ -205,27 +235,7 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                 if (!part.path("thought").asBoolean(false))
                     text.append(part.path("text").asText(""));
             var envelope = json.readTree(text.toString());
-            if (!envelope.isObject()
-                    || envelope.size() != 2
-                    || !envelope.has("intent")
-                    || !envelope.path("questions").isArray())
-                throw new IllegalArgumentException("Invalid envelope");
-            if (envelope.path("intent").isNull() || !envelope.path("questions").isEmpty()) {
-                var questions = new ArrayList<String>();
-                for (JsonNode question : envelope.path("questions")) {
-                    if (!question.isString()
-                            || question.asText().length() > 400
-                            || questions.size() >= 5)
-                        throw new IllegalArgumentException("Invalid questions");
-                    questions.add(question.asText());
-                }
-                throw new PlatformException(
-                        422,
-                        "CLARIFICATION_REQUIRED",
-                        "The model needs more information before planning.",
-                        questions);
-            }
-            return json.treeToValue(envelope.path("intent"), IntentSpec.class);
+            return parseEnvelope(envelope);
         } catch (PlatformException expected) {
             throw expected;
         } catch (RuntimeException malformed) {
@@ -234,6 +244,30 @@ public class ConfiguredInterpreter implements IntentInterpreter {
                     "INVALID_MODEL_OUTPUT",
                     "The model did not return the required intent schema. No plan was created.");
         }
+    }
+
+    private IntentSpec parseEnvelope(JsonNode envelope) {
+        if (!envelope.isObject()
+                || envelope.size() != 2
+                || !envelope.has("intent")
+                || !envelope.path("questions").isArray())
+            throw new IllegalArgumentException("Invalid envelope");
+        if (envelope.path("intent").isNull() || !envelope.path("questions").isEmpty()) {
+            var questions = new ArrayList<String>();
+            for (JsonNode question : envelope.path("questions")) {
+                if (!question.isString()
+                        || question.asText().length() > 400
+                        || questions.size() >= 5)
+                    throw new IllegalArgumentException("Invalid questions");
+                questions.add(question.asText());
+            }
+            throw new PlatformException(
+                    422,
+                    "CLARIFICATION_REQUIRED",
+                    "The model needs more information before planning.",
+                    questions);
+        }
+        return json.treeToValue(envelope.path("intent"), IntentSpec.class);
     }
 
     private Map<String, Object> schema() {

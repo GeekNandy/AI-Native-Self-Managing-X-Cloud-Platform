@@ -103,9 +103,7 @@ public class RepairService {
                 "sandbox",
                 sandbox.capabilities(),
                 "providers",
-                model.configured()
-                        ? List.of("mutation-search", "gemini")
-                        : List.of("mutation-search"),
+                model.providers(),
                 "activePolicy",
                 active,
                 "workers",
@@ -141,22 +139,23 @@ public class RepairService {
         if (instruction == null
                 || instruction.isBlank()
                 || instruction.length() > 4000
-                || !List.of("mutation-search", "gemini").contains(String.valueOf(provider))
+                || !List.of("mutation-search", "gemini", "nebius")
+                        .contains(String.valueOf(provider))
                 || maxAttempts < 1
                 || maxAttempts > 12
                 || timeoutSeconds < 20
                 || timeoutSeconds > 120
-                || ("gemini".equals(provider) && maxAttempts > 3))
+                || (!"mutation-search".equals(provider) && maxAttempts > 3))
             throw new PlatformException(
                     400,
                     "INVALID_REPAIR_BUDGET",
-                    "Provide a task, mutation-search or gemini, 1-12 attempts (Gemini <=3), and a"
-                            + " 20-120 second budget.");
-        if ("gemini".equals(provider) && !model.configured())
+                    "Provide a task, a configured provider, 1-12 attempts (model providers <=3),"
+                        + " and a 20-120 second budget.");
+        if (!"mutation-search".equals(provider) && !model.configured(provider))
             throw new PlatformException(
                     503,
                     "MODEL_NOT_CONFIGURED",
-                    "Set GEMINI_API_KEY and GEMINI_MODEL before choosing Gemini.");
+                    "Configure the selected model provider before starting a repair.");
         if (runs.size() >= 200)
             throw new PlatformException(
                     429, "REPAIR_CAPACITY", "At most 200 repair runs are retained per workspace.");
@@ -265,9 +264,10 @@ public class RepairService {
                     throw new PlatformException(409, "RUN_CANCELLED", "Cancelled.");
                 List<Change> changes;
                 String kind;
-                if (e.provider.equals("gemini")) {
+                if (!e.provider.equals("mutation-search")) {
                     changes =
                             model.propose(
+                                    e.provider,
                                     e.instruction,
                                     files,
                                     e.verification == null ? e.baseline : e.verification,

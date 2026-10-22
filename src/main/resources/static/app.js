@@ -17,6 +17,7 @@ const labels = {
 };
 const state = {
   config: null,
+  role: null,
   examples: [],
   run: null,
   plan: null,
@@ -41,7 +42,7 @@ async function api(path, body) {
       method: body === undefined ? "GET" : "POST",
       headers: {
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-        ...(sessionStorage.getItem("workbench-token")
+        ...(path !== "/config" && sessionStorage.getItem("workbench-token")
           ? {
               Authorization: `Bearer ${sessionStorage.getItem("workbench-token")}`,
             }
@@ -145,19 +146,20 @@ function renderStats() {
 }
 
 function renderConfig() {
-  const live = state.config.provider === "gemini";
+  const live = state.config.provider !== "fixture";
+  const providerName = state.config.provider === "nebius" ? "Nebius" : "Gemini";
   $("#provider-badge").className = `badge ${live ? "success" : "purple"}`;
   $("#provider-badge").textContent = live
-    ? `Gemini · ${state.config.model}`
+    ? `${providerName} · ${state.config.model}`
     : "Offline example mode";
   $("#mode-notice").innerHTML =
-    `<span class="notice-symbol">i</span><span>${live ? "<strong>Live model extraction</strong> · Proposals still pass independent validation and policy checks." : "<strong>Offline examples</strong> · Choose a curated request below. Configure Gemini to interpret new requests."} Runtime: ${esc(state.config.executionMode)}.</span>`;
+    `<span class="notice-symbol">i</span><span>${live ? "<strong>Live model extraction</strong> · Proposals still pass independent validation and policy checks." : "<strong>Offline examples</strong> · Choose a curated request below. Configure a live model to interpret new requests."} Runtime: ${esc(state.config.executionMode)}.</span>`;
   $("#connection-status").textContent = "Control plane connected";
   $("#evaluation-mode-label").textContent = live
     ? "Control-plane + live interpreter evaluation"
     : "Control-plane + fixture replay";
   $("#evaluate-interpreter").textContent = live
-    ? "Evaluate Gemini interpreter ↗"
+    ? "Evaluate model interpreter ↗"
     : "Check example replay ↗";
   $("#workbench-boundary").textContent =
     state.config.executionMode === "docker-local"
@@ -204,7 +206,12 @@ function renderIntent(spec) {
     ["Replicas", spec.replicas],
     ["Monitoring", spec.monitoring],
     ["Rollback", spec.rollback],
-    ["Execution", "Local sandbox"],
+    [
+      "Execution",
+      state.config?.executionMode === "docker-local"
+        ? "Local Docker"
+        : "Durable simulator",
+    ],
   ];
   return `<div class="intent-table">${fields.map(([key, value]) => `<div class="intent-field"><span>${esc(key)}</span><strong class="${value === true ? "enabled" : ""}">${esc(format(value))}</strong></div>`).join("")}</div>`;
 }
@@ -213,7 +220,7 @@ function proposalBody(plan) {
   if (state.tab === "policy")
     return `<ul class="policy-list">${plan.policy.checks.map((check) => `<li class="policy-item"><span class="check-icon ${check.passed ? "" : "failed"}">${check.passed ? "✓" : "×"}</span><div><strong>${esc(check.id)}</strong><p>${esc(check.requirement)}</p></div></li>`).join("")}</ul>`;
   if (state.tab === "plan")
-    return `<ol class="action-list">${plan.actions.map((action) => `<li class="action-item"><span class="action-index">${action.order}</span><div><strong>${esc(action.operation)} / ${esc(action.resource)}</strong><p>${esc(action.description)}</p>${action.dependsOn.length ? `<span class="action-dependency">Depends on ${esc(action.dependsOn.join(", "))}</span>` : ""}</div></li>`).join("")}</ol><p class="proposal-note">Simulator operations are atomic in memory. Generated files are review artifacts and are not applied to a cluster.</p>`;
+    return `<ol class="action-list">${plan.actions.map((action) => `<li class="action-item"><span class="action-index">${action.order}</span><div><strong>${esc(action.operation)} / ${esc(action.resource)}</strong><p>${esc(action.description)}</p>${action.dependsOn.length ? `<span class="action-dependency">Depends on ${esc(action.dependsOn.join(", "))}</span>` : ""}</div></li>`).join("")}</ol><p class="proposal-note">The configured local runtime applies the reviewed operations. Kubernetes output is a review artifact; no cluster resources are created.</p>`;
   if (state.tab === "artifacts")
     return `<div class="artifact-bar"><label class="sr-only" for="artifact-select">Review artifact</label><select id="artifact-select">${plan.artifacts.map((artifact, index) => `<option value="${index}" ${index === state.artifact ? "selected" : ""}>${esc(artifact.path)}</option>`).join("")}</select><button class="button secondary small" data-download-artifact>Download ↓</button></div><pre id="artifact-code" class="code-preview"></pre>`;
   return renderIntent(plan.intent);
@@ -273,7 +280,10 @@ async function refresh() {
       api("/evaluations"),
       api("/feedback"),
     ]);
-  state.report = state.reports[0] || null;
+  state.report =
+    state.reports.find((r) => r.id === state.report?.id) ||
+    state.reports[0] ||
+    null;
   renderStats();
   renderEnvironments();
   renderActivity();
@@ -324,7 +334,7 @@ function openApproval() {
   )
     return;
   $("#approval-summary").innerHTML =
-    `<div class="approval-summary"><div><span>Environment</span><strong>${esc(plan.environmentId)}</strong></div><div><span>Change</span><strong>${esc(plan.kind)} · ${plan.actions.length} operations</strong></div><div><span>Precondition</span><strong>Revision ${plan.baseRevision}</strong></div><div><span>Execution target</span><strong>In-memory sandbox</strong></div><code>${plan.digest}</code></div>`;
+    `<div class="approval-summary"><div><span>Environment</span><strong>${esc(plan.environmentId)}</strong></div><div><span>Change</span><strong>${esc(plan.kind)} · ${plan.actions.length} operations</strong></div><div><span>Precondition</span><strong>Revision ${plan.baseRevision}</strong></div><div><span>Execution target</span><strong>${state.config?.executionMode === "docker-local" ? "Local Docker containers" : "Durable simulator"}</strong></div><code>${plan.digest}</code></div>`;
   $("#approval-checkbox").checked = false;
   $("#approval-confirm").disabled = true;
   $("#approval-dialog").showModal();
@@ -638,13 +648,20 @@ async function initialize() {
   renderEvaluations();
   renderActivity();
   try {
-    if (!sessionStorage.getItem("workbench-token")) {
+    state.config = await api("/config");
+    if (state.config.authentication === "username-password")
+      sessionStorage.removeItem("workbench-token");
+    if (
+      !sessionStorage.getItem("workbench-token") &&
+      state.config.authentication !== "username-password"
+    ) {
       $("#login-dialog").showModal();
       return;
     }
-    [state.config, state.examples] = await Promise.all([
+    [state.config, state.examples, { role: state.role }] = await Promise.all([
       api("/config"),
       api("/examples"),
+      api("/session"),
     ]);
     renderConfig();
     if (state.examples.length)
@@ -665,4 +682,4 @@ async function initialize() {
 }
 void initialize();
 
-export { api, esc, pretty, toast, fail };
+export { api, esc, pretty, toast, fail, state, renderEvaluations };

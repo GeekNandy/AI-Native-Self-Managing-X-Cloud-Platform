@@ -1,7 +1,7 @@
 {
-  "recordedAt": "2026-10-21T16:42:23.153412+00:00",
+  "recordedAt": "2026-10-21T21:06:25.418871+00:00",
   "experiment": "SIGKILL after committed provision and observed drift; fresh JVM; same H2 directory",
-  "sourceDigest": "0120e0921cb7d9e60e15ef16d258644bbb25c5fa1485a15b09b77d8918a1d014",
+  "sourceDigest": "6414bbc8121ae6e93ac70ceeec8634ccaf6d23bff3f352a8ebe859f763ce6063",
   "checks": {
     "receiptSurvived": true,
     "replayDeduplicated": true,
@@ -11,9 +11,9 @@
     "auditHistoryPreserved": true
   },
   "receipt": {
-    "operationId": "3573fba3-8bdf-4d88-bd74-b2151b0096fc",
-    "planId": "b6554352-3c53-47aa-9937-4bba8061201d",
-    "digest": "78d6a5bef045ffc376daec8d34a62372c978e0336027d1cab49b9da50e899475",
+    "operationId": "3dfe4cb1-7001-432b-8ff3-469b5751562b",
+    "planId": "592d3ae6-b143-4dbc-896d-c5ed5e0a690f",
+    "digest": "e07754665adf86fa3e46a7f59374fe79dc6762b4b48fdfed75795c5249f0c310",
     "idempotencyKey": "crash-restart-retry",
     "environment": {
       "id": "payments-api-production",
@@ -50,7 +50,7 @@
       },
       "drift": []
     },
-    "completedAt": "2026-10-21T16:42:19.077310173Z"
+    "completedAt": "2026-10-21T21:06:21.607686916Z"
   },
   "restoredEnvironment": {
     "id": "payments-api-production",
@@ -94,5 +94,12 @@
       }
     ]
   },
-  "limitation": "Single-node embedded state. In-flight external-write recovery is covered by a separate journal-interruption test; distributed leases and cross-node failover are outside this release."
+  "limitation": "Single-node embedded state. In-flight external-write recovery is covered by a separate journal-interruption test; distributed leases and cross-node failover are outside this release.",
+  "provenance": {
+    "commit": "d6d219b7ee31d5185ae16578a824cec5e677b1b2",
+    "implementationDigest": "6414bbc8121ae6e93ac70ceeec8634ccaf6d23bff3f352a8ebe859f763ce6063",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39675808610",
+    "artifactId": 12382701243,
+    "artifactDigest": "sha256:16de8634b7676124e2cc3c32853b20d1a9269dbd24d4bf7cd1ca37821f93c963"
+  }
 }

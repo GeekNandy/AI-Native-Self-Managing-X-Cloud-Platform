@@ -18,9 +18,11 @@ import java.util.Set;
 @Component
 public class LocalBoundaryFilter extends OncePerRequestFilter {
     private final AccessTokens tokens;
+    private final HostedAccess hosted;
 
-    public LocalBoundaryFilter(AccessTokens tokens) {
+    public LocalBoundaryFilter(AccessTokens tokens, HostedAccess hosted) {
         this.tokens = tokens;
+        this.hosted = hosted;
     }
 
     private static final Set<String> LOCAL = Set.of("localhost", "127.0.0.1", "[::1]", "::1");
@@ -36,7 +38,9 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
                 "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
                     + " connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action"
                     + " 'self'");
-        boolean permitted = LOCAL.contains(request.getServerName());
+        boolean permitted =
+                LOCAL.contains(request.getServerName())
+                        || hosted.allowsHost(request.getServerName());
         String origin = request.getHeader("Origin");
         if (origin != null) {
             try {
@@ -46,10 +50,12 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
                                 ? ("https".equals(source.getScheme()) ? 443 : 80)
                                 : source.getPort();
                 permitted &=
-                        LOCAL.contains(source.getHost())
-                                && source.getHost().equals(request.getServerName())
-                                && source.getScheme().equals(request.getScheme())
-                                && port == request.getServerPort();
+                        hosted.enabled()
+                                ? hosted.allowsOrigin(origin)
+                                : LOCAL.contains(source.getHost())
+                                        && source.getHost().equals(request.getServerName())
+                                        && source.getScheme().equals(request.getScheme())
+                                        && port == request.getServerPort();
             } catch (RuntimeException malformed) {
                 permitted = false;
             }
@@ -60,17 +66,27 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
             response.getWriter()
                     .write(
                             "{\"code\":\"LOCAL_ORIGIN_REQUIRED\",\"message\":\"Use the local"
-                                + " workbench origin.\",\"details\":[]}");
+                                    + " workbench origin.\",\"details\":[]}");
             return;
         }
         String path = request.getRequestURI();
+        String header = request.getHeader("Authorization");
+        String accessRole = tokens.role(header);
+        if (accessRole == null) accessRole = hosted.role(header);
+        if (hosted.enabled() && !path.equals("/actuator/health") && accessRole == null) {
+            response.setHeader("WWW-Authenticate", "Basic realm=\"X Cloud\", charset=\"UTF-8\"");
+            response.setHeader("Cache-Control", "no-store");
+            deny(response, 401, "AUTH_REQUIRED", "Enter the workspace username and password.");
+            return;
+        }
+        if (hosted.enabled()) response.setHeader("Cache-Control", "no-store");
         boolean protectedPath =
                 (path.startsWith("/api/") && !path.equals("/api/config"))
                         || path.equals("/mcp")
                         || (path.startsWith("/actuator/") && !path.equals("/actuator/health"));
         if (protectedPath) {
             response.setHeader("Cache-Control", "no-store");
-            String role = tokens.role(request.getHeader("Authorization"));
+            String role = accessRole;
             if (role == null) {
                 response.setHeader("WWW-Authenticate", "Bearer");
                 deny(response, 401, "AUTH_REQUIRED", "Use an operator or agent bearer token.");

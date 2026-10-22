@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+.workbench
+node_modules
+target
+test-results
+playwright-report
+*.log
+**/__pycache__

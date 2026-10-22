@@ -1,0 +1,480 @@
+{
+  "recordedAt": "2026-10-22T07:55:56.585043+00:00",
+  "url": "https://x-cloud-workbench.onrender.com",
+  "serviceId": "srv-dbcrvv4s728c73826th0",
+  "deployId": "dep-dbcrvvcs728c73826vm0",
+  "deployedCommit": "b06993759316cd82f67190b2fc2033a29f9e40a3",
+  "region": "frankfurt",
+  "plan": "free",
+  "healthCheckType": "Render default TCP plus direct HTTP verification",
+  "checks": {
+    "public-minimal-health": true,
+    "password-protected:/": true,
+    "password-protected:/app.js": true,
+    "password-protected:/material.css": true,
+    "password-protected:/api/config": true,
+    "password-protected:/actuator/metrics": true,
+    "password-protected:/mcp": true,
+    "incorrect-password-denied": true,
+    "hosted-authentication": true,
+    "ephemeral-storage-disclosed": true,
+    "operator-session": true,
+    "authenticated-ui": true,
+    "strict-csp": true,
+    "private-response-no-store": true,
+    "foreign-origin-denied": true,
+    "same-origin-accepted": true,
+    "proposal-awaits-approval": true,
+    "approval-and-retry": true,
+    "observed-drift-preserves-intent": true,
+    "reviewed-recovery-converges": true,
+    "unsafe-request-blocked": true,
+    "missing-requirements-clarified": true,
+    "control-plane-regressions": true
+  },
+  "passed": true,
+  "configuration": {
+    "planTtlMinutes": 15,
+    "executionMode": "durable-simulator",
+    "model": "curated-example-replay",
+    "authentication": "username-password",
+    "capabilities": [
+      "intent-compilation",
+      "policy-checks",
+      "plan-review",
+      "sandbox-execution",
+      "drift-recovery",
+      "regression-evaluation",
+      "durable-state",
+      "scoped-access",
+      "mcp-tools",
+      "repository-repair"
+    ],
+    "policyVersion": "sandbox-policy-v1",
+    "dataRetention": "ephemeral",
+    "provider": "fixture"
+  },
+  "repositoryCapabilities": {
+    "maxOutputTokensPerCall": 4096,
+    "sandbox": {
+      "available": false,
+      "detail": "Install Docker and pre-pull the configured Java 21 image. No host execution fallback is permitted.",
+      "image": "eclipse-temurin:21-jdk"
+    },
+    "workers": 2,
+    "providers": [
+      "mutation-search"
+    ],
+    "queueCapacity": 16,
+    "activePolicy": {
+      "version": "mutation-v1",
+      "mutationOrder": [
+        "BOUNDARY",
+        "EQUALITY",
+        "ARITHMETIC"
+      ],
+      "trainingRunIds": []
+    },
+    "maxModelCalls": 3
+  },
+  "workflow": {
+    "environmentId": "payments-api-production",
+    "runId": "9bc07e7f-539b-4762-a346-cfae093db02c",
+    "approvalReceipt": {
+      "operationId": "0935012c-7a2d-40be-af6a-ae50a0f331a4",
+      "planId": "ffb94820-086f-4c27-b806-99a21dbae6ac",
+      "digest": "53a1bfdb5483ca98a07c7582cd0f67870885eacbc05510b4552f536c6f0b28a7",
+      "idempotencyKey": "aea79596-a7e4-4171-889b-65f01847a389",
+      "environment": {
+        "id": "payments-api-production",
+        "revision": 1,
+        "desiredVersion": 1,
+        "convergence": "CONVERGED",
+        "desired": {
+          "serviceName": "payments-api",
+          "runtime": "java21",
+          "tier": "production",
+          "region": "germany",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "pii",
+          "encryptedStorage": true,
+          "zones": 3,
+          "replicas": 3,
+          "monitoring": true,
+          "rollback": true
+        },
+        "observed": {
+          "serviceName": "payments-api",
+          "runtime": "java21",
+          "tier": "production",
+          "region": "germany",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "pii",
+          "encryptedStorage": true,
+          "zones": 3,
+          "replicas": 3,
+          "monitoring": true,
+          "rollback": true
+        },
+        "drift": []
+      },
+      "completedAt": "2026-10-22T07:55:05.267167937Z"
+    },
+    "driftBeforeRecovery": {
+      "id": "payments-api-production",
+      "revision": 3,
+      "desiredVersion": 1,
+      "convergence": "DRIFT_DETECTED",
+      "desired": {
+        "serviceName": "payments-api",
+        "runtime": "java21",
+        "tier": "production",
+        "region": "germany",
+        "privateNetwork": true,
+        "restrictedEgress": true,
+        "dataClassification": "pii",
+        "encryptedStorage": true,
+        "zones": 3,
+        "replicas": 3,
+        "monitoring": true,
+        "rollback": true
+      },
+      "observed": {
+        "serviceName": "payments-api",
+        "runtime": "java21",
+        "tier": "production",
+        "region": "germany",
+        "privateNetwork": true,
+        "restrictedEgress": false,
+        "dataClassification": "pii",
+        "encryptedStorage": true,
+        "zones": 3,
+        "replicas": 1,
+        "monitoring": true,
+        "rollback": true
+      },
+      "drift": [
+        {
+          "field": "restrictedEgress",
+          "expected": true,
+          "observed": false,
+          "severity": "CRITICAL"
+        },
+        {
+          "field": "replicas",
+          "expected": 3,
+          "observed": 1,
+          "severity": "HIGH"
+        }
+      ]
+    },
+    "recoveryReceipt": {
+      "operationId": "d5cb974a-04a5-4591-898e-17ed1dd54100",
+      "planId": "03a03683-2b7b-4444-a204-41d390ffee0b",
+      "digest": "9871d5f107b327fbcf1c8104d044ed68e0804201004c61800b2caaf73ef3c4ce",
+      "idempotencyKey": "08935d5a-a887-4486-a771-6bcf0485b293",
+      "environment": {
+        "id": "payments-api-production",
+        "revision": 4,
+        "desiredVersion": 1,
+        "convergence": "CONVERGED",
+        "desired": {
+          "serviceName": "payments-api",
+          "runtime": "java21",
+          "tier": "production",
+          "region": "germany",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "pii",
+          "encryptedStorage": true,
+          "zones": 3,
+          "replicas": 3,
+          "monitoring": true,
+          "rollback": true
+        },
+        "observed": {
+          "serviceName": "payments-api",
+          "runtime": "java21",
+          "tier": "production",
+          "region": "germany",
+          "privateNetwork": true,
+          "restrictedEgress": true,
+          "dataClassification": "pii",
+          "encryptedStorage": true,
+          "zones": 3,
+          "replicas": 3,
+          "monitoring": true,
+          "rollback": true
+        },
+        "drift": []
+      },
+      "completedAt": "2026-10-22T07:55:35.061909008Z"
+    },
+    "evaluation": {
+      "id": "01369bd1-b3c4-44f4-8df9-2451edba3711",
+      "createdAt": "2026-10-22T07:55:55.766344752Z",
+      "mode": "deterministic-control-plane",
+      "datasetDigest": "2faa977d4b762905557e62da2af4d33f9575be838e57015d1af1bf07b74f270d",
+      "passed": 23,
+      "total": 23,
+      "passRate": 100.0,
+      "p50Ms": 0.0357,
+      "p95Ms": 499.659921,
+      "feedbackCases": 1,
+      "cases": [
+        {
+          "id": "production",
+          "name": "Production service",
+          "category": "happy-path",
+          "expected": "ALLOW",
+          "actual": "ALLOW",
+          "passed": true,
+          "latencyMs": 0.213024,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "public-network",
+          "name": "Unsafe production networking",
+          "category": "policy",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.031731,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "unencrypted",
+          "name": "Unencrypted personal data",
+          "category": "policy",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.063861,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "bypass",
+          "name": "Untrusted request to bypass policy",
+          "category": "untrusted-output",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.029331,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "development",
+          "name": "Lightweight development service",
+          "category": "happy-path",
+          "expected": "ALLOW",
+          "actual": "ALLOW",
+          "passed": true,
+          "latencyMs": 0.02328,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "budget",
+          "name": "Replica quota exceeded",
+          "category": "policy",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.027211,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "unsupported",
+          "name": "Unsupported runtime",
+          "category": "validation",
+          "expected": "INVALID",
+          "actual": "INVALID",
+          "passed": true,
+          "latencyMs": 0.089162,
+          "detail": "Intent failed semantic validation."
+        },
+        {
+          "id": "heldout-residency",
+          "name": "PII residency also applies in development",
+          "category": "policy",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.030281,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "heldout-availability",
+          "name": "Production availability is mandatory",
+          "category": "policy",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.036121,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "heldout-monitoring",
+          "name": "Production monitoring is mandatory",
+          "category": "policy",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.0357,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "heldout-rollback",
+          "name": "Production rollback is mandatory",
+          "category": "policy",
+          "expected": "DENY",
+          "actual": "DENY",
+          "passed": true,
+          "latencyMs": 0.021901,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "heldout-quota-edge",
+          "name": "Ten replicas remains within quota",
+          "category": "boundary",
+          "expected": "ALLOW",
+          "actual": "ALLOW",
+          "passed": true,
+          "latencyMs": 0.01954,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "heldout-invalid-name",
+          "name": "Reject manifest injection through a service name",
+          "category": "validation",
+          "expected": "INVALID",
+          "actual": "INVALID",
+          "passed": true,
+          "latencyMs": 0.061452,
+          "detail": "Intent failed semantic validation."
+        },
+        {
+          "id": "heldout-zero",
+          "name": "Reject zero replicas",
+          "category": "validation",
+          "expected": "INVALID",
+          "actual": "INVALID",
+          "passed": true,
+          "latencyMs": 0.025471,
+          "detail": "Intent failed semantic validation."
+        },
+        {
+          "id": "heldout-topology",
+          "name": "Reject impossible topology",
+          "category": "validation",
+          "expected": "INVALID",
+          "actual": "INVALID",
+          "passed": true,
+          "latencyMs": 0.018641,
+          "detail": "Intent failed semantic validation."
+        },
+        {
+          "id": "local-docker",
+          "name": "Local development runtime",
+          "category": "local-capability",
+          "expected": "ALLOW",
+          "actual": "ALLOW",
+          "passed": true,
+          "latencyMs": 0.029351,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "dad42240-1cfb-452a-9181-d84c3ffe74c2",
+          "name": "Reviewed hosted simulator recovery preserves the approved environment intent.",
+          "category": "feedback-regression",
+          "expected": "ALLOW",
+          "actual": "ALLOW",
+          "passed": true,
+          "latencyMs": 0.02169,
+          "detail": "Matched expected outcome."
+        },
+        {
+          "id": "digest-binding",
+          "name": "Approval is bound to the exact plan",
+          "category": "execution-safety",
+          "expected": "PASS",
+          "actual": "PASS",
+          "passed": true,
+          "latencyMs": 313.784146,
+          "detail": "Passed against an isolated sandbox; workbench state unchanged."
+        },
+        {
+          "id": "denied-execution",
+          "name": "Denied proposals cannot execute",
+          "category": "execution-safety",
+          "expected": "PASS",
+          "actual": "PASS",
+          "passed": true,
+          "latencyMs": 386.511585,
+          "detail": "Passed against an isolated sandbox; workbench state unchanged."
+        },
+        {
+          "id": "retry-deduplication",
+          "name": "Retries execute only once",
+          "category": "execution-safety",
+          "expected": "PASS",
+          "actual": "PASS",
+          "passed": true,
+          "latencyMs": 499.806568,
+          "detail": "Passed against an isolated sandbox; workbench state unchanged."
+        },
+        {
+          "id": "stale-proposal",
+          "name": "Concurrent proposals invalidate stale plans",
+          "category": "execution-safety",
+          "expected": "PASS",
+          "actual": "PASS",
+          "passed": true,
+          "latencyMs": 499.659921,
+          "detail": "Passed against an isolated sandbox; workbench state unchanged."
+        },
+        {
+          "id": "unknown-observation",
+          "name": "Missing observation never means convergence",
+          "category": "execution-safety",
+          "expected": "PASS",
+          "actual": "PASS",
+          "passed": true,
+          "latencyMs": 304.373627,
+          "detail": "Passed against an isolated sandbox; workbench state unchanged."
+        },
+        {
+          "id": "drift-recovery",
+          "name": "Remediation restores approved desired state",
+          "category": "execution-safety",
+          "expected": "PASS",
+          "actual": "PASS",
+          "passed": true,
+          "latencyMs": 496.233952,
+          "detail": "Passed against an isolated sandbox; workbench state unchanged."
+        }
+      ],
+      "limitation": "Local compiler/policy and isolated simulator checks. Latency excludes model and cloud calls; this is not a load benchmark."
+    }
+  },
+  "liveModelCalls": 0,
+  "limitations": "Hosted environment execution is a simulator with ephemeral storage. Actual isolated repository execution requires a Docker-capable host. No live model key or model-quality claim is established by this report.",
+  "initialHealthProbePassed": false,
+  "finalHealthProbe": {
+    "recordedAt": "2026-10-22T08:44:13.148933+00:00",
+    "status": 200,
+    "body": {
+      "groups": [
+        "liveness",
+        "readiness"
+      ],
+      "status": "UP"
+    }
+  },
+  "deployStatus": "live",
+  "verificationMethod": "Direct HTTPS access checks and a hosted equivalent of the scripts/demo.py fixture workflow; Render connector deploy/log verification.",
+  "browserVerification": "NOT_COMPLETED_BROWSER_TOOL_TIMEOUT",
+  "healthProbeNote": "The final check permits advertised health-group names while requiring UP and no component details; the initial exact-body assertion is retained separately.",
+  "implementationDigest": "6414bbc8121ae6e93ac70ceeec8634ccaf6d23bff3f352a8ebe859f763ce6063"
+}

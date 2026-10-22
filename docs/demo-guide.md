@@ -42,6 +42,12 @@ Start a separate workspace with `PLATFORM_RUNTIME=docker PLATFORM_DATA_DIR=.work
 
 Only one local zone, `region=local`, development tier, up to three replicas, private networking with no egress, ephemeral non-PII data and no automatic rollback are supported. The adapter denies unsupported requirements. Workloads have no published host ports; trusted health checks run through Docker exec. Stop or remove only containers labelled for this workspace when cleaning up. Runtime containers remain until explicitly removed or their 24-hour supervisor exits.
 
+## Live Nebius
+
+For the existing Token Factory account, start with `PLATFORM_AI_PROVIDER=nebius` and `NEBIUS_MODEL=nvidia/Nemotron-3.5-Super-VL`. Set `NEBIUS_API_KEY` privately in the process environment or Render's environment settings. See the [hosted configuration](deploy-render.md) for the exact authentication, inference and runtime contract. This model choice matches the prior working account configuration; current access and this project's live quality still require verification.
+
+A configured Nebius key also enables **Nebius structured patch** on a Docker-capable host. Both live patch providers send bounded source context and test output to their respective provider; use snapshots you are authorized to submit. Tests remain unchanged, proposed replacements must match source hashes, and approval stays with the operator.
+
 ## Live Gemini
 
 ```bash
@@ -67,8 +73,9 @@ npm ci
 npx playwright install chromium
 npm run check
 npm run test:e2e
+python3 scripts/verify-container.py
 ```
 
-Docker tests run actual repairs, paired promotion gates and generated workload recovery. The process test uses SIGKILL and a fresh JVM. Browser tests cover approval, denial, clarification, feedback, authentication, repository creation and mobile overflow.
+Docker tests run actual repairs, paired promotion gates and generated workload recovery. The process test uses SIGKILL and a fresh JVM. Browser tests cover approval, denial, clarification, feedback, repository creation, actual Docker repair, keyboard navigation, role controls, history and event exports, local assets, light/dark themes, five responsive widths and hosted username/password access. Automated WCAG checks inspect all five pages in both themes and the local unlock dialog. The container check builds the deployment image and verifies its access boundary as a non-root process.
 
 For API evidence and local measurements, run `scripts/demo.py` and `scripts/benchmark.py` against a fresh default workspace. They read the operator credential from `PLATFORM_OPERATOR_TOKEN` or `.workbench/operator.token`; `--token-file` supports another data directory. These workloads include durable local writes but exclude model inference, provider APIs and distributed scaling. Retention survives restart, so use a new workspace for repeated large measurements.
