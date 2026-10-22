@@ -208,6 +208,26 @@ test("all five views fit mobile, tablet and desktop in both themes", async ({
   await shot(page, "mobile-repository-dark", false);
 });
 
+test("recorded verified patch keeps line gutters and accessible colors in both themes", async ({ page }) => {
+  // Rendering contract uses a real exported execution receipt; it does not run or score a model.
+  const receipt = JSON.parse(fs.readFileSync("docs/evidence/hosted-remote-repair.json", "utf8")).repair;
+  await page.route("**/api/code/runs", route => route.request().method() === "GET" ? route.fulfill({ json: [receipt] }) : route.continue());
+  await page.route(`**/api/code/runs/${receipt.id}/model-calls`, route => route.fulfill({ json: [] }));
+  await page.route(`**/api/code/runs/${receipt.id}/publication`, route => route.fulfill({ json: {status:"NOT_PUBLISHED"} }));
+  await page.reload();
+  await expect(page.getByText("Control plane connected", { exact:true })).toBeVisible();
+  await page.getByRole("link", {name:"Repository agent",exact:true}).click();
+  await expect(page.locator(".diff-view")).toHaveAttribute("data-highlighted","true");
+  await expect(page.locator(".diff-row").first()).toHaveCSS("display","grid");
+  await expect(page.locator(".diff-view .file")).toHaveCount(0);
+  for (const theme of ["light","dark"]) {
+    const current = await page.locator("html").getAttribute("data-theme");
+    if ((current || "light") !== theme) await page.getByRole("button", { name: `Switch to ${theme} theme` }).click();
+    const result = await new AxeBuilder({page}).include("#view-code").withTags(["wcag2a","wcag2aa","wcag21aa","wcag22aa"]).analyze();
+    expect(result.violations).toEqual([]);
+  }
+});
+
 test("all screens and the access dialog pass automated WCAG checks", async ({
   page,
 }) => {

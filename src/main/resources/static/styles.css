@@ -1895,9 +1895,9 @@ dialog li {
 .run-evidence .evidence-pass { border-top:3px solid var(--green); }
 .run-evidence .evidence-fail { border-top:3px solid var(--red); }
 .diff-view { border:1px solid var(--line); border-radius:9px; overflow:auto; max-height:480px; background:var(--bg); }
-.diff-line { display:grid; grid-template-columns:34px 34px minmax(max-content,1fr); min-height:22px; font:11px/1.9 ui-monospace,Consolas,monospace; }
-.diff-line>span { color:var(--muted); text-align:right; padding-right:7px; user-select:none; border-right:1px solid var(--line); }
-.diff-line>code { padding:0 12px; font:inherit; white-space:pre; color:var(--ink); }
+.diff-row { display:grid; grid-template-columns:34px 34px minmax(max-content,1fr); min-height:22px; font:11px/1.9 ui-monospace,Consolas,monospace; }
+.diff-row>span { color:var(--muted); text-align:right; padding-right:7px; user-select:none; border-right:1px solid var(--line); }
+.diff-row>code { padding:0 12px; font:inherit; white-space:pre; color:var(--ink); }
 .diff-add { background:color-mix(in srgb,var(--green) 12%,var(--bg)); }
 .diff-remove { background:color-mix(in srgb,var(--red) 12%,var(--bg)); }
 .diff-header { background:var(--purple-light); }
@@ -1927,3 +1927,5 @@ dialog li {
 @media(max-width:600px) { .code-benchmarks { padding:18px; } .benchmark-controls,.benchmark-summary { grid-template-columns:minmax(0,1fr); } }
 
 .code-review-panel { min-height:180px; }
+
+.diff-view.patch-output { white-space:normal; }

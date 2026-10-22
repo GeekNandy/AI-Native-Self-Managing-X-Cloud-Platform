@@ -1,0 +1,535 @@
+{
+  "dataset": "repair-v1",
+  "datasetDigest": "344cf7aead79eb76d1d56d581e93751d9279d6bf1c85b769b0113259bbe12d3c",
+  "cases": [
+    {
+      "testsDigest": "6a112136f1f3de217b5c98c08bc69d046bd93520702eee4c067a3736821ebc94",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1647,
+        "output": "Regression checks passed\n"
+      },
+      "split": "development",
+      "taskId": "dev-null",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1794,
+        "output": "Exception in thread \"main\" java.lang.NullPointerException: Cannot invoke \"String.trim()\" because \"<parameter1>\" is null\n\tat Rules.normalize(Rules.java:2)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "7e17581592cd3edd1e1eaea3e992f65187a163f5517e92f49f186211cbf6f172",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1688,
+        "output": "Regression checks passed\n"
+      },
+      "split": "development",
+      "taskId": "dev-clamp",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1819,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "9e2c9e0f5447a26683e0df20d46390d6edfecd321e3a17c7a1b28701dc4b169e",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1688,
+        "output": "Regression checks passed\n"
+      },
+      "split": "development",
+      "taskId": "dev-boundary",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1785,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "539eb987376b7dd90ceebca8d91e95295a0bc8e00c3e5f6bd16a09c3f5c572ca",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1998,
+        "output": "Regression checks passed\n"
+      },
+      "split": "development",
+      "taskId": "dev-sum",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 2049,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "2a2c44c7a3a12cd5a3dacef788c693a1bf350e80d1692e5f089c32f4fb85f2aa",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1766,
+        "output": "Regression checks passed\n"
+      },
+      "split": "development",
+      "taskId": "dev-discount",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1809,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "46bf652427322675d23efbe5c0ad9b56d566e04939e760fdd870621ccd6452aa",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1647,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-mean",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1735,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "83f422242e2e0a8297c5f89e8d3349be52ad666b20710797733659cec71ca306",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1770,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-unicode",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1744,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "b56f9d5176160f46d0f44190905c87de3b4acf0c6cd71f68d7654753d168651f",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1813,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-locale",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1815,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "9f7ec1a8c512e954a243de779bd9638d0c26eed2e0cc6ad4deb82aac45b3c54d",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1909,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-unique",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1958,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "6a1511f271979b7b3a1122b013e5d8d490c5a0411b2612e1d5e3faedf933f76e",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 2027,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-copy",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 2158,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "d85f83a4d77c2ce654eeb92d92bbdfe27fef9420fa35a05b8dc963b16b13f83d",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1994,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-page",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 2013,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "c4bbc114aaddaf55f8105b57d0602e6c0a928016f684976d76f41b46bb696b88",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1793,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-leap",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1744,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "195702c25d23f5262c11ab663a05ec5a49ec8952b0e317522664a09e1f85b7fe",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1654,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-expiry",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1660,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "c3ed35f82499622ed3c4b5425708e5ff9b01820fe13393ebc7c873b99273bbf3",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1710,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-round",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1762,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "7bc29f178eb3053addfa7ebbf4d9d613a652387f87369911b2e1ca6709d0ad3c",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1690,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-url",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1792,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "8cba6fbc8d449f82301444a087d46fceb77fdb50df822b0ef5644fee1ee1135a",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1695,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-unsigned",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1802,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "951196d47e7c98757ed2bc19a09c5a13174ffee81ef833c883619d91f02e586b",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1934,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-hex",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1808,
+        "output": "Exception in thread \"main\" java.lang.NumberFormatException: For input string: \"ff\"\n\tat java.base/java.lang.NumberFormatException.forInputString(NumberFormatException.java:67)\n\tat java.base/java.lang.Integer.parseInt(Integer.java:662)\n\tat Rules.hex(Rules.java:2)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "6a8da91554f8af9d06cf0fd14486d44077d731b2f47f35e6ebcc416f27b49f65",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1918,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-factorial",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1823,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "124ed3360b73e1854cb96dcffb32475c4849408fb2572d61c4cbb96a22efd107",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1749,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-path",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1738,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "38dbd1add9a3e4baa4296f663585bcf33593f46ced5a8c4abc90d162696cd98c",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 2166,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-csv",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1916,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "38e727196e33c3cec687d64a597e01edd369d5f3c4ec51095cda4274eaa1fd5b",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1959,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-backoff",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 2075,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "1a9e51a3cf8cb4002056d84a924ff028bceb6bf99696abd49b1a16c9f3b71271",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1861,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-first",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 2016,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "1abe2299f5df2a415ed8d03897e952e06fa246d41c75ef07a5a58ead89a4bccf",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1674,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-interval",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1738,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "4a4f490380024a8fd1505a69831bc6f1409e805bca1d5ace0e4fadb4bc0ae749",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1976,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-median",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1806,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    },
+    {
+      "testsDigest": "fe1b0b46dbd619a3aac3a5cc4634c133c2743453b7068216dff77c4bc15422e6",
+      "referenceVerification": {
+        "status": "PASS",
+        "exitCode": 0,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1622,
+        "output": "Regression checks passed\n"
+      },
+      "split": "evaluation",
+      "taskId": "eval-boolean",
+      "baseline": {
+        "status": "FAIL",
+        "exitCode": 1,
+        "timedOut": false,
+        "truncated": false,
+        "durationMs": 1883,
+        "output": "Exception in thread \"main\" java.lang.AssertionError: Regression contract violated\n\tat RulesTest.check(RulesTest.java:3)\n\tat RulesTest.main(RulesTest.java:5)\n"
+      }
+    }
+  ],
+  "evidenceType": "corpus-validation-not-model-quality",
+  "sourceRevision": "822486ef718d1908630fcbb417726580e6377ff8",
+  "workflowRunId": 39789210439,
+  "artifactId": 12430392338
+}

@@ -35,7 +35,7 @@ function download(value, name) {
 }
 function diffView(patch) {
   let before = 0, after = 0;
-  return `<div class="diff-view patch-output" tabindex="0" role="region" aria-label="Candidate source diff">${patch.split("\n").map(line => {
+  return `<div class="diff-view patch-output" data-highlighted="true" tabindex="0" role="region" aria-label="Candidate source diff">${patch.split("\n").map(line => {
     let old = "", next = "", kind = "";
     const hunk = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)/);
     if (hunk) { before = Number(hunk[1]); after = Number(hunk[2]); kind = "diff-header"; }
@@ -44,7 +44,7 @@ function diffView(patch) {
     else if (line.startsWith("+")) { next = after++; kind = "diff-add"; }
     else if (line.startsWith(" ")) { old = before++; next = after++; }
     else kind = "diff-header";
-    return `<div class="diff-line ${kind}"><span aria-hidden="true">${old}</span><span aria-hidden="true">${next}</span><code>${esc(line)}</code></div>`;
+    return `<div class="diff-row ${kind}"><span aria-hidden="true">${old}</span><span aria-hidden="true">${next}</span><code>${esc(line)}</code></div>`;
   }).join("")}</div>`;
 }
 function renderSource() {
@@ -84,7 +84,7 @@ function renderRun() {
     ${r.approvedCommit ? `<p class="badge success">Committed ${esc(r.approvedCommit.slice(0, 12))}</p><div class="code-actions"><button id="code-publish-preview" class="button secondary" ${!state.config.publication?.enabled || state.role !== "operator" ? "disabled" : ""}>Review draft PR publication</button>${state.publication?.pullRequestUrl ? `<a class="button primary" href="${esc(state.publication.pullRequestUrl)}" target="_blank" rel="noopener noreferrer">Open draft pull request ↗</a>` : ""}</div><p class="footnote">Publication requires a pinned GitHub import, a fixed destination and a private write credential.</p>` : ""}
     ${modelUsage()}
     ${!terminal(r.status) && state.role === "operator" ? '<button id="code-cancel" class="button secondary">Cancel repair</button>' : ""}
-    <h3>Operation trace</h3><div class="tool-timeline">${r.steps.length ? r.steps.map((step) => `<details class="code-step" ${step.outcome === "FAIL" ? "open" : ""}><summary>${step.sequence}. ${esc(step.tool)} · ${esc(step.outcome)} · ${step.durationMs} ms</summary><pre class="code-output">${esc(step.output || "Completed")}</pre></details>`).join("") : '<p class="footnote">Waiting for the first tool operation.</p>'}</div>`;
+    <h3>Operation trace</h3><div class="tool-timeline">${r.steps.length ? r.steps.map((step) => `<details class="code-step" ${step.outcome === "FAIL" ? "open" : ""}><summary>${step.sequence}. ${esc(step.tool)} · ${esc(step.outcome)} · ${step.durationMs} ms</summary><pre class="code-output" tabindex="0" role="region" aria-label="${step.sequence}. ${esc(step.tool)} output">${esc(step.output || "Completed")}</pre></details>`).join("") : '<p class="footnote">Waiting for the first tool operation.</p>'}</div>`;
 }
 function modelUsage() {
   if (!state.modelCalls.length) return "";
