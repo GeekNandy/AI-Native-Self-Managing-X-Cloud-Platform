@@ -28,6 +28,44 @@ class DockerWorkflowTest {
     final tools.jackson.databind.json.JsonMapper json = new WorkbenchConfiguration().jsonMapper();
 
     @Test
+    void offlineMavenJUnitProfileRepairsAnImmutablePinnedTestSuite() throws Exception {
+        var files = new TreeMap<String, String>();
+        var root = Path.of("examples/ledger-service");
+        try (var paths = Files.walk(root)) {
+            for (var path : paths.filter(Files::isRegularFile).toList())
+                files.put(root.relativize(path).toString(), Files.readString(path));
+        }
+        var sandbox = new DockerSandbox(new CommandRunner(), "xcloud-java21-runner:1");
+        var baseline = sandbox.test(files, "demo.LedgerTest", Duration.ofSeconds(60));
+        assertEquals("FAIL", baseline.status(), baseline.output());
+        var fixed = new TreeMap<>(files);
+        fixed.compute(
+                "src/main/java/demo/Ledger.java",
+                (p, c) -> c.replace("opening + debit", "opening - debit"));
+        var verification = sandbox.test(fixed, "demo.LedgerTest", Duration.ofSeconds(60));
+        assertTrue(verification.passed(), verification.output());
+        assertEquals(files.get("pom.xml"), fixed.get("pom.xml"));
+        assertEquals(
+                files.get("src/test/java/demo/LedgerTest.java"),
+                fixed.get("src/test/java/demo/LedgerTest.java"));
+        Files.writeString(
+                Path.of("target/docker-maven-evidence.json"),
+                json.writeValueAsString(
+                        Map.of(
+                                "profile",
+                                "java21-junit6-v1",
+                                "baseline",
+                                baseline,
+                                "verification",
+                                verification,
+                                "testDigest",
+                                IntentCompiler.digest(
+                                        files.get("src/test/java/demo/LedgerTest.java")),
+                                "pomDigest",
+                                IntentCompiler.digest(files.get("pom.xml")))));
+    }
+
+    @Test
     void realContainerRepairApprovalFeedbackComparisonAndPromotion() throws Exception {
         try (var store = new StateStore(json, directory.toString())) {
             var clock = Clock.systemUTC();

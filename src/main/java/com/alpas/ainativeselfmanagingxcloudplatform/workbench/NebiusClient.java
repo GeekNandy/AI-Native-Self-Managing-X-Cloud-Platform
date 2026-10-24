@@ -1,5 +1,7 @@
 package com.alpas.ainativeselfmanagingxcloudplatform.workbench;
 
+import static com.alpas.ainativeselfmanagingxcloudplatform.workbench.CodeModel.*;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -23,6 +25,11 @@ public final class NebiusClient {
     private final HttpClient http;
     private final URI endpoint;
     private final Semaphore slots = new Semaphore(2);
+    private final ThreadLocal<InferenceUsage> usage = new ThreadLocal<>();
+
+    public InferenceUsage usage() {
+        return usage.get();
+    }
 
     @Autowired
     public NebiusClient(
@@ -60,6 +67,7 @@ public final class NebiusClient {
 
     public JsonNode complete(
             String system, String input, Map<String, Object> schema, int tokens, Duration budget) {
+        usage.remove();
         if (!configured())
             throw new PlatformException(
                     503, "MODEL_NOT_CONFIGURED", "Set NEBIUS_API_KEY to use Nebius proposals.");
@@ -118,7 +126,17 @@ public final class NebiusClient {
                         "Nebius returned HTTP "
                                 + response.statusCode()
                                 + ". No change was executed.");
-            var choice = json.readTree(response.body()).path("choices").path(0);
+            var envelope = json.readTree(response.body());
+            var tokensUsed = envelope.path("usage");
+            usage.set(
+                    new InferenceUsage(
+                            "nebius",
+                            model,
+                            envelope.path("model").asString("unreported"),
+                            tokensUsed.path("prompt_tokens").asLong(-1),
+                            tokensUsed.path("completion_tokens").asLong(-1),
+                            tokensUsed.path("total_tokens").asLong(-1)));
+            var choice = envelope.path("choices").path(0);
             if (!"stop".equals(choice.path("finish_reason").asText())
                     || !choice.path("message").path("refusal").asText("").isEmpty())
                 throw new PlatformException(

@@ -31,3 +31,11 @@ python3 scripts/verify-restart.py
 For real isolated execution, start Docker, pre-pull `eclipse-temurin:21-jdk`, then run `RUN_DOCKER_TESTS=true ./mvnw verify`. Reports appear under `target/docker-*-evidence.json`. The browser suite exercises the same runner when available. `python3 scripts/verify-container.py` builds the hosted image and checks username/password access with temporary credentials. It leaves a secret-free report in `target/hosted-container-evidence.json`.
 
 No recorded file establishes live Gemini/Nebius quality, model-weight training, cloud residency/encryption enforcement, hostile multi-tenant isolation or distributed capacity. Each requires its own backend and evaluation evidence.
+
+## Repository-engineering release
+
+`hosted-remote-repair.json` records a Render-coordinated, GitHub OIDC-authenticated worker run of the offline Maven/Jupiter profile. The pinned ledger snapshot failed its baseline, passed after a source-only reference-search repair, and produced an idempotently approved managed Git commit. GitHub API import hit Render's anonymous quota during this run, so the exact pinned files were supplied through the authenticated snapshot endpoint. This receipt is execution evidence, not live-model quality evidence.
+
+The new CI corpus artifact (`target/docker-corpus-evidence.json`) validates all 25 failing baselines and test-only reference fixes in isolated containers. It must not be reported as a coding model's repair score. Publication tests use a local contract server to exercise stale-base rejection and recovery after a lost PR response. Live publication requires private write access.
+
+`repository-release.json` ties the verified application source to the successful CI run, hosted deployment and activation limits. `repository-release-accessibility.json`, `repository-release-container.json` and `docker-corpus-validation.json` are source-labelled exports from that CI artifact. The hosted repair receipt records a separate live execution through the authenticated worker protocol.

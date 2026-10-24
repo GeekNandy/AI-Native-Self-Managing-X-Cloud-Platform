@@ -20,10 +20,12 @@ import java.util.Map;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
             "platform.ai.provider=fixture",
+            "platform.worker.token=test-worker-token-012345678901234567890123",
             "platform.data-dir=memory",
             "platform.auth.operator-token=test-operator-token-0123456789",
             "platform.auth.agent-token=test-agent-token-0123456789"
         })
+@org.junit.jupiter.api.Timeout(30)
 class WorkbenchApiTest {
     @LocalServerPort int port;
     @Autowired JsonMapper json;
@@ -32,7 +34,9 @@ class WorkbenchApiTest {
 
     HttpResponse<String> request(String method, String path, Object body, String origin)
             throws Exception {
-        var builder = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path));
+        var builder =
+                HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
+                        .timeout(java.time.Duration.ofSeconds(10));
         builder.header("Authorization", "Bearer test-operator-token-0123456789");
         if (origin != null) builder.header("Origin", origin);
         if (body != null) builder.header("Content-Type", "application/json");
@@ -48,6 +52,43 @@ class WorkbenchApiTest {
         var response = request("POST", "/api" + path, body, null);
         assertEquals(200, response.statusCode(), response.body());
         return json.readTree(response.body());
+    }
+
+    @Test
+    void workerCredentialCannotApproveAndOperatorCannotClaimWorkerJobs() throws Exception {
+        var url = "http://127.0.0.1:" + port;
+        var claim =
+                HttpRequest.newBuilder(URI.create(url + "/api/worker/claim"))
+                        .timeout(java.time.Duration.ofSeconds(10))
+                        .header(
+                                "Authorization",
+                                "Bearer test-worker-token-012345678901234567890123")
+                        .header("Content-Type", "application/json")
+                        .POST(
+                                HttpRequest.BodyPublishers.ofString(
+                                        "{\"image\":\"eclipse-temurin:21-jdk\"}"))
+                        .build();
+        assertEquals(200, http.send(claim, HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(
+                401,
+                request(
+                                "POST",
+                                "/api/worker/claim",
+                                Map.of("image", "eclipse-temurin:21-jdk"),
+                                null)
+                        .statusCode());
+        var approval =
+                HttpRequest.newBuilder(URI.create(url + "/api/code/runs/fake/approve"))
+                        .timeout(java.time.Duration.ofSeconds(10))
+                        .header(
+                                "Authorization",
+                                "Bearer test-worker-token-012345678901234567890123")
+                        .header("Content-Type", "application/json")
+                        .POST(
+                                HttpRequest.BodyPublishers.ofString(
+                                        "{\"digest\":\"" + "a".repeat(64) + "\"}"))
+                        .build();
+        assertEquals(401, http.send(approval, HttpResponse.BodyHandlers.ofString()).statusCode());
     }
 
     @Test

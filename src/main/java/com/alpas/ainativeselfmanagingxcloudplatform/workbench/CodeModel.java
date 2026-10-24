@@ -36,6 +36,14 @@ public final class CodeModel {
         }
     }
 
+    public record InferenceUsage(
+            String provider,
+            String requestedModel,
+            String reportedModel,
+            long inputTokens,
+            long outputTokens,
+            long totalTokens) {}
+
     public record Change(String path, String beforeDigest, String content) {}
 
     public record RepairRun(

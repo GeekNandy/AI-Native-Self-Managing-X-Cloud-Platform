@@ -90,20 +90,22 @@ public class EvaluationService {
         }
     }
 
+    List<Scenario> scenarios(String mode, String provider) {
+        return catalog.all().stream()
+                .filter(
+                        s ->
+                                "control-plane".equals(mode)
+                                        ? s.spec() != null
+                                        : s.fixture()
+                                                || (!"fixture".equals(provider)
+                                                        && !"validation".equals(s.category())))
+                .toList();
+    }
+
     private EvaluationReport runSuite(String mode) {
         var cases = new ArrayList<EvaluationCase>();
         var regressions = feedback.list();
-        var scenarios =
-                catalog.all().stream()
-                        .filter(
-                                s ->
-                                        "control-plane".equals(mode)
-                                                ? s.spec() != null
-                                                : s.fixture()
-                                                        || ("gemini".equals(interpreter.provider())
-                                                                && !"validation"
-                                                                        .equals(s.category())))
-                        .toList();
+        var scenarios = scenarios(mode, interpreter.provider());
         for (var scenario : scenarios)
             cases.add(
                     check(
@@ -144,7 +146,8 @@ public class EvaluationService {
                                                 scenarios,
                                                 regressions,
                                                 PolicyEngine.VERSION,
-                                                "harness-v1"))),
+                                                "harness-v2",
+                                                mode))),
                         passed,
                         cases.size(),
                         Math.round(10000.0 * passed / cases.size()) / 100.0,
@@ -154,14 +157,17 @@ public class EvaluationService {
                         cases,
                         "control-plane".equals(mode)
                                 ? "Local compiler/policy and isolated simulator checks. Latency"
-                                      + " excludes model and cloud calls; this is not a load"
-                                      + " benchmark."
+                                        + " excludes model and cloud calls; this is not a load"
+                                        + " benchmark."
                                 : "fixture".equals(interpreter.provider())
                                         ? "Exact curated-example replay, not a model-quality or"
-                                              + " self-improvement score."
-                                        : "Live Gemini smoke evaluation on a small public suite;"
-                                              + " not a blind benchmark or evidence of autonomous"
-                                              + " learning.");
+                                                + " self-improvement score."
+                                        : "Live-provider smoke evaluation on a small public suite;"
+                                                + " not a blind benchmark or evidence of autonomous"
+                                                + " learning.",
+                        "control-plane".equals(mode) ? "deterministic" : interpreter.provider(),
+                        "control-plane".equals(mode) ? PolicyEngine.VERSION : interpreter.model(),
+                        "harness-v2");
         synchronized (history) {
             history.addFirst(result);
             if (history.size() > 20) history.removeLast();
@@ -199,7 +205,7 @@ public class EvaluationService {
                 exact = false;
                 detail =
                         "Intent differs from the golden specification, even if the policy outcome"
-                            + " matches.";
+                                + " matches.";
             }
             actual = compiler.analyze(input).decision();
         } catch (PlatformException failure) {

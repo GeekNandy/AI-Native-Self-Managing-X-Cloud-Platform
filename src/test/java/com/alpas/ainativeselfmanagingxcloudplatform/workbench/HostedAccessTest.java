@@ -94,6 +94,14 @@ class HostedAccessTest {
                         .getStatus());
     }
 
+    @Test
+    void streamedBodiesCannotBypassTheOneMebibyteLimit() throws Exception {
+        var request = new MockHttpServletRequest("POST", "/api/runs");
+        request.setContent(new byte[1_048_577]);
+        var bounded = new BoundedRequest(request);
+        assertThrows(java.io.IOException.class, () -> bounded.getInputStream().readAllBytes());
+    }
+
     private MockHttpServletResponse invoke(
             LocalBoundaryFilter filter, String path, String authorization, String origin)
             throws Exception {

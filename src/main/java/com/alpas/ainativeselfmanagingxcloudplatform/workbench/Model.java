@@ -188,9 +188,15 @@ public final class Model {
             double p95Ms,
             int feedbackCases,
             List<EvaluationCase> cases,
-            String limitation) {
+            String limitation,
+            String provider,
+            String model,
+            String harnessVersion) {
         public EvaluationReport {
             cases = List.copyOf(cases);
+            provider = provider == null ? "unrecorded" : provider;
+            model = model == null ? "unrecorded" : model;
+            harnessVersion = harnessVersion == null ? "harness-v1" : harnessVersion;
         }
     }
 }

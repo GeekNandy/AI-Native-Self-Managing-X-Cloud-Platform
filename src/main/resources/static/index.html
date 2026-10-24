@@ -224,8 +224,8 @@
           <section id="view-code" class="view" hidden>
             <div class="page-heading">
               <div>
-                <div class="eyebrow">BOUNDED REPOSITORY WORKFLOW</div>
-                <h1>A failing test. A reviewed fix.</h1>
+                <div class="eyebrow">REPOSITORY ENGINEERING</div>
+                <h1>From regression to reviewed repair.</h1>
                 <p>
                   Inspect a real Git patch, its test evidence, and every tool
                   operation.
@@ -241,7 +241,8 @@
             <div class="code-layout">
               <div class="panel code-task-panel">
                 <div class="eyebrow">1 · CHOOSE THE REPOSITORY</div>
-                <h2>A small, inspectable task</h2>
+                <h2>Repair workspace</h2>
+                <button id="code-load-sample" class="button secondary">Open pinned GitHub sample</button>
                 <label for="code-task">Example task</label
                 ><select id="code-task"></select>
                 <button id="code-create" class="button secondary">
@@ -251,13 +252,20 @@
                 ><select id="code-repository">
                   <option value="">Create or import a repository</option>
                 </select>
+                <details class="github-import">
+                  <summary>Import from GitHub</summary>
+                  <p>Resolve a revision and verify every source blob. Java 21 test-main or the declared offline Jupiter profile.</p>
+                  <label for="code-github-repo">Repository</label><input id="code-github-repo" type="text" placeholder="owner/repository" value="GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform" maxlength="200" />
+                  <label for="code-github-ref">Branch or commit</label><input id="code-github-ref" type="text" value="feature" maxlength="100" />
+                  <label for="code-github-dir">Project directory</label><input id="code-github-dir" type="text" value="examples/ledger-service" maxlength="200" />
+                  <label for="code-github-test">Test class</label><input id="code-github-test" type="text" value="demo.LedgerTest" maxlength="200" />
+                  <button id="code-github-import" class="button secondary">Import pinned revision</button>
+                </details>
                 <details>
                   <summary>Import a source snapshot</summary>
                   <p>
                     JSON with <code>name</code>, <code>files</code>, and
-                    <code>testClass</code>. Up to 24 Java files; no build
-                    scripts or dependencies. The test class supplies a main
-                    method.
+                    <code>testClass</code>. Up to 24 Java files, with an optional supported Maven POM. Tests and build inputs are immutable.
                   </p>
                   <input
                     id="code-import-file"
@@ -303,12 +311,17 @@
                 </button>
                 <p class="footnote">
                   Tests stay unchanged. The runner has no network, host mounts
-                  or credentials. Each candidate gets at most 20 seconds.
-                  Cleanup has a separate bounded allowance.
+                  or credentials. Candidate execution is bounded by its profile and remaining run budget.
                 </p>
               </div>
+              <div class="code-review-workspace">
+              <div class="panel code-source-panel">
+                <div class="section-heading"><div><div class="eyebrow">PINNED SOURCE</div><h2>Repository explorer</h2></div><span id="code-profile" class="badge neutral">No repository</span></div>
+                <p id="code-repository-meta" class="footnote">Create an example or import a revision to inspect its sources.</p>
+                <div class="source-workspace"><nav id="code-files" aria-label="Repository files"><p class="footnote">No files loaded</p></nav><div class="source-editor"><div class="source-editor-bar"><code id="code-file-name">Select a file</code><span id="code-file-access" class="badge neutral">Read only</span></div><pre id="code-source" class="source-lines" tabindex="0" role="region" aria-label="Source file"><code>Source, tests and build configuration appear here.</code></pre></div></div>
+              </div>
               <div class="panel code-review-panel">
-                <div class="eyebrow">3 · INSPECT THE EVIDENCE</div>
+                <div class="eyebrow">EXECUTION & REVIEW</div>
                 <div id="code-result">
                   <div class="empty-state">
                     <h2>Your patch will appear here</h2>
@@ -319,12 +332,29 @@
                   </div>
                 </div>
               </div>
+              </div>
+            </div>
+            <div class="panel code-benchmarks">
+              <div class="section-heading"><div><div class="eyebrow">PAIRED EVALUATION</div><h2>Measure the engineering change.</h2><p>20 evaluation tasks · 5 development tasks · public synthetic corpus · identical per-task budgets.</p></div><button id="code-policy-derive" class="button secondary">Derive feedback candidate</button></div>
+              <div class="benchmark-controls">
+                <label for="benchmark-baseline-provider">Baseline provider<select id="benchmark-baseline-provider"></select></label>
+                <label for="benchmark-candidate-provider">Candidate provider<select id="benchmark-candidate-provider"></select></label>
+                <label for="benchmark-baseline-policy">Baseline policy<select id="benchmark-baseline-policy"></select></label>
+                <label for="benchmark-candidate-policy">Candidate policy<select id="benchmark-candidate-policy"></select></label>
+                <label for="benchmark-repetitions">Repetitions<input id="benchmark-repetitions" type="number" min="1" max="3" value="1" /></label>
+                <label for="benchmark-attempts">Attempts per variant<input id="benchmark-attempts" type="number" min="1" max="3" value="3" /></label>
+                <label for="benchmark-timeout">Seconds per variant<input id="benchmark-timeout" type="number" min="20" max="120" value="30" /></label>
+                <button id="code-benchmark-start" class="button primary">Run paired benchmark</button>
+              </div>
+              <p class="footnote">Each repetition runs both variants on the same 20 immutable tasks in counterbalanced order. Inference cost is unpriced; reported tokens and wall time are recorded. Promotion requires the same provider/model, no regressions, an 80% quality floor, isolation checks and measured improvement.</p>
+              <div class="code-actions"><label for="code-policy-rollback">Previously active policy<select id="code-policy-rollback"></select></label><button id="code-policy-rollback-button" class="button secondary" disabled>Roll back active policy</button></div>
+              <div id="code-benchmark-reports"><p class="footnote">No paired runs recorded. Results appear only after real execution.</p></div>
             </div>
             <div class="panel code-improvement">
               <div class="section-heading">
                 <div>
-                  <div class="eyebrow">MEASURED FEEDBACK</div>
-                  <h2>Evaluate before promotion</h2>
+                  <div class="eyebrow">DETERMINISTIC REFERENCE</div>
+                  <h2>Mutation-order smoke comparison</h2>
                   <p>
                     Approved example repairs can change candidate ordering.
                     Compare against the active version on separate public tasks
@@ -438,6 +468,9 @@
           </button>
         </div>
       </form>
+    </dialog>
+    <dialog id="code-publication-dialog" aria-labelledby="code-publication-title">
+      <form method="dialog"><button class="dialog-close" aria-label="Close publication review">×</button><div class="eyebrow">EXPLICIT PUBLICATION REVIEW</div><h2 id="code-publication-title">Create a draft pull request?</h2><p id="code-publication-destination"></p><p>Only the tested source patch will be published. The target branch must still match the imported revision.</p><code id="code-publication-digest" class="digest"></code><label class="approval-check"><input id="code-publication-check" type="checkbox" />I reviewed the destination, source patch and test evidence.</label><div class="dialog-actions"><button class="button secondary">Cancel</button><button id="code-publication-confirm" type="button" class="button primary" disabled>Create reviewed draft PR</button></div></form>
     </dialog>
     <dialog id="code-approval" aria-labelledby="code-approval-title">
       <form method="dialog">

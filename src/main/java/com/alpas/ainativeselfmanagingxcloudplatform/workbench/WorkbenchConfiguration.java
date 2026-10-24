@@ -15,8 +15,10 @@ import java.time.Clock;
 public class WorkbenchConfiguration {
     @Bean
     StateStore stateStore(
-            JsonMapper json, @Value("${platform.data-dir:.workbench}") String directory) {
-        return new StateStore(json, directory);
+            JsonMapper json,
+            @Value("${platform.data-dir:.workbench}") String directory,
+            @Value("${platform.database-url:}") String databaseUrl) {
+        return new StateStore(json, directory, databaseUrl);
     }
 
     @Bean
