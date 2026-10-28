@@ -10,11 +10,13 @@ The next release connects repository context, bounded agent actions, isolated ex
 - [x] Authenticated remote Docker workers, fenced leases, cancellation and bounded cleanup.
 - [x] Context search/read, iterative patch verification and per-run inference/tool budgets.
 - [x] Digest-bound review and idempotent draft pull-request publication (contract verified; live credential still required).
-- [ ] Durable jobs, repository recovery and hosted storage configuration.
+- [x] Durable jobs, repository recovery and declarative hosted PostgreSQL wiring (activation/restart proof remains pending).
 - [x] A versioned 20–30-task repair dataset, separate development/evaluation partitions and comparable budgets.
 - [x] Versioned feedback candidates, explicit promotion gates and rollback.
 - [x] A repository workspace with source, diff, actual tool events and evaluation comparisons.
 - [x] Correlated operational measurements and adversarial/recovery integration checks.
+- [x] Configurable bounded worker pools, distinct identities, draining, crash redelivery and four-worker Docker evidence.
+- [x] State/fence readiness, authenticated operations diagnostics, UI readiness cards and continuous-worker host template.
 - [x] Reproducible setup, design decisions, execution evidence and a concise demonstration.
 
 ## Delivery boundaries
@@ -23,4 +25,4 @@ Changes are developed on the existing `feature` branch. Secrets stay in private 
 
 ## Activation still required
 
-The implementation includes the model, PostgreSQL and draft-publication paths. The deployed workspace currently has no live-model credential or GitHub write credential. Its free PostgreSQL database is provisioned but the private internal URL is not exposed by the deployment connector, so `DATABASE_URL` must be supplied privately. Live model-quality results, live PR creation and hosted restart durability are not claimed until these settings are configured.
+The implementation includes model, PostgreSQL and draft-publication paths. Live model-quality results, live PR creation and hosted restart durability are not claimed until privately configured and verified. The prepared `render.yaml` references the existing database directly, avoiding manual connection-string copying; it still requires adoption after merge. Continuous worker hosting requires an existing trusted Docker host or a separately selected infrastructure service. See [the activation sequence](scaling-and-activation.md).

@@ -49,6 +49,8 @@ Set `PLATFORM_SANDBOX_IMAGE=xcloud-java21-runner:1` for the worker. Open **Repos
 | Desired/observed control loop | Provisioning, fault injection, unknown observations and recovery without rewriting desired intent |
 | Recoverable coordinator | H2 or private PostgreSQL, atomic metadata/Git bundles, replacement-writer fencing and restart interruption |
 | Remote execution | OIDC-scoped pull workers, bounded queue, expiring fenced leases, cancellation, one redelivery and stale-result rejection |
+| Scalable execution pool | Distinct worker instances, configurable admission limits, drain windows, owner-scoped cleanup and a four-worker crash/recovery check |
+| Operational readiness | Public state/fence readiness, authenticated capacity diagnostics and UI cards for pending private activation |
 | Pinned source | GitHub commit resolution, blob verification, immutable tests/build inputs and declared offline Java/Maven profiles |
 | Scoped access | Separate operator/agent bearer tokens, local Host/Origin checks and protected API/metrics |
 | Repository repair | Managed Git snapshots, detached worktrees, immutable tests, source-only patches, bounded async workers and cancellation |
@@ -83,12 +85,15 @@ RUN_DOCKER_TESTS=true ./mvnw verify
 
 Verified on the repository-engineering release: **68 Java checks, 16 browser scenarios, all 25 corpus baselines failing and reference fixes passing in real Docker, PostgreSQL fencing/archive recovery, SIGKILL restart and deployment-image authentication checks**. Automated WCAG checks found zero violations across eleven states; a separate recorded-receipt check covers the long test output and diff in both themes. See [release evidence](docs/evidence/repository-release.json). Live-model quality remains unmeasured until private inference access is configured.
 
+The [worker-pool scaling run](https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/40683673846) additionally passed **72 Java tests without skips**, all 16 browser scenarios and a real four-worker Docker repair/recovery scenario. One worker was killed during execution; fenced redelivery completed all four repairs without committing, and restart/shutdown cleanup left no owned containers. [Reports and boundaries](docs/evidence/README.md#worker-pool-scaling-release) distinguish actual Docker evidence from the separate 80-job simulated protocol test.
+
 ### Documentation
 
 - [Material 3 UI and Google open source assets](docs/frontend.md)
 - [Render hosting and private model configuration](docs/deploy-render.md)
 - [Demo walkthrough and live provider setup](docs/demo-guide.md)
 - [Remote workers, repository profiles and storage](docs/remote-execution.md)
+- [Scaling, Render release configuration and live activation](docs/scaling-and-activation.md)
 - [Paired repair evaluation, policy gates and publication](docs/repair-evaluation.md)
 - [Repository repair, budgets and feedback promotion](docs/repository-workflow.md)
 - [Runtime capabilities, durable state and recovery](docs/runtime-and-state.md)
@@ -389,11 +394,11 @@ This project explores:
 | Architecture and domain contracts | Documented in the original design work |
 | Intent, validation, policy and compilation | Working Java 21 slice |
 | Planning and lifecycle | Working local simulator; real providers remain future work |
-| AI integration | Exact offline examples and a configurable Gemini interpreter; no MCP server yet |
+| AI integration | Explicit offline reference modes, Gemini/Nebius adapters, bounded patch proposals and a working MCP server; live quality awaits credentials |
 | Observation and remediation | Working simulator faults, unknown-state handling and governed recovery |
-| Developer workflows | Browser review and generated workload files; repository repair/IDE tools remain future work |
-| Evaluation and feedback | Executable control-plane checks, interpreter smoke suite and regression capture |
-| Production foundations | Authentication, durable state, distributed orchestration, real provider guarantees and independent live-model quality evidence remain future work |
+| Developer workflows | Pinned GitHub imports, isolated Java/Maven repair, source diff review, approved commits and draft-publication contracts |
+| Evaluation and feedback | Control-plane checks, public repair corpus, paired policy evaluation, regression gates, promotion and rollback |
+| Production foundations | Scoped access, PostgreSQL state/recovery, worker leases and bounded capacity implemented; hosted activation, continuous worker hosting, backups, multi-tenant identity and real cloud provider guarantees remain separate work |
 
 ## Repository Structure
 

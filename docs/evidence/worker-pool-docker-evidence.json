@@ -1,0 +1,24 @@
+{
+  "recordedAt": "2026-10-28T11:58:52.709480+00:00",
+  "revision": "711aac04351d0f44a8e4999d36e08abf184e19da",
+  "experiment": "Four Docker workers; SIGKILL during repair; fenced redelivery and restart cleanup",
+  "workers": 4,
+  "completedRepairs": 4,
+  "checks": {
+    "fourConcurrentLeases": true,
+    "allBaselinesFail": true,
+    "allVerificationsPass": true,
+    "allAwaitReview": true,
+    "lostLeaseRedelivered": true,
+    "workerCannotApprove": true,
+    "noOwnedContainersLeaked": true
+  },
+  "elapsedSeconds": 33.003,
+  "limitation": "Synthetic arithmetic repair with a one-second test delay. Concurrency and recovery evidence, not live model quality or production throughput.",
+  "provenance": {
+    "testedCommit": "711aac04351d0f44a8e4999d36e08abf184e19da",
+    "workflowRun": "https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/40683673846",
+    "artifactId": 12814780432,
+    "artifactSha256": "45dc1fe9709acd305fb4203b96dfa86ef7239e7967c787cb266f2d4fe0296a25"
+  }
+}

@@ -1,0 +1,35 @@
+# Optional template for an EXISTING dedicated Docker-capable Linux host.
+# Install only after creating xcloud-worker, its Docker access and the private environment file.
+[Unit]
+Description=X Cloud execution worker %i
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=xcloud-worker
+Group=xcloud-worker
+SupplementaryGroups=docker
+EnvironmentFile=/etc/xcloud/worker.env
+Environment=PLATFORM_NODE_ROLE=worker
+Environment=PLATFORM_WORKER_SECONDS=18000
+Environment=PLATFORM_WORKER_DATA_DIR=/var/lib/xcloud-worker-%i
+StateDirectory=xcloud-worker-%i
+StateDirectoryMode=0700
+WorkingDirectory=/var/lib/xcloud-worker-%i
+ExecStart=/usr/bin/java -Xmx256m -jar /opt/xcloud/workbench.jar
+Restart=always
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

@@ -287,7 +287,7 @@ public class RepairService implements AutoCloseable {
             runs.remove(id);
             futures.remove(id);
             throw new PlatformException(
-                    429, "REPAIR_QUEUE_FULL", "Both workers and the bounded queue are occupied.");
+                    429, "REPAIR_QUEUE_FULL", "Repair workers and the bounded queue are occupied.");
         }
         audit.append(
                 "REPAIR_QUEUED",

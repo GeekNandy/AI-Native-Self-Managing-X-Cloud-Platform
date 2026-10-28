@@ -139,79 +139,85 @@ public final class WorkerAgent {
             var sandbox = new DockerSandbox(new CommandRunner(), image, state);
             if (!Boolean.TRUE.equals(sandbox.capabilities().get("available")))
                 throw new IllegalStateException("Preload the configured Docker image");
-            var cleanup = new Thread(() -> {
-                stopping = true;
-                var execution = currentExecution;
-                if (execution != null) execution.cancel(true);
-                sandbox.cleanupOwned();
-            }, "worker-cleanup");
+            var cleanup =
+                    new Thread(
+                            () -> {
+                                stopping = true;
+                                var execution = currentExecution;
+                                if (execution != null) execution.cancel(true);
+                                sandbox.cleanupOwned();
+                            },
+                            "worker-cleanup");
             Runtime.getRuntime().addShutdownHook(cleanup);
             try {
-            long stop = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds);
-            int failures = 0;
-            while (!stopping && System.nanoTime() < stop && !Thread.currentThread().isInterrupted()) {
-                JsonNode response;
-                try {
-                    response = post("/api/worker/claim", new WorkerController.Hello(image));
-                    failures = 0;
-                } catch (Exception unavailable) {
-                    if (++failures > 150) throw unavailable;
-                    Thread.sleep(2000);
-                    continue;
-                }
-                if (!response.path("available").asBoolean()) {
-                    Thread.sleep(1500);
-                    continue;
-                }
-                var lease = json.treeToValue(response.path("lease"), RemoteJobBroker.Lease.class);
-                var budget = Duration.between(clockNow(), lease.deadline());
-                if (budget.isNegative() || budget.isZero()) continue;
-                var execution =
-                        tasks.submit(() -> sandbox.test(lease.files(), lease.testClass(), budget));
-                currentExecution = execution;
-                if (stopping) execution.cancel(true);
-                var heartbeat =
-                        beats.scheduleAtFixedRate(
-                                () -> {
-                                    try {
-                                        post(
-                                                "/api/worker/jobs/" + lease.id() + "/heartbeat",
-                                                new WorkerController.Heartbeat(lease.fence()));
-                                    } catch (Exception ended) {
-                                        execution.cancel(true);
-                                    }
-                                },
-                                5,
-                                5,
-                                TimeUnit.SECONDS);
-                TestResult result;
-                try {
-                    result = execution.get(Math.max(1, budget.toMillis()), TimeUnit.MILLISECONDS);
-                } catch (Exception failed) {
-                    execution.cancel(true);
-                    result =
-                            new TestResult(
-                                    "ERROR",
-                                    -1,
-                                    false,
-                                    false,
-                                    0,
-                                    "Worker execution was cancelled or exceeded its deadline.");
-                } finally {
-                    currentExecution = null;
-                    heartbeat.cancel(false);
-                }
-                var completed =
-                        new RemoteJobBroker.Completion(lease.fence(), lease.inputDigest(), result);
-                for (int retry = 0; retry < 3; retry++) {
+                long stop = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds);
+                int failures = 0;
+                while (!stopping
+                        && System.nanoTime() < stop
+                        && !Thread.currentThread().isInterrupted()) {
+                    JsonNode response;
                     try {
-                        post("/api/worker/jobs/" + lease.id() + "/complete", completed);
-                        break;
-                    } catch (Exception rejected) {
-                        if (retry < 2) Thread.sleep(500);
+                        response = post("/api/worker/claim", new WorkerController.Hello(image));
+                        failures = 0;
+                    } catch (Exception unavailable) {
+                        if (++failures > 150) throw unavailable;
+                        Thread.sleep(2000);
+                        continue;
+                    }
+                    if (!response.path("available").asBoolean()) {
+                        Thread.sleep(1500);
+                        continue;
+                    }
+                    var lease =
+                            json.treeToValue(response.path("lease"), RemoteJobBroker.Lease.class);
+                    var budget = Duration.between(clockNow(), lease.deadline());
+                    if (budget.isNegative() || budget.isZero()) continue;
+                    var execution =
+                            tasks.submit(() -> sandbox.test(lease.files(), lease.testClass(), budget));
+                    currentExecution = execution;
+                    if (stopping) execution.cancel(true);
+                    var heartbeat =
+                            beats.scheduleAtFixedRate(
+                                    () -> {
+                                        try {
+                                            post(
+                                                    "/api/worker/jobs/" + lease.id() + "/heartbeat",
+                                                    new WorkerController.Heartbeat(lease.fence()));
+                                        } catch (Exception ended) {
+                                            execution.cancel(true);
+                                        }
+                                    },
+                                    5,
+                                    5,
+                                    TimeUnit.SECONDS);
+                    TestResult result;
+                    try {
+                        result = execution.get(Math.max(1, budget.toMillis()), TimeUnit.MILLISECONDS);
+                    } catch (Exception failed) {
+                        execution.cancel(true);
+                        result =
+                                new TestResult(
+                                        "ERROR",
+                                        -1,
+                                        false,
+                                        false,
+                                        0,
+                                        "Worker execution was cancelled or exceeded its deadline.");
+                    } finally {
+                        currentExecution = null;
+                        heartbeat.cancel(false);
+                    }
+                    var completed =
+                            new RemoteJobBroker.Completion(lease.fence(), lease.inputDigest(), result);
+                    for (int retry = 0; retry < 3; retry++) {
+                        try {
+                            post("/api/worker/jobs/" + lease.id() + "/complete", completed);
+                            break;
+                        } catch (Exception rejected) {
+                            if (retry < 2) Thread.sleep(500);
+                        }
                     }
                 }
-            }
             } finally {
                 stopping = true;
                 var execution = currentExecution;

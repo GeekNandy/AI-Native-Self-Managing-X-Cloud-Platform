@@ -43,13 +43,19 @@ try:
             raise RuntimeError('Hosted container did not become healthy.')
         time.sleep(0.4)
     checks = {}
-    for path in ['/', '/app.js', '/api/config', '/actuator/metrics', '/mcp']:
+    for path in ['/', '/app.js', '/api/config', '/api/code/config', '/api/operations', '/actuator/metrics', '/mcp']:
         status, headers, _ = request(path)
         checks['protected:' + path] = status == 401 and headers.get('WWW-Authenticate', '').startswith('Basic ')
     status, _, body = request('/api/config', True)
     config = json.loads(body)
     checks['authenticated-config'] = status == 200 and config.get('authentication') == 'username-password'
     checks['ephemeral-profile-declared'] = config.get('dataRetention') == 'ephemeral'
+    status, headers, body = request('/readyz')
+    checks['public-readiness-no-details'] = status == 200 and json.loads(body) == {'status': 'READY'} and headers.get('Cache-Control') == 'no-store'
+    status, _, body = request('/api/operations', True)
+    operations = json.loads(body)
+    checks['authenticated-operations'] = status == 200 and operations['capacity']['coordinators'] == 1
+    checks['unconfigured-capabilities-disclosed'] = operations['models'] == [] and not operations['publication']['enabled'] and not operations['state']['survivesDeploysConfigured']
     checks['authenticated-ui'] = request('/', True)[0] == 200
     checks['authenticated-session'] = json.loads(request('/api/session', True)[2]).get('role') == 'operator'
     checks['foreign-origin-denied'] = request('/api/environments', True, 'https://attacker.test')[0] == 403

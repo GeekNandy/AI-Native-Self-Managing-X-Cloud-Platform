@@ -15,6 +15,6 @@ The working release includes a responsive Material 3 workbench with local Google
 | Durability | Atomic metadata/Git archives, PostgreSQL writer fencing, worker leases and crash/restart evidence | Hosted PostgreSQL activation, backups/restore drills, coordinator HA and longer failure campaigns |
 | Access | Scoped bearer tokens, hosted Basic access, origin enforcement and OIDC worker identities | Enterprise operator SSO, tenant/resource authorization, credential rotation and OAuth for remote agents |
 | Execution isolation | Docker resource/privilege/network controls | MicroVM workers, hardened images, image digest lifecycle and hostile multi-tenant security review |
-| Operations | Bounded queues, retention and local measurements | Continuous reconciliation, workload lifecycle cleanup, long-duration saturation tests and distributed tracing |
+| Operations | Configurable bounded pools, distinct worker identities, draining, crash redelivery, owner-scoped cleanup, state readiness, capacity UI and a restart-supervised host template | Activate continuous worker hosting, run long-duration saturation campaigns and add distributed tracing |
 
 Acceptance for production claims requires evidence for the actual backend, identity system and deployment topology. Local timings, fixture extraction and public repair tasks are labelled according to what they establish.

@@ -1,5 +1,18 @@
 # Recorded execution evidence
 
+## Worker-pool scaling release
+
+The [scaling validation run](https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/40683673846) passed **72 Java tests with no skips, 16 browser scenarios, PostgreSQL recovery/fencing, the full Docker corpus, restart recovery and hosted-container access checks** at commit `711aac04351d0f44a8e4999d36e08abf184e19da`. Automated accessibility checks again found zero violations across eleven states. The reports below retain the tested commit, workflow URL and verified artifact digest.
+
+| Report | What ran | Result and boundary |
+| --- | --- | --- |
+| [Four-worker Docker recovery](worker-pool-docker-evidence.json) | Four actual worker JVMs and simultaneous Docker leases; SIGKILL one worker; fenced redelivery; restart cleanup | Four failing baselines repaired to passing unchanged tests; all await review; worker cannot approve; no owned containers leaked. Synthetic arithmetic/delay workload, no live model calls or production-throughput claim. |
+| [Protocol/history stress](worker-pool-protocol-evidence.json) | Four simulated protocol consumers, eight submitting clients, 80 jobs and a 12-job history window | Every result collected and bounded history retained. This is a coordinator protocol test, not actual container execution. |
+
+The prepared Render Blueprint, continuous-worker unit and live-validation CLI require separate activation. These CI results do not establish hosted PostgreSQL activation, continuous availability, live model quality or live draft PR publication. Later revisions must pass their own required checks.
+
+## Earlier release evidence
+
 These files contain outputs from actual local HTTP/process experiments and hosted Docker integration tests. [Verification summary](verification.json): **45 Java tests, 15 browser scenarios, the process crash-restart check and the password-protected deployment-image check passed**. Automated WCAG checks found zero violations across eleven page/dialog states. [Verified run](https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/runs/39675808610).
 
 | Experiment | Recorded result | Boundary |
