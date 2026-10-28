@@ -38,6 +38,10 @@ public class DockerSandbox implements SandboxExecutor {
         var owners = store.all("sandbox-owner", Owner.class);
         owner = owners.isEmpty() ? UUID.randomUUID().toString() : owners.getFirst().id();
         store.put("sandbox-owner", "instance", new Owner(owner));
+        cleanupOwned();
+    }
+
+    public void cleanupOwned() {
         // Only this workspace's interrupted containers can be reaped after a process restart.
         try {
             var previous =

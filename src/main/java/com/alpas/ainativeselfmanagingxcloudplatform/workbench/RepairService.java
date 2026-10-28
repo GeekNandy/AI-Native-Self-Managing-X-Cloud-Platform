@@ -34,15 +34,8 @@ public class RepairService implements AutoCloseable {
     private final Map<String, Comparison> comparisons = new ConcurrentHashMap<>();
     private volatile RepairPolicy active =
             new RepairPolicy("mutation-v1", RepairSearch.DEFAULT_ORDER, List.of());
-    private final ThreadPoolExecutor workers =
-            new ThreadPoolExecutor(
-                    2,
-                    2,
-                    0,
-                    TimeUnit.SECONDS,
-                    new ArrayBlockingQueue<>(16),
-                    Thread.ofPlatform().daemon().name("repair-worker-", 0).factory(),
-                    new ThreadPoolExecutor.AbortPolicy());
+    private final ExecutionCapacity capacity;
+    private final ThreadPoolExecutor workers;
 
     public RepairService(
             RepositoryWorkspace repositories,
@@ -53,6 +46,27 @@ public class RepairService implements AutoCloseable {
             AuditLog audit,
             Clock clock,
             IntentCompiler compiler) {
+        this(repositories, sandbox, model, tasks, store, audit, clock, compiler,
+                ExecutionCapacity.defaults());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public RepairService(
+            RepositoryWorkspace repositories,
+            SandboxExecutor sandbox,
+            PatchPlanner model,
+            RepairTasks tasks,
+            StateStore store,
+            AuditLog audit,
+            Clock clock,
+            IntentCompiler compiler,
+            ExecutionCapacity capacity) {
+        this.capacity = capacity;
+        workers = new ThreadPoolExecutor(
+                capacity.repairWorkers(), capacity.repairWorkers(), 0, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(capacity.repairQueue()),
+                Thread.ofPlatform().daemon().name("repair-worker-", 0).factory(),
+                new ThreadPoolExecutor.AbortPolicy());
         this.repositories = repositories;
         this.sandbox = sandbox;
         this.model = model;
@@ -123,6 +137,24 @@ public class RepairService implements AutoCloseable {
                 .toList();
     }
 
+    @jakarta.annotation.PostConstruct
+    void registerCapacityMetrics() {
+        if (metrics == null) return;
+        metrics.gauge("platform.repair.active", workers, ThreadPoolExecutor::getActiveCount);
+        metrics.gauge("platform.repair.queued", workers, w -> w.getQueue().size());
+        metrics.gauge("platform.repair.slots", workers, ThreadPoolExecutor::getCorePoolSize);
+    }
+
+    public Map<String, Object> capacity() {
+        return Map.of(
+                "limits", capacity,
+                "activeRepairs", workers.getActiveCount(),
+                "queuedRepairs", workers.getQueue().size(),
+                "completedRepairs", workers.getCompletedTaskCount(),
+                "coordinators", 1,
+                "strategy", "One fenced coordinator with bounded execution workers");
+    }
+
     public Map<String, Object> config() {
         return Map.of(
                 "sandbox",
@@ -132,9 +164,9 @@ public class RepairService implements AutoCloseable {
                 "activePolicy",
                 active,
                 "workers",
-                2,
+                capacity.repairWorkers(),
                 "queueCapacity",
-                16,
+                capacity.repairQueue(),
                 "maxModelCalls",
                 3,
                 "maxOutputTokensPerCall",
@@ -255,7 +287,7 @@ public class RepairService implements AutoCloseable {
             runs.remove(id);
             futures.remove(id);
             throw new PlatformException(
-                    429, "REPAIR_QUEUE_FULL", "Both workers and the bounded queue are occupied.");
+                    429, "REPAIR_QUEUE_FULL", "Repair workers and the bounded queue are occupied.");
         }
         audit.append(
                 "REPAIR_QUEUED",

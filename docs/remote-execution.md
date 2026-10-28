@@ -2,7 +2,7 @@
 
 The web coordinator queues bounded test jobs. A pull-only Docker worker claims a job with a unique lease token, renews it every five seconds, and returns an input-bound result. A 20-second heartbeat expiry permits one redelivery; stale tokens cannot complete, cancel or renew a replacement lease. Cancellation revokes the lease. Coordinator restart marks unfinished jobs interrupted and does not replay a repair or approval.
 
-Run the **Hosted repair worker** Actions workflow on `feature` for a 20-minute review window. Before that workflow exists on the default branch, rerun the latest worker job from Actions; manual workflow dispatch requires the file on the default branch. The workflow uses a GitHub-issued OIDC token bound to the coordinator audience, repository and owner numeric IDs, exact workflow/ref, and push/manual event. Worker credentials only authorize `/api/worker/*`; operator credentials cannot claim jobs. Standalone workers retain their owner identity in `.workbench/worker` (override with `PLATFORM_WORKER_DATA_DIR`), so a restarted worker can reap only its own orphan containers. A Docker-capable machine may instead use a distinct private `PLATFORM_WORKER_TOKEN` (at least 32 characters).
+Run the **Hosted repair worker** Actions workflow with 1, 2 or 4 workers for a bounded 60–18,000 second window (manual default: one hour). Choose the branch matching the coordinator's exact OIDC workflow allowlist: currently `feature`; the prepared release Blueprint switches it to `master`. Each process has a distinct authenticated instance identity, so parallel workers can hold separate leases within one Actions run. Workers announce a deadline and drain jobs that would outlive it. Manual workflow dispatch requires the file on the default branch. The workflow uses GitHub-issued OIDC credentials bound to the coordinator audience, repository and owner numeric IDs, exact workflow/ref, and push/manual event. Worker credentials only authorize `/api/worker/*`; operator credentials cannot claim jobs. Standalone workers retain their owner identity in `.workbench/worker` (override with `PLATFORM_WORKER_DATA_DIR`), so a restarted worker can reap only its own orphan containers. SIGTERM also cancels current execution and performs owner-scoped cleanup. A Docker-capable machine may instead use a distinct private `PLATFORM_WORKER_TOKEN` (at least 32 characters).
 
 ```sh
 docker build -f sandbox/java21/Dockerfile -t xcloud-java21-runner:1 .
@@ -13,6 +13,8 @@ java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar
 ```
 
 Set credentials privately, not in shell history. Test containers have no network, credentials, Docker socket or host mounts. Plain Java uses 384 MiB/96 PIDs; the Maven profile uses 768 MiB/128 PIDs. Both have one CPU, a read-only root and immutable source/test inputs. A worker is trusted infrastructure; this protocol does not attest its operating system.
+
+For continuous availability on an existing dedicated Docker host, use the restart-supervised worker template and capacity guidance in [scaling and activation](scaling-and-activation.md). Actions windows are not continuous hosting. Authenticated `/api/operations`, UI readiness cards and worker job summaries expose bounded capacity; public `/readyz` tests coordinator state/fencing without requiring a worker or a model.
 
 # Repository profiles
 

@@ -76,6 +76,12 @@ class WorkerIdentityTest {
         claims.put("nbf", clock.instant().getEpochSecond());
         claims.put("exp", clock.instant().plusSeconds(300).getEpochSecond());
         assertEquals("actions:789:1", identity.authenticate(jwt(pair, claims)));
+        var first = identity.authenticate(jwt(pair, claims), "slot-1");
+        assertNotEquals(first, identity.authenticate(jwt(pair, claims), "slot-2"));
+        claims.put("jti", "refreshed-credential");
+        assertEquals(first, identity.authenticate(jwt(pair, claims), "slot-1"));
+        assertNull(identity.authenticate(jwt(pair, claims), "slot:invalid"));
+        assertNull(identity.authenticate("Bearer invalid", "slot-1"));
         for (var change :
                 Map.<String, Object>of(
                                 "repository_id",

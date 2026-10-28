@@ -1,0 +1,47 @@
+# Adopt the existing service in its current workspace after this PR is merged.
+# The referenced database must already exist; this file creates no database or worker host.
+services:
+  - type: web
+    name: x-cloud-workbench
+    runtime: docker
+    region: frankfurt
+    plan: free
+    branch: master
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    numInstances: 1
+    autoDeployTrigger: checksPass
+    healthCheckPath: /readyz
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: DEMO_AUTH_REQUIRED
+        value: "true"
+      - key: DEMO_USERNAME
+        sync: false
+      - key: DEMO_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: x-cloud-workbench-state
+          property: connectionString
+      - key: DEMO_EPHEMERAL
+        value: "false"
+      - key: PLATFORM_EXECUTION_MODE
+        value: remote
+      - key: PLATFORM_RUNTIME
+        value: sandbox
+      - key: PLATFORM_REPAIR_WORKERS
+        value: "4"
+      - key: PLATFORM_REMOTE_WORKERS
+        value: "4"
+      - key: WORKER_OIDC_AUDIENCE
+        value: https://x-cloud-workbench.onrender.com
+      - key: WORKER_OIDC_REPOSITORY_ID
+        value: "1378735676"
+      - key: WORKER_OIDC_OWNER_ID
+        value: "5526742"
+      - key: WORKER_OIDC_WORKFLOW
+        value: GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/.github/workflows/repair-worker.yml@refs/heads/master
+
+previews:
+  generation: "off"

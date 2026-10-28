@@ -179,6 +179,11 @@ test("repository workflow creates a real task snapshot and discloses runner avai
   await expect(page.locator("#code-notice")).toContainText(
     /Isolated runner ready|Docker runner unavailable/,
   );
+  const readiness = page.getByRole("region", { name: "Workspace readiness" });
+  await expect(readiness).toContainText("Execution pool");
+  await expect(readiness).toContainText("No live provider configured");
+  await expect(readiness).toContainText("hosted recovery not activated");
+  await expect(readiness).toContainText("Private write credential required");
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(

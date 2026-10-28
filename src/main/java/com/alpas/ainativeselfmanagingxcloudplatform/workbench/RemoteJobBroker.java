@@ -37,10 +37,12 @@ public final class RemoteJobBroker implements SandboxExecutor {
 
     public record Completion(String fence, String inputDigest, TestResult result) {}
 
-    public record Worker(String id, Instant seenAt, String image) {}
+    public record Worker(String id, Instant seenAt, String image, Instant acceptingUntil) {}
 
     private final LinkedHashMap<String, Job> jobs = new LinkedHashMap<>();
     private final Map<String, Worker> workers = new HashMap<>();
+    private final Set<String> awaitingResults = new HashSet<>();
+    private final ExecutionCapacity capacity;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private io.micrometer.core.instrument.MeterRegistry metrics;
@@ -49,6 +51,12 @@ public final class RemoteJobBroker implements SandboxExecutor {
     private final Clock clock;
 
     public RemoteJobBroker(StateStore store, Clock clock) {
+        this(store, clock, ExecutionCapacity.defaults());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public RemoteJobBroker(StateStore store, Clock clock, ExecutionCapacity capacity) {
+        this.capacity = capacity;
         this.store = store;
         this.clock = clock;
         for (var job : store.all("worker-jobs", Job.class)) {
@@ -144,26 +152,39 @@ public final class RemoteJobBroker implements SandboxExecutor {
                                                 "WORKER_LOST", "Worker heartbeat expired twice.")));
             }
         }
-        workers.values().removeIf(w -> w.seenAt().isBefore(now.minusSeconds(60)));
+        workers.values().removeIf(w -> w.seenAt().isBefore(now.minusSeconds(60))
+                || !now.isBefore(w.acceptingUntil()));
     }
 
     public synchronized void register(String worker, String image) {
+        register(worker, image, Instant.MAX);
+    }
+
+    private void register(String worker, String image, Instant acceptingUntil) {
         reap();
         if (image == null || !image.matches("[A-Za-z0-9][A-Za-z0-9_./:@-]{0,200}"))
             throw new PlatformException(
                     400, "INVALID_WORKER", "Provide the preloaded sandbox image.");
-        if (!workers.containsKey(worker) && workers.size() >= 4)
-            throw new PlatformException(429, "WORKER_LIMIT", "At most four workers can register.");
-        workers.put(worker, new Worker(worker, clock.instant(), image));
+        if (!workers.containsKey(worker) && workers.size() >= capacity.remoteWorkers())
+            throw new PlatformException(429, "WORKER_LIMIT", "The configured worker limit is reached.");
+        workers.put(worker, new Worker(worker, clock.instant(), image, acceptingUntil));
     }
 
     public synchronized Lease claim(String worker, String image) {
-        register(worker, image);
+        return claim(worker, image, Instant.MAX);
+    }
+
+    public synchronized Lease claim(String worker, String image, Instant acceptingUntil) {
+        if (acceptingUntil == null || (!acceptingUntil.equals(Instant.MAX)
+                && acceptingUntil.isAfter(clock.instant().plusSeconds(18300))))
+            throw new PlatformException(400, "INVALID_WORKER", "Invalid worker acceptance window.");
+        register(worker, image, acceptingUntil);
         if (jobs.values().stream()
                 .anyMatch(j -> j.status().equals("LEASED") && j.worker().equals(worker)))
             return null;
         for (var j : jobs.values())
             if (j.status().equals("QUEUED")
+                    && !j.deadline().isAfter(acceptingUntil)
                     && (!j.files().containsKey("pom.xml")
                             || image.equals("xcloud-java21-runner:1"))) {
                 var leased =
@@ -192,7 +213,8 @@ public final class RemoteJobBroker implements SandboxExecutor {
         var j = authorized(id, worker, fence);
         if (!j.status().equals("LEASED"))
             throw new PlatformException(409, "LEASE_ENDED", "This execution lease has ended.");
-        workers.computeIfPresent(worker, (k, w) -> new Worker(k, clock.instant(), w.image()));
+        workers.computeIfPresent(worker, (k, w) -> new Worker(
+                k, clock.instant(), w.image(), w.acceptingUntil()));
         save(
                 changed(
                         j,
@@ -239,23 +261,21 @@ public final class RemoteJobBroker implements SandboxExecutor {
         var online =
                 workers.values().stream()
                         .filter(w -> w.seenAt().isAfter(clock.instant().minusSeconds(20)))
+                        .filter(w -> w.acceptingUntil().isAfter(clock.instant().plusSeconds(20)))
                         .toList();
-        return Map.of(
-                "available",
-                !online.isEmpty(),
-                "mode",
-                "remote",
-                "network",
-                "none",
-                "hostMounts",
-                false,
-                "workers",
-                online,
-                "queued",
-                jobs.values().stream().filter(j -> j.status().equals("QUEUED")).count(),
-                "detail",
-                "Authenticated Docker workers; 20-second fenced leases, two deliveries, bounded"
-                        + " queue.");
+        var result = new LinkedHashMap<String, Object>();
+        result.put("available", !online.isEmpty());
+        result.put("mode", "remote");
+        result.put("network", "none");
+        result.put("hostMounts", false);
+        result.put("workers", online);
+        result.put("maxWorkers", capacity.remoteWorkers());
+        result.put("maxInFlight", capacity.remoteJobs());
+        result.put("queued", jobs.values().stream().filter(j -> j.status().equals("QUEUED")).count());
+        result.put("leased", jobs.values().stream().filter(j -> j.status().equals("LEASED")).count());
+        result.put("retainedJobs", jobs.size());
+        result.put("detail", "Authenticated Docker workers; 20-second fenced leases, two deliveries, bounded queue.");
+        return result;
     }
 
     public synchronized List<Map<String, Object>> summary() {
@@ -297,10 +317,13 @@ public final class RemoteJobBroker implements SandboxExecutor {
         reap();
         if (budget.isNegative() || budget.isZero())
             return failure("TIMEOUT", "No execution budget remains.");
-        if (jobs.values().stream().filter(this::active).count() >= 16)
+        if (jobs.values().stream().filter(this::active).count() >= capacity.remoteJobs())
             throw new PlatformException(429, "WORKER_QUEUE_FULL", "Execution queue is full.");
-        while (jobs.size() >= 200) {
-            var old = jobs.values().stream().filter(j -> !active(j)).findFirst().orElseThrow();
+        while (jobs.size() >= capacity.jobHistory()) {
+            var old = jobs.values().stream()
+                    .filter(j -> !active(j) && !awaitingResults.contains(j.id()))
+                    .findFirst().orElseThrow(() -> new PlatformException(
+                            429, "WORKER_HISTORY_FULL", "Execution results are still being collected."));
             jobs.remove(old.id());
             store.remove("worker-jobs", old.id());
         }
@@ -331,6 +354,7 @@ public final class RemoteJobBroker implements SandboxExecutor {
                         clock.instant(),
                         0,
                         null));
+        awaitingResults.add(id);
         long stop = System.nanoTime() + budget.toNanos();
         try {
             while (active(jobs.get(id))) {
@@ -364,6 +388,8 @@ public final class RemoteJobBroker implements SandboxExecutor {
                             failure("CANCELLED", "Repair cancelled; worker lease revoked.")));
             Thread.currentThread().interrupt();
             throw new PlatformException(409, "RUN_CANCELLED", "Repair cancelled.");
+        } finally {
+            awaitingResults.remove(id);
         }
     }
 }

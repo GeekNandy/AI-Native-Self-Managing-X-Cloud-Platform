@@ -3,9 +3,14 @@ on:
   workflow_dispatch:
     inputs:
       seconds:
-        description: 'Worker window in seconds (60–1200)'
-        default: '1200'
+        description: 'Worker window in seconds (60–18000)'
+        default: '3600'
         required: true
+      workers:
+        description: 'Parallel execution workers'
+        type: choice
+        default: '1'
+        options: ['1', '2', '4']
   push:
     branches: [feature]
     paths:
@@ -23,7 +28,11 @@ jobs:
   worker:
     if: github.repository == 'GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: ${{ fromJSON(inputs.workers == '4' && '[0,1,2,3]' || inputs.workers == '2' && '[0,1]' || '[0]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,8 +52,8 @@ jobs:
           PLATFORM_COORDINATOR_URL: https://x-cloud-workbench.onrender.com
           PLATFORM_WORKER_SECONDS: ${{ inputs.seconds || '1200' }}
         run: |
-          if ! [[ "$PLATFORM_WORKER_SECONDS" =~ ^[0-9]+$ ]] || (( PLATFORM_WORKER_SECONDS < 60 || PLATFORM_WORKER_SECONDS > 1200 )); then
-            echo 'Worker lifetime must be 60–1200 seconds.'
+          if ! [[ "$PLATFORM_WORKER_SECONDS" =~ ^[0-9]+$ ]] || (( PLATFORM_WORKER_SECONDS < 60 || PLATFORM_WORKER_SECONDS > 18000 )); then
+            echo 'Worker lifetime must be 60–18000 seconds.'
             exit 1
           fi
           java -jar target/AI-Native-Self-Managing-X-Cloud-Platform-0.0.1-SNAPSHOT.jar

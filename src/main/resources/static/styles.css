@@ -1929,3 +1929,8 @@ dialog li {
 .code-review-panel { min-height:180px; }
 
 .diff-view.patch-output { white-space:normal; }
+
+.deployment-readiness { grid-template-columns:repeat(4,minmax(0,1fr)); margin:20px 0; }
+.deployment-readiness>div { min-width:0; overflow-wrap:anywhere; }
+@media(max-width:900px) { .deployment-readiness { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:520px) { .deployment-readiness { grid-template-columns:minmax(0,1fr); } }

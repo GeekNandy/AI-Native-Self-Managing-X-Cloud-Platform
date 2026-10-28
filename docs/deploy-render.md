@@ -6,9 +6,11 @@ The Free Frankfurt service is [x-cloud-workbench.onrender.com](https://x-cloud-w
 
 The [recorded hosted verification](evidence/render-deployment.json) identifies the deployed commit, authentication checks and actual simulator workflow. Render currently uses its default TCP health check; the report separately verifies HTTP `/actuator/health`. The HTTP check path can be configured on the service's Settings page.
 
-Deploy the repository's **feature** branch as one Docker web service. The root Dockerfile compiles Java 21, installs Git in a separate non-root runtime, binds to `0.0.0.0:$PORT`, and requires username/password access before serving the UI, configuration, API, metrics or MCP. `/actuator/health` is public liveness and contains no details.
+The current service still tracks **feature**. The prepared [release Blueprint](../render.yaml), applied after review and merge, switches it to protected **master**, keeps one free coordinator, wires the existing PostgreSQL database and uses HTTP `/readyz`. It references the existing database without copying its private URL. See [adoption and activation](scaling-and-activation.md#deploy-the-existing-render-service). This configuration is not yet a live deployment result.
 
-Use the **Free** plan for the initial demonstration, select **Docker**, keep the repository root as the build context, and deploy the **feature** branch. Set the HTTP health-check path to `/actuator/health` so readiness does not depend on an authenticated UI request.
+The root Dockerfile compiles Java 21, installs Git in a separate non-root runtime, binds to `0.0.0.0:$PORT`, and requires username/password access before serving the UI, configuration, API, metrics or MCP. `/actuator/health` is public liveness; `/readyz` is public state/fence readiness. Both contain no private details.
+
+Retain the existing **Free** plan, **Docker** runtime and repository root build context. After the new revision is deployed, set the HTTP health-check path to `/readyz`; until then, the older release exposes `/actuator/health`. Do not increase coordinator instance count: writer fencing implements replacement recovery, not horizontal coordinator HA.
 
 Configure runtime environment variables privately in Render:
 
@@ -44,7 +46,7 @@ Branch updates have not automatically triggered this service during verification
 
 ## Verify after deployment
 
-1. Confirm the deploy reaches `live` and `/actuator/health` returns 200.
+1. Confirm the deploy reaches `live`, `/actuator/health` returns 200 and `/readyz` returns 200 for the new release.
 2. Confirm a fresh request to `/`, `/api/config` and `/actuator/metrics` gets a 401 Basic challenge.
 3. Verify correct credentials open the UI and API; incorrect credentials and foreign origins are rejected.
 4. Compile a new request in live mode, inspect all policy results, approve a simulator plan and exercise reviewed drift recovery.
@@ -52,5 +54,7 @@ Branch updates have not automatically triggered this service during verification
 6. Start an authenticated worker window, import the pinned sample and verify baseline → patch → test → digest-bound approval.
 7. Run paired repair evaluation only with configured providers. Inspect regression gates and actual usage before promotion.
 8. If PostgreSQL is configured, verify repository/job recovery across a hosted restart. If a GitHub write credential is configured, verify one reviewed draft PR and its idempotent retry.
+
+Use `scripts/verify-live.py` for authenticated configuration evidence and explicitly requested model smoke/paired runs. [Scaling and activation](scaling-and-activation.md) lists budgets, exact capacity variables, continuous-worker setup and remaining hosted checks.
 
 Never put model keys, login passwords, bearer tokens or deploy hooks in this repository, build arguments, images, public docs or logs. Configure secrets at runtime. Use a new password for this project rather than reusing another application's login.

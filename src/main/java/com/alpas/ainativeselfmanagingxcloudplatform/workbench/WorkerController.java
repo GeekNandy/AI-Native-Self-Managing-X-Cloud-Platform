@@ -28,7 +28,17 @@ public final class WorkerController {
 
     @PostMapping(value = "/claim", consumes = "application/json")
     Map<String, Object> claim(HttpServletRequest request, @RequestBody Hello hello) {
-        var lease = jobs.claim(identity(request), hello.image());
+        var deadline = java.time.Instant.MAX;
+        var supplied = request.getHeader("X-Worker-Deadline");
+        if (supplied != null) {
+            try {
+                if (supplied.length() > 40) throw new IllegalArgumentException();
+                deadline = java.time.Instant.parse(supplied);
+            } catch (RuntimeException invalid) {
+                throw new PlatformException(400, "INVALID_WORKER", "Invalid worker acceptance window.");
+            }
+        }
+        var lease = jobs.claim(identity(request), hello.image(), deadline);
         return lease == null
                 ? Map.of("available", false)
                 : Map.of("available", true, "lease", lease);

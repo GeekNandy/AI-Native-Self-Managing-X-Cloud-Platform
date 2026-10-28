@@ -72,7 +72,8 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
             return;
         }
         String path = request.getRequestURI();
-        if (state != null && !path.equals("/actuator/health")) {
+        boolean publicHealth = path.equals("/actuator/health") || path.equals("/readyz");
+        if (state != null && !publicHealth) {
             try {
                 state.requireAvailable();
             } catch (PlatformException unavailable) {
@@ -86,7 +87,8 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
         }
         String header = request.getHeader("Authorization");
         if (path.startsWith("/api/worker/")) {
-            String worker = workers == null ? null : workers.authenticate(header);
+            String worker = workers == null ? null : workers.authenticate(
+                    header, request.getHeader("X-Worker-Instance"));
             if (worker == null) {
                 deny(response, 401, "WORKER_REQUIRED", "Use a scoped worker credential.");
                 return;
@@ -106,7 +108,7 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
         }
         String accessRole = tokens.role(header);
         if (accessRole == null) accessRole = hosted.role(header);
-        if (hosted.enabled() && !path.equals("/actuator/health") && accessRole == null) {
+        if (hosted.enabled() && !publicHealth && accessRole == null) {
             response.setHeader("WWW-Authenticate", "Basic realm=\"X Cloud\", charset=\"UTF-8\"");
             response.setHeader("Cache-Control", "no-store");
             deny(response, 401, "AUTH_REQUIRED", "Enter the workspace username and password.");
@@ -116,7 +118,7 @@ public class LocalBoundaryFilter extends OncePerRequestFilter {
         boolean protectedPath =
                 (path.startsWith("/api/") && !path.equals("/api/config"))
                         || path.equals("/mcp")
-                        || (path.startsWith("/actuator/") && !path.equals("/actuator/health"));
+                        || (path.startsWith("/actuator/") && !publicHealth);
         if (protectedPath) {
             response.setHeader("Cache-Control", "no-store");
             String role = accessRole;

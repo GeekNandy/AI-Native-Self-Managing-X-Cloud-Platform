@@ -67,12 +67,27 @@ async function loadSource() {
   renderSource();
 }
 function renderRunner() {
+  renderReadiness();
   const runner = state.config.sandbox;
   $("#code-notice").innerHTML = runner.available ? `Isolated runner ready · ${esc(runner.mode === "remote" ? "Authenticated remote workers" : "Local Docker")} · No network or host mounts · 1 CPU · Policy ${esc(state.config.activePolicy.version)}` : runner.mode === "remote" ? `No worker connected. Start a bounded execution window, then this workspace reconnects automatically. <a class="worker-link" href="https://github.com/GeekNandy/AI-Native-Self-Managing-X-Cloud-Platform/actions/workflows/repair-worker.yml" target="_blank" rel="noopener noreferrer">Start worker on GitHub ↗</a>` : "Docker runner unavailable. Preload the Java 21 image to run isolated repairs.";
   $("#code-start").disabled = state.busy || !runner.available;
   $("#code-compare").disabled = state.busy || !runner.available || state.role !== "operator";
   $("#code-benchmark-start").disabled = state.busy || !runner.available || state.role !== "operator" || state.benchmarks.some(b => ["QUEUED","RUNNING"].includes(b.status));
   $("#code-policy-derive").disabled = state.role !== "operator";
+}
+function renderReadiness() {
+  const operations = state.config.operations;
+  if (!operations) { $("#code-readiness").innerHTML = ""; return; }
+  const runner = state.config.sandbox;
+  const limits = operations.capacity.limits;
+  const configured = operations.models.filter(m => m.configured);
+  const cards = [
+    ["Execution pool", runner.available ? "Connected" : "No worker", runner.mode === "remote" ? `${runner.workers?.length || 0} / ${runner.maxWorkers ?? limits.remoteWorkers} workers · ${runner.leased || 0} busy · ${runner.queued || 0} queued` : `${limits.repairWorkers} repair slots · ${limits.repairQueue} queue limit`],
+    ["Live models", configured.length ? "Configured" : "Setup needed", configured.map(m => `${m.provider} / ${m.model}`).join(", ") || "No live provider configured"],
+    ["State", operations.state.survivesDeploysConfigured ? "PostgreSQL" : "Deployment setup", operations.state.survivesDeploysConfigured ? "Persistent backend configured" : `${operations.state.backend.toUpperCase()} · hosted recovery not activated`],
+    ["Publication", operations.publication.enabled ? "Configured" : "Setup needed", operations.publication.enabled ? "Reviewed draft pull requests" : "Private write credential required"],
+  ];
+  $("#code-readiness").innerHTML = cards.map(([label, value, detail]) => `<div><small>${esc(label)}</small><strong>${esc(value)}</strong><small>${esc(detail)}</small></div>`).join("");
 }
 function renderRun() {
   const r = state.run;
