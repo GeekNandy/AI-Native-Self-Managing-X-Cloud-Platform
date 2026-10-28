@@ -65,13 +65,14 @@ class HostedAccessTest {
         var filter = new LocalBoundaryFilter(tokens, access);
         for (String path :
                 new String[] {
-                    "/", "/app.js", "/api/config", "/api/environments", "/actuator/metrics", "/mcp"
+                    "/", "/app.js", "/api/config", "/api/environments", "/api/operations", "/actuator/metrics", "/mcp"
                 }) {
             var response = invoke(filter, path, null, null);
             assertEquals(401, response.getStatus(), path);
             assertTrue(response.getHeader("WWW-Authenticate").startsWith("Basic"));
         }
         assertEquals(200, invoke(filter, "/actuator/health", null, null).getStatus());
+        assertEquals(200, invoke(filter, "/readyz", null, null).getStatus());
         assertEquals(
                 200,
                 invoke(

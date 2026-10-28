@@ -21,6 +21,7 @@ public class CodeController {
     @org.springframework.beans.factory.annotation.Autowired private GitHubPublications publications;
     @org.springframework.beans.factory.annotation.Autowired private GitHubRepositories github;
     @org.springframework.beans.factory.annotation.Autowired private RemoteJobBroker workerJobs;
+    @org.springframework.beans.factory.annotation.Autowired private OperationsStatus operations;
 
     public CodeController(
             RepositoryWorkspace repositories, RepairService repairs, RepairTasks tasks) {
@@ -50,6 +51,8 @@ public class CodeController {
         var config = new LinkedHashMap<String, Object>(repairs.config());
         config.put("agentPolicy", prompts.active());
         config.put("publication", publications.config());
+        config.put("capacity", repairs.capacity());
+        config.put("operations", operations.status());
         config.put(
                 "benchmark",
                 Map.of(

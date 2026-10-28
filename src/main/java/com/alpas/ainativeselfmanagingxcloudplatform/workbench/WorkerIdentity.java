@@ -109,6 +109,13 @@ public final class WorkerIdentity {
         return keys.get(kid);
     }
 
+    public String authenticate(String header, String instance) {
+        if (instance == null) return authenticate(header);
+        if (!instance.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,63}")) return null;
+        var principal = authenticate(header);
+        return principal == null ? null : principal + ":" + instance;
+    }
+
     public String authenticate(String header) {
         if (header == null || !header.startsWith("Bearer ") || header.length() > 16000) return null;
         var value = header.substring(7);

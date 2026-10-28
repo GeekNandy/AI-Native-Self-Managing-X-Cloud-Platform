@@ -24,6 +24,10 @@ public final class WorkerAgent {
     private final URI origin;
     private String credential;
     private Instant credentialExpiry = Instant.EPOCH;
+    private final String instance = UUID.randomUUID().toString();
+    private Instant acceptingUntil = Instant.MAX;
+    private volatile boolean stopping;
+    private volatile Future<?> currentExecution;
 
     private WorkerAgent(String endpoint) {
         origin = URI.create(endpoint);
@@ -101,6 +105,8 @@ public final class WorkerAgent {
                 HttpRequest.newBuilder(origin.resolve(path))
                         .timeout(Duration.ofSeconds(10))
                         .header("Authorization", "Bearer " + credential())
+                        .header("X-Worker-Instance", instance)
+                        .header("X-Worker-Deadline", acceptingUntil.toString())
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body)))
                         .build();
@@ -116,8 +122,9 @@ public final class WorkerAgent {
                 System.getenv().getOrDefault("PLATFORM_SANDBOX_IMAGE", "eclipse-temurin:21-jdk");
         int seconds =
                 Integer.parseInt(System.getenv().getOrDefault("PLATFORM_WORKER_SECONDS", "1200"));
-        if (seconds < 10 || seconds > 3600)
-            throw new IllegalArgumentException("Worker lifetime must be 10–3600 seconds");
+        if (seconds < 10 || seconds > 18000)
+            throw new IllegalArgumentException("Worker lifetime must be 10–18000 seconds");
+        acceptingUntil = clockNow().plusSeconds(seconds);
         var directory =
                 java.nio.file.Path.of(
                                 System.getenv()
@@ -132,9 +139,17 @@ public final class WorkerAgent {
             var sandbox = new DockerSandbox(new CommandRunner(), image, state);
             if (!Boolean.TRUE.equals(sandbox.capabilities().get("available")))
                 throw new IllegalStateException("Preload the configured Docker image");
+            var cleanup = new Thread(() -> {
+                stopping = true;
+                var execution = currentExecution;
+                if (execution != null) execution.cancel(true);
+                sandbox.cleanupOwned();
+            }, "worker-cleanup");
+            Runtime.getRuntime().addShutdownHook(cleanup);
+            try {
             long stop = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds);
             int failures = 0;
-            while (System.nanoTime() < stop && !Thread.currentThread().isInterrupted()) {
+            while (!stopping && System.nanoTime() < stop && !Thread.currentThread().isInterrupted()) {
                 JsonNode response;
                 try {
                     response = post("/api/worker/claim", new WorkerController.Hello(image));
@@ -153,6 +168,8 @@ public final class WorkerAgent {
                 if (budget.isNegative() || budget.isZero()) continue;
                 var execution =
                         tasks.submit(() -> sandbox.test(lease.files(), lease.testClass(), budget));
+                currentExecution = execution;
+                if (stopping) execution.cancel(true);
                 var heartbeat =
                         beats.scheduleAtFixedRate(
                                 () -> {
@@ -181,6 +198,7 @@ public final class WorkerAgent {
                                     0,
                                     "Worker execution was cancelled or exceeded its deadline.");
                 } finally {
+                    currentExecution = null;
                     heartbeat.cancel(false);
                 }
                 var completed =
@@ -192,6 +210,17 @@ public final class WorkerAgent {
                     } catch (Exception rejected) {
                         if (retry < 2) Thread.sleep(500);
                     }
+                }
+            }
+            } finally {
+                stopping = true;
+                var execution = currentExecution;
+                if (execution != null) execution.cancel(true);
+                sandbox.cleanupOwned();
+                try {
+                    Runtime.getRuntime().removeShutdownHook(cleanup);
+                } catch (IllegalStateException shuttingDown) {
+                    // The shutdown hook performs the same owner-scoped cleanup.
                 }
             }
         }

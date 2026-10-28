@@ -125,6 +125,13 @@ public final class StateStore implements AutoCloseable {
         return directory;
     }
 
+    public synchronized Map<String, Object> status() {
+        return Map.of(
+                "backend", postgres ? "postgresql" : connection == null ? "memory" : "h2",
+                "available", !failedClosed,
+                "writerFenced", postgres);
+    }
+
     public synchronized void requireAvailable() {
         if (failedClosed) throw unavailable();
         if (postgres)
