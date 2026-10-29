@@ -44,6 +44,9 @@ jobs:
       - run: python3 -m py_compile scripts/verify-live.py scripts/verify-worker-pool.py scripts/verify-container.py
       - run: npm ci
       - run: npm run check
+      - run: npm run test:mcp
+        env:
+          MCP_REQUIRE_DOCKER: 'true'
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - run: python3 scripts/verify-container.py
@@ -54,6 +57,7 @@ jobs:
           path: |
             target/docker-*-evidence.json
             target/worker-pool-*-evidence.json
+            target/mcp-*-evidence.json
             target/surefire-reports/
             target/restart-evidence.json
             target/ui-accessibility.json

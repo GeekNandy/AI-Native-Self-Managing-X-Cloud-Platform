@@ -4,13 +4,17 @@
   "private": true,
   "description": "Browser checks for the Spring Boot workbench; no frontend build step required.",
   "scripts": {
-    "check": "node --check src/main/resources/static/app.js && node --check src/main/resources/static/code.js && node --check src/main/resources/static/workspace-ui.js && node --check src/main/resources/static/theme.js && node scripts/build-theme.mjs --check",
+    "check": "node --check src/main/resources/static/app.js && node --check src/main/resources/static/code.js && node --check src/main/resources/static/workspace-ui.js && node --check src/main/resources/static/theme.js && node --check scripts/mcp-client.mjs && node --check tests/mcp/client.test.mjs && node --check tests/e2e/mcp.spec.js && node scripts/build-theme.mjs --check",
     "test:e2e": "playwright test",
+    "test:mcp": "node --test --test-concurrency=1 tests/mcp/*.test.mjs",
+    "mcp:inspect": "node scripts/mcp-client.mjs inspect",
+    "mcp:repair": "node scripts/mcp-client.mjs repair",
     "build:theme": "node scripts/build-theme.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.11.1",
     "@material/material-color-utilities": "0.3.0",
+    "@modelcontextprotocol/client": "2.4.0",
     "@playwright/test": "1.62.1"
   }
 }

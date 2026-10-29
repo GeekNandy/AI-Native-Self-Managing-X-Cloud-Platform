@@ -39,6 +39,8 @@ test-results/
 .env
 .env.*
 !.env.example
+.mcp.json
+.gemini/settings.json
 *.log
 __pycache__/
 *.pyc

@@ -1,0 +1,17 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "xcloud-agent-token",
+      "description": "X Cloud proposal-only agent token",
+      "password": true
+    }
+  ],
+  "servers": {
+    "x-cloud-workbench": {
+      "type": "http",
+      "url": "http://127.0.0.1:8080/mcp",
+      "headers": { "Authorization": "Bearer ${input:xcloud-agent-token}" }
+    }
+  }
+}
