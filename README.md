@@ -58,7 +58,7 @@ Set `PLATFORM_SANDBOX_IMAGE=xcloud-java21-runner:1` for the worker. Open **Repos
 | Paired evaluation | Twenty evaluation tasks, counterbalanced variants, repeated equal budgets, run-linked outcomes, usage and latency |
 | Feedback policy | Approved development examples and mutation order are versioned; no regressions, an 80% quality floor and measured improvement gate promotion; previous versions can be restored |
 | Reviewed publication | A destination/base/patch digest binds approval; deterministic branches and a durable journal reconcile retries into one draft PR |
-| MCP | Nine inspection/proposal tools over stateless Streamable HTTP, pinned to protocol 2025-11-25 |
+| MCP | Ten inspection/proposal tools, official SDK client interoperability and a repair-to-operator-review flow over stateless Streamable HTTP, pinned to protocol 2025-11-25 |
 | Actual local workloads | Optional Docker adapter runs generated Java services, observes health/replica counts and restores lost replicas |
 | Full-stack client | Material 3 light/dark UI, Google open source assets, keyboard navigation, mobile layouts, scoped controls, filters, history selection and evidence exports |
 | Optional Gemini / Nebius | Bounded intent extraction and typed source-patch proposals with no shell or approval capability |

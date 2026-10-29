@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "x-cloud-workbench": {
+      "httpUrl": "http://127.0.0.1:8080/mcp",
+      "headers": { "Authorization": "Bearer ${PLATFORM_AGENT_TOKEN}" },
+      "timeout": 35000,
+      "trust": false,
+      "includeTools": [
+        "list_environments", "inspect_environment", "propose_environment",
+        "propose_intent", "propose_reconciliation", "list_repair_tasks",
+        "list_repositories", "inspect_repository", "start_repair", "inspect_repair"
+      ]
+    }
+  }
+}
