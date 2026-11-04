@@ -73,3 +73,21 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  raft-quorum:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify election and fencing contracts without Docker
+        run: python3 -m unittest discover -s tests/raft -p 'test_*.py'
+      - name: Validate isolated three-member Raft cluster configuration
+        run: docker compose -f deploy/raft-lab/compose.yml config -q
+      - name: Exercise real Raft election and quorum loss
+        run: python3 scripts/verify-raft-quorum.py --output target/raft-quorum-evidence.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: raft-quorum-evidence
+          path: target/raft-quorum-evidence.json
+          retention-days: 14
