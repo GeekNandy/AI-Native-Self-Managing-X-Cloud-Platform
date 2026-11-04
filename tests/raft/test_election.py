@@ -37,6 +37,14 @@ class RaftElectionContractTest(unittest.TestCase):
         client._post = lambda route, body: {"succeeded": False}
         self.assertIsNone(client.claim("/xcloud/raft-lab/check", "beta", "42"))
 
+    def test_protobuf_omits_default_false_on_rejected_campaign(self):
+        client = EtcdLabClient("http://127.0.0.1:2379")
+        client._post = lambda route, body: {
+            "header": {"revision": "7"},
+            "responses": [{"response_range": {"kvs": []}}],
+        }
+        self.assertIsNone(client.claim("/xcloud/raft-lab/check", "beta", "52"))
+
     def test_failure_to_reach_quorum_is_not_successful_or_false_election(self):
         client = EtcdLabClient("http://localhost:2379")
         def missing(route, body):
