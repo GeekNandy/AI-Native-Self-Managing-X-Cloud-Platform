@@ -83,7 +83,12 @@ class EtcdLabClient:
         )
         if response.get("succeeded") is True:
             return Proof(key, owner, str(lease), int(response["header"]["revision"]))
-        if response.get("succeeded") is False:
+        # Protobuf JSON encoding omits default false booleans in some etcd releases.
+        # A rejected compare still carries a header and the requested failure response.
+        if response.get("succeeded") is False or (
+            "succeeded" not in response and "header" in response
+            and bool(response.get("responses"))
+        ):
             return None
         raise QuorumUnavailable("etcd transaction did not return a consensus decision")
 
