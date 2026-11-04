@@ -39,6 +39,10 @@ jobs:
         env:
           RUN_DOCKER_TESTS: true
           TEST_DATABASE_URL: postgres://workbench_test:integration-test-only@127.0.0.1:5432/workbench_test
+      - run: python3 -m unittest discover -s tests/unit -p 'test_postgres_backup.py'
+      - run: python3 scripts/verify-postgres-backup.py
+        env:
+          TEST_DATABASE_URL: postgres://workbench_test:integration-test-only@127.0.0.1:5432/workbench_test
       - run: python3 scripts/verify-restart.py
       - run: python3 scripts/verify-worker-pool.py
       - run: python3 -m py_compile scripts/verify-live.py scripts/verify-worker-pool.py scripts/verify-container.py
@@ -56,6 +60,7 @@ jobs:
             target/worker-pool-*-evidence.json
             target/surefire-reports/
             target/restart-evidence.json
+            target/postgres-restore-evidence.json
             target/ui-accessibility.json
             target/hosted-container-evidence.json
             target/screenshots/
