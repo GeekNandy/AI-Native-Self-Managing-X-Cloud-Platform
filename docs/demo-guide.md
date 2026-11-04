@@ -65,6 +65,8 @@ No live key is included. Use [the activation runner](scaling-and-activation.md#a
 
 ## Five-minute review sequence
 
+For an IDE/agent entry point, use the [MCP client walkthrough](mcp.md#demonstrate-repair-and-review). The official SDK submits and observes the bounded repair, while the browser workbench displays its real trace and requires operator review before committing. [Gemini CLI and VS Code templates](mcp.md#connect-an-ide-or-agent) make the connection reproducible.
+
 | Time | Show | Engineering point |
 | --- | --- | --- |
 | 0:00–0:40 | Readiness cards and pinned GitHub source/provenance | Honest capability status and immutable inputs |
