@@ -65,7 +65,7 @@ class HostedAccessTest {
         var filter = new LocalBoundaryFilter(tokens, access);
         for (String path :
                 new String[] {
-                    "/", "/app.js", "/api/config", "/api/environments", "/api/operations", "/actuator/metrics", "/mcp"
+                    "/", "/app.js", "/api/config", "/api/environments", "/api/operations", "/actuator/metrics", "/actuator/prometheus", "/mcp"
                 }) {
             var response = invoke(filter, path, null, null);
             assertEquals(401, response.getStatus(), path);
