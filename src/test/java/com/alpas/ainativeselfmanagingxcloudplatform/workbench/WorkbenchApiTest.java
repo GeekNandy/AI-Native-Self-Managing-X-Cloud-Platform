@@ -55,6 +55,20 @@ class WorkbenchApiTest {
     }
 
     @Test
+    void prometheusScrapeIsAuthenticatedAndExportsReadiness() throws Exception {
+        var anonymous =
+                HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + "/actuator/prometheus"))
+                        .GET()
+                        .build();
+        assertEquals(401, http.send(anonymous, HttpResponse.BodyHandlers.ofString()).statusCode());
+        assertEquals(200, request("GET", "/readyz", null, null).statusCode());
+        var response = request("GET", "/actuator/prometheus", null, null);
+        assertEquals(200, response.statusCode(), response.body());
+        assertTrue(response.body().contains("platform_readiness_state"), response.body());
+        assertTrue(response.body().contains("platform_readiness_checks_total"), response.body());
+    }
+
+    @Test
     void workerCredentialCannotApproveAndOperatorCannotClaimWorkerJobs() throws Exception {
         var url = "http://127.0.0.1:" + port;
         var claim =
