@@ -9,10 +9,12 @@ import java.util.Map;
 public final class OperationsController {
     private final StateStore state;
     private final OperationsStatus operations;
+    private final SreTelemetry telemetry;
 
-    public OperationsController(StateStore state, OperationsStatus operations) {
+    public OperationsController(StateStore state, OperationsStatus operations, SreTelemetry telemetry) {
         this.state = state;
         this.operations = operations;
+        this.telemetry = telemetry;
     }
 
     @GetMapping("/api/operations")
@@ -22,13 +24,16 @@ public final class OperationsController {
 
     @GetMapping("/readyz")
     public ResponseEntity<Map<String, String>> readiness() {
+        boolean available;
         try {
             state.requireAvailable();
-            return ResponseEntity.ok().header("Cache-Control", "no-store")
-                    .body(Map.of("status", "READY"));
+            available = true;
         } catch (RuntimeException unavailable) {
-            return ResponseEntity.status(503).header("Cache-Control", "no-store")
-                    .body(Map.of("status", "NOT_READY"));
+            available = false;
         }
+        telemetry.recordReadiness(available);
+        return ResponseEntity.status(available ? 200 : 503)
+                .header("Cache-Control", "no-store")
+                .body(Map.of("status", available ? "READY" : "NOT_READY"));
     }
 }

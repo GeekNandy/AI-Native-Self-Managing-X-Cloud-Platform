@@ -94,6 +94,8 @@ The [worker-pool scaling run](https://github.com/GeekNandy/AI-Native-Self-Managi
 - [Demo walkthrough and live provider setup](docs/demo-guide.md)
 - [Remote workers, repository profiles and storage](docs/remote-execution.md)
 - [Scaling, Render release configuration and live activation](docs/scaling-and-activation.md)
+- [SRE reliability metrics, alert rules and incident runbooks](docs/sre-operations.md)
+- [Leader election and Raft high-availability design decision](docs/adr/0004-leadership-and-consensus.md)
 - [Paired repair evaluation, policy gates and publication](docs/repair-evaluation.md)
 - [Repository repair, budgets and feedback promotion](docs/repository-workflow.md)
 - [Runtime capabilities, durable state and recovery](docs/runtime-and-state.md)

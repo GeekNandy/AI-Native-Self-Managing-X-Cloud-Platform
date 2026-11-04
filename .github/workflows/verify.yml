@@ -35,6 +35,10 @@ jobs:
           cache: npm
       - run: docker pull eclipse-temurin:21-jdk
       - run: docker build -f sandbox/java21/Dockerfile -t xcloud-java21-runner:1 .
+      - name: Validate SRE alert rules and failure fixtures
+        run: |
+          docker run --rm -v "$PWD/monitoring:/monitoring:ro" --entrypoint=/bin/promtool prom/prometheus:v3.5.0 check rules /monitoring/alerts.yml
+          docker run --rm -v "$PWD/monitoring:/monitoring:ro" --entrypoint=/bin/promtool prom/prometheus:v3.5.0 test rules /monitoring/alerts.test.yml
       - run: ./mvnw -B verify
         env:
           RUN_DOCKER_TESTS: true
