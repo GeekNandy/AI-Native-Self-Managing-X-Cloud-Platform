@@ -213,7 +213,7 @@ class WorkbenchApiTest {
                 mcp(Map.of("jsonrpc", "2.0", "id", 1, "method", "tools/list", "params", Map.of()));
         assertEquals(200, listed.statusCode());
         var tools = json.readTree(listed.body()).path("result").path("tools");
-        assertEquals(9, tools.size());
+        assertEquals(10, tools.size());
         for (var tool : tools) {
             assertFalse(tool.path("name").asText().contains("apply"));
             assertFalse(tool.path("name").asText().contains("approve"));

@@ -151,6 +151,10 @@ public class McpController {
                             empty(args);
                             yield Map.of("tasks", tasks.examples());
                         }
+                        case "list_repositories" -> {
+                            empty(args);
+                            yield Map.of("repositories", repositories.list());
+                        }
                         case "inspect_repository" ->
                                 repositories.current(read(args, Id.class).id());
                         case "start_repair" -> {
@@ -248,6 +252,7 @@ public class McpController {
                         id,
                         false),
                 tool("list_repair_tasks", "List bounded Java repository examples", Map.of(), true),
+                tool("list_repositories", "List managed repository identities and pinned heads", Map.of(), true),
                 tool("inspect_repository", "Inspect a managed repository head", id, true),
                 tool(
                         "start_repair",
