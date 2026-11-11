@@ -20,7 +20,10 @@ IMAGE = 'postgres:17'
 FINGERPRINT_SQL = (
     "SELECT count(*)::text || ':' || md5(coalesce("
     "string_agg(md5(bucket || chr(31) || item_id || chr(31) || payload), '' "
-    "ORDER BY bucket, item_id), '')) FROM workbench_state"
+    "ORDER BY bucket, item_id), '')) FROM ("
+    "SELECT bucket, item_id, payload FROM workbench_state UNION ALL "
+    "SELECT 'leadership', singleton::text, leader_epoch::text || ':' || owner || ':' || lease_until::text "
+    "FROM workbench_leadership) AS durable_state"
 )
 
 
@@ -93,6 +96,7 @@ def main():
                 'experiment': 'PostgreSQL 17 custom-format dump and isolated database restore',
                 'archiveSha256': digest,
                 'schemaAndPayloadMatch': True,
+                'leadershipEpochPreserved': True,
                 'sourceUntouched': True,
                 'limitation': 'Disposable *_test database only; does not prove hosted persistence, backup scheduling or point-in-time recovery.'
             }

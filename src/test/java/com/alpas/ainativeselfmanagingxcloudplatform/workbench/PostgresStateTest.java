@@ -10,6 +10,23 @@ import java.time.Clock;
 @EnabledIfEnvironmentVariable(named = "TEST_DATABASE_URL", matches = ".+")
 class PostgresStateTest {
     @Test
+    void liveLeaseCannotBeStolenAndCleanHandoffIncrementsEpoch() {
+        var json = new WorkbenchConfiguration().jsonMapper();
+        long epoch;
+        try (var active = new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"), "lease", 30, 0)) {
+            epoch = active.leaderEpoch();
+            assertThrows(IllegalStateException.class,
+                    () -> new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"), "lease", 30, 0));
+            active.put("lease-test", "receipt", "committed");
+        }
+        try (var next = new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"), "lease", 30, 0)) {
+            assertEquals(epoch + 1, next.leaderEpoch());
+            assertEquals(java.util.List.of("committed"), next.all("lease-test", String.class));
+            next.remove("lease-test", "receipt");
+        }
+    }
+
+    @Test
     void replacementCoordinatorFencesOldWritesAndRestoresGitFromDatabase() {
         var json = new WorkbenchConfiguration().jsonMapper();
         try (var first = new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"))) {

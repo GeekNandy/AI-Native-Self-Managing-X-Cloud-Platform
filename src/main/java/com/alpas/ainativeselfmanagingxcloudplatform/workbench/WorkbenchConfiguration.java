@@ -17,8 +17,21 @@ public class WorkbenchConfiguration {
     StateStore stateStore(
             JsonMapper json,
             @Value("${platform.data-dir:.workbench}") String directory,
-            @Value("${platform.database-url:}") String databaseUrl) {
-        return new StateStore(json, directory, databaseUrl);
+            @Value("${platform.database-url:}") String databaseUrl,
+            @Value("${platform.coordinator.mode:single}") String mode,
+            @Value("${platform.coordinator.lease-seconds:30}") int leaseSeconds,
+            @Value("${platform.coordinator.acquire-timeout-seconds:60}") int acquireTimeoutSeconds,
+            @Value("${platform.runtime:sandbox}") String runtime,
+            @Value("${platform.execution.mode:local}") String execution,
+            @Value("${platform.github.publish-repository:}") String publication) {
+        validateCoordination(mode, runtime, execution, publication);
+        return new StateStore(json, directory, databaseUrl, mode, leaseSeconds, acquireTimeoutSeconds);
+    }
+
+    static void validateCoordination(String mode, String runtime, String execution, String publication) {
+        if (mode.equals("lease") && (!runtime.equals("sandbox") || !execution.equals("remote") || !publication.isBlank()))
+            throw new IllegalArgumentException("Lease coordination supports the durable simulator and remote tests only;"
+                    + " external runtime writes and GitHub publication require single mode");
     }
 
     @Bean
