@@ -103,10 +103,18 @@ final class CoordinatorLease {
 
     void renew() throws Exception {
         assertOwned(); // Expired owners cannot revive their own epoch, even without a successor.
-        expiresAt = now().plus(ttl);
-        try (var sql = db.prepareStatement("UPDATE workbench_leadership SET lease_until=? WHERE singleton=1")) {
-            sql.setObject(1, expiresAt.atOffset(ZoneOffset.UTC));
-            sql.executeUpdate();
+        String currentTime = postgres ? "clock_timestamp()" : "CURRENT_TIMESTAMP";
+        String nextTime = postgres ? currentTime + " + (? * INTERVAL '1 millisecond')"
+                : "DATEADD('MILLISECOND', ?, CURRENT_TIMESTAMP)";
+        try (var sql = db.prepareStatement("UPDATE workbench_leadership SET lease_until=" + nextTime
+                + " WHERE singleton=1 AND lease_until > " + currentTime)) {
+            sql.setLong(1, ttl.toMillis());
+            if (sql.executeUpdate() != 1) throw new IllegalStateException("Coordinator lease expired before renewal");
+        }
+        try (var sql = db.createStatement(); var row = sql.executeQuery(
+                "SELECT lease_until FROM workbench_leadership WHERE singleton=1")) {
+            row.next();
+            expiresAt = row.getObject(1, OffsetDateTime.class).toInstant();
         }
     }
 

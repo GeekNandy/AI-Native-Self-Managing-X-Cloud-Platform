@@ -63,7 +63,17 @@ public final class StateStore implements AutoCloseable {
             lease.initialize();
             connection.setAutoCommit(false);
             long stop = System.nanoTime() + TimeUnit.SECONDS.toNanos(acquireTimeoutSeconds);
-            while (!lease.acquire(mode.equals("single"))) {
+            while (true) {
+                boolean acquired;
+                try {
+                    acquired = lease.acquire(mode.equals("single"));
+                } catch (java.sql.SQLException locked) {
+                    // A paused leader may hold the row until PostgreSQL's idle transaction
+                    // timeout releases it. Only a never-acquired candidate may retry this lock.
+                    if (!mode.equals("lease") || lease.epoch() != 0 || !"55P03".equals(locked.getSQLState())) throw locked;
+                    acquired = false;
+                }
+                if (acquired) break;
                 connection.rollback();
                 if (System.nanoTime() >= stop) throw new IllegalStateException("Coordinator lease is held");
                 Thread.sleep(200);
