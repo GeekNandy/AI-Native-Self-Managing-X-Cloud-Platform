@@ -44,7 +44,7 @@ class RemoteWorkerTest {
             assertEquals("WORKER_LOST", result.get(2, TimeUnit.SECONDS).status());
             assertThrows(
                     PlatformException.class,
-                    () -> jobs.heartbeat(second.id(), "two", second.fence()));
+                    () -> jobs.heartbeat(second.id(), "two", second.fence(), second.leaderEpoch()));
         }
     }
 
@@ -76,10 +76,10 @@ class RemoteWorkerTest {
                                                     new RemoteJobBroker.Completion(
                                                             old.fence(),
                                                             old.inputDigest(),
-                                                            passed)))
+                                                            passed, old.leaderEpoch())))
                             .code());
             var receipt =
-                    new RemoteJobBroker.Completion(current.fence(), current.inputDigest(), passed);
+                    new RemoteJobBroker.Completion(current.fence(), current.inputDigest(), passed, current.leaderEpoch());
             jobs.complete(current.id(), "worker-b", receipt);
             jobs.complete(current.id(), "worker-b", receipt);
             assertEquals(passed, result.get(2, TimeUnit.SECONDS));
@@ -90,7 +90,7 @@ class RemoteWorkerTest {
                                     current.id(),
                                     "worker-b",
                                     new RemoteJobBroker.Completion(
-                                            current.fence(), "0".repeat(64), passed)));
+                                            current.fence(), "0".repeat(64), passed, current.leaderEpoch())));
             assertEquals(2, jobs.summary().getFirst().get("deliveries"));
         }
     }
@@ -112,19 +112,21 @@ class RemoteWorkerTest {
                                     lease.id(),
                                     "worker",
                                     new RemoteJobBroker.Completion(
-                                            lease.fence(), lease.inputDigest(), passed)));
+                                            lease.fence(), lease.inputDigest(), passed, lease.leaderEpoch())));
         }
     }
 
     @Test
-    void restartInterruptsJobsInsteadOfReplayingUnreviewedWork() throws Exception {
+    void brokerReloadUsesTheDurableLeaseAndResultInsteadOfStaleLocalCopies() throws Exception {
         try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
             var result = pool.submit(() -> jobs.test(files, "ExampleTest", Duration.ofSeconds(30)));
-            claim("worker");
-            var restarted = new RemoteJobBroker(store, clock);
-            assertEquals("INTERRUPTED", restarted.summary().getFirst().get("status"));
-            assertNull(restarted.claim("new-worker", "eclipse-temurin:21-jdk"));
-            result.cancel(true);
+            var lease = claim("worker");
+            var reloaded = new RemoteJobBroker(store, clock);
+            assertEquals("LEASED", reloaded.summary().getFirst().get("status"));
+            assertNull(reloaded.claim("new-worker", "eclipse-temurin:21-jdk"));
+            reloaded.complete(lease.id(), "worker", new RemoteJobBroker.Completion(
+                    lease.fence(), lease.inputDigest(), passed, lease.leaderEpoch()));
+            assertEquals(passed, result.get(2, TimeUnit.SECONDS));
         }
     }
 
@@ -149,7 +151,7 @@ class RemoteWorkerTest {
                                                         new RemoteJobBroker.Completion(
                                                                 lease.fence(),
                                                                 lease.inputDigest(),
-                                                                invalid)))
+                                                                invalid, lease.leaderEpoch())))
                                 .code());
             result.cancel(true);
         }

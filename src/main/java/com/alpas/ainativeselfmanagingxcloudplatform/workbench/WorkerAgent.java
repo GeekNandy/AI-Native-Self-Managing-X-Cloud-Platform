@@ -170,6 +170,8 @@ public final class WorkerAgent {
                     }
                     var lease =
                             json.treeToValue(response.path("lease"), RemoteJobBroker.Lease.class);
+                    if (lease.leaderEpoch() <= 0)
+                        throw new IllegalStateException("Coordinator returned an invalid ownership epoch");
                     var budget = Duration.between(clockNow(), lease.deadline());
                     if (budget.isNegative() || budget.isZero()) continue;
                     var execution =
@@ -182,7 +184,8 @@ public final class WorkerAgent {
                                         try {
                                             post(
                                                     "/api/worker/jobs/" + lease.id() + "/heartbeat",
-                                                    new WorkerController.Heartbeat(lease.fence()));
+                                                    new WorkerController.Heartbeat(
+                                                            lease.fence(), lease.leaderEpoch()));
                                         } catch (Exception ended) {
                                             execution.cancel(true);
                                         }
@@ -208,7 +211,8 @@ public final class WorkerAgent {
                         heartbeat.cancel(false);
                     }
                     var completed =
-                            new RemoteJobBroker.Completion(lease.fence(), lease.inputDigest(), result);
+                            new RemoteJobBroker.Completion(
+                                    lease.fence(), lease.inputDigest(), result, lease.leaderEpoch());
                     for (int retry = 0; retry < 3; retry++) {
                         try {
                             post("/api/worker/jobs/" + lease.id() + "/complete", completed);

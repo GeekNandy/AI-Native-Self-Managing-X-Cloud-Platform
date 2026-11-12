@@ -24,13 +24,13 @@ The probe uses fixed, short-lived **unrenewed lab leases** (120 seconds) to avoi
 
 CI executes the same real consensus experiment in a dedicated `raft-quorum` job and retains a redacted JSON report. This distinguishes **actual Raft cluster evidence** from the pre-existing single-node coordinator/worker recovery tests.
 
-## Next production integration (not yet implemented)
+## Java integration boundary and remaining work
 
-The existing Java `StateStore` is a **single-writer** store, and `RemoteJobBroker` still recovers in-flight work as interrupted. These currently prevent a safe multi-active coordinator deployment:
+Java `StateStore` now persists increasing replacement epochs in H2/PostgreSQL and checks ownership inside state transactions. `RemoteJobBroker` durably retains isolated-test jobs and bounded recovery receipts, with worker messages carrying the ownership epoch. These are [single-coordinator recovery foundations](durable-coordinator-recovery.md); they do not connect this etcd lab to the Java application. Higher-level repairs/model loops remain interrupted on restart. The following work still gates coordinator HA:
 
 - Add `CoordinationService` abstraction with controlled migration from a single-node owner to etcd-backed lease ownership.
-- Add **monotonic leader epochs in PostgreSQL** and require the epoch in every privileged operation, queue transition and receipt commit. An etcd revision alone is not sufficient if database/state writes are unfenced.
-- Persist pending queue/lease transitions and reconcile uncertain external side effects before redelivery.
+- Bind elected leadership to the existing durable epochs and protect privileged external-effect dispatch with downstream idempotency/fencing. An etcd revision alone is insufficient; a database ownership check cannot revoke an external request already in flight.
+- Add explicit durable repair/model checkpoints before resuming higher-level work, and reconcile uncertain external side effects before any approved retry. Isolated-test redelivery must not replay model calls or approvals.
 - Perform bounded renewal and fail closed on quorum loss, expiration, bad epoch or PostgreSQL failure; perform a positive leadership check **before** starting external effects and enforce downstream idempotency/fencing.
 - Test SIGKILL, asymmetric network partitions, delayed external effects, lease expiry, Postgres outages and real recovery of the Java application; require separately managed TLS, etcd backups and failure-domain separation before production.
 

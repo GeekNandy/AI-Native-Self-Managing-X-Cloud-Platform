@@ -47,7 +47,7 @@ Set `PLATFORM_SANDBOX_IMAGE=xcloud-java21-runner:1` for the worker. Open **Repos
 | Intent and independent policy | Strict structured extraction, semantic validation and eight versioned governance rules |
 | Plan-bound approval | Full-content SHA-256 digest, expiry, current-policy checks, revision preconditions and durable retry receipts |
 | Desired/observed control loop | Provisioning, fault injection, unknown observations and recovery without rewriting desired intent |
-| Recoverable coordinator | H2 or private PostgreSQL, atomic metadata/Git bundles, replacement-writer fencing and restart interruption |
+| Recoverable coordinator | H2 or private PostgreSQL, atomic metadata/Git bundles, persisted ownership epochs, transactional worker-job recovery and retained receipts |
 | Remote execution | OIDC-scoped pull workers, bounded queue, expiring fenced leases, cancellation, one redelivery and stale-result rejection |
 | Scalable execution pool | Distinct worker instances, configurable admission limits, drain windows, owner-scoped cleanup and a four-worker crash/recovery check |
 | Operational readiness | Public state/fence readiness, authenticated capacity diagnostics and UI cards for pending private activation |
@@ -93,6 +93,7 @@ The [worker-pool scaling run](https://github.com/GeekNandy/AI-Native-Self-Managi
 - [Render hosting and private model configuration](docs/deploy-render.md)
 - [Demo walkthrough and live provider setup](docs/demo-guide.md)
 - [Remote workers, repository profiles and storage](docs/remote-execution.md)
+- [Durable coordinator replacement and isolated-test recovery](docs/durable-coordinator-recovery.md)
 - [Scaling, Render release configuration and live activation](docs/scaling-and-activation.md)
 - [SRE reliability metrics, alert rules and incident runbooks](docs/sre-operations.md)
 - [Leader election and Raft high-availability design decision](docs/adr/0004-leadership-and-consensus.md)

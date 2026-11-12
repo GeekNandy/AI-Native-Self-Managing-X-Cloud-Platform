@@ -6,7 +6,7 @@
 
 The operator creates a managed Git snapshot from a catalog task or `POST /api/code/repositories` with `{name, files, testClass}`. `files` maps relative paths to UTF-8 content. Accept up to 24 Java source/test files and an optional supported POM, at most 200 KB total and 32 KiB per file. The declared profile is Java 21 test-main or the pinned offline Maven/Jupiter runner. GitHub ingestion resolves and verifies a pinned revision; symlinks, submodules, arbitrary clone URLs and repository-controlled build hooks are rejected. See the exact [profiles and worker protocol](remote-execution.md).
 
-An agent may call `POST /api/code/runs` with repository ID, instruction, provider, attempt count and timeout. Two workers consume a bounded queue of sixteen. The server retains at most 500 runs and 100 repositories. Runs persist before work begins. A stopped worker becomes `INTERRUPTED` after restart; it is never automatically replayed.
+An agent may call `POST /api/code/runs` with repository ID, instruction, provider, attempt count and timeout. Two workers consume a bounded queue of sixteen. The server retains at most 500 runs and 100 repositories. Runs persist before work begins. An unfinished repair run becomes `INTERRUPTED` after coordinator restart; its model loop is never automatically replayed. Separately, [isolated test jobs and receipts](durable-coordinator-recovery.md) recover within their original execution budgets.
 
 ```mermaid
 flowchart TD

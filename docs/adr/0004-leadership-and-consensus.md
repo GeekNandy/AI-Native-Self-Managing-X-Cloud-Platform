@@ -1,15 +1,17 @@
 # ADR 0004 — Leadership, quorum and coordinator high availability
 
-- **Status:** Proposed architecture; no Raft or multiple active coordinators deployed.
+- **Status:** Proposed HA architecture; durable replacement epochs and isolated-test job recovery implemented. No Raft-backed Java leadership or multiple active coordinators deployed.
 - **Date:** 2026-11-04
 
 ## Context
 
-The platform currently runs one mutable coordinator. A PostgreSQL owner row fences replacement writers, but `RemoteJobBroker` retains its active scheduling decisions in process memory and converts unfinished jobs to `INTERRUPTED` on startup. External infrastructure effects cannot be made safe merely by electing a leader. Running multiple coordinators today risks conflicting approvals, duplicate scheduling and side effects.
+The platform runs one mutable coordinator. Its durable owner and increasing epoch fence state transactions from replaced writers. `RemoteJobBroker` persists atomic queue/lease/result transitions and can redeliver an unfinished isolated test within its existing deadline and delivery limit. Higher-level repair/model loops still become `INTERRUPTED` on restart. External infrastructure effects cannot be made safe merely by electing a leader. Running multiple coordinators today risks conflicting approvals, duplicate scheduling and side effects.
 
 ## Decision
 
-**Do not add a Raft service to the current demo.** First extract coordinator leadership and job transitions behind a durable, transactionally fenced contract with an explicit monotonically increasing epoch. Reads may be served by followers only if consistency is documented; the elected writer alone may issue privileged operations. Every worker lease and external-effect intent must be tied to a durable idempotency key and epoch; the old leader must be prevented from completing writes after a leadership change. An explicit fail-closed path is required when leadership cannot be established.
+**Do not add a Raft service to the current demo.** Coordinator leadership and job transitions must use a durable, transactionally fenced contract with an explicit monotonically increasing epoch before HA is enabled. Reads may be served by followers only if consistency is documented; the elected writer alone may issue privileged operations. Every worker lease and external-effect intent must be tied to a durable idempotency key and epoch; the old leader must be prevented from completing writes after a leadership change. An explicit fail-closed path is required when leadership cannot be established.
+
+The [replacement recovery increment](../durable-coordinator-recovery.md) supplies persisted H2/PostgreSQL epochs, atomic isolated-test transitions, epoch-bearing worker messages, and retained result receipts. It does not supply an expiring coordinator leadership lease, renew that lease, resume model loops, or fence an external request that was already sent. The remaining contracts below still gate concurrent coordinator deployment.
 
 Evaluate three production options after the durable contract exists:
 

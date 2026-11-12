@@ -139,6 +139,11 @@ public class CodeController {
         return workerJobs.summary();
     }
 
+    @GetMapping("/workers/jobs/{id}")
+    Map<String, Object> workerReceipt(@PathVariable String id) {
+        return workerJobs.receipt(id);
+    }
+
     @GetMapping("/tasks")
     List<Task> tasks() {
         return tasks.examples();
