@@ -43,7 +43,7 @@ docker run --rm -v "$PWD/monitoring:/monitoring:ro" --entrypoint=/bin/promtool \
 
 **Triage:** inspect deployment revision, service process/health, PostgreSQL connection and disk, and whether another coordinator replaced its writer fence. Collect a bounded, redacted event timeline and current worker lease counts. Avoid logging access tokens and connection strings.
 
-**Mitigate:** restore one healthy coordinator and its persistent database; do not spawn competing write leaders. A fenced old coordinator must remain inactive. If PostgreSQL is unavailable, stop privileged writes and recover storage before re-enabling work. Never silently re-run interrupted repairs or infrastructure apply operations; first inspect durable receipts and current observed state.
+**Mitigate:** restore one healthy coordinator and its persistent database; do not spawn competing write leaders. A fenced old coordinator must remain inactive. If PostgreSQL is unavailable, stop privileged writes and recover storage before re-enabling work. Only checkpointed deterministic remote repairs resume automatically, within their original budgets and without approval. Inspect durable receipts and current observations before any infrastructure retry; see [coordinator recovery](coordinator-recovery.md).
 
 **Verify:** check `/readyz`, authenticated `/api/operations`, a known prior receipt, repository head and audit continuity. Confirm a canary proposal works; apply only after normal approval. Record outage duration and unmet SLOs.
 
@@ -53,6 +53,8 @@ docker run --rm -v "$PWD/monitoring:/monitoring:ro" --entrypoint=/bin/promtool \
 
 ## Disaster recovery and release gate
 
-Before **2026-11-21**, choose a persistent database with a documented backup retention policy; the current free database expiration is a release risk. Follow [the backup/restore drill](postgres-backup-recovery.md) when PR #15 is merged. Its CI dump/restore is a disposable-test check, not hosted RPO/RTO evidence. Record a privately performed hosted restore, external synthetic availability, and operator-approved recovery exercise before claiming production readiness.
+Before **2026-11-21**, choose a persistent database with a documented backup retention policy; the current free database expiration is a release risk. Follow [the backup/restore drill](postgres-backup-recovery.md) (merged in PR #15). Its CI dump/restore is a disposable-test check, not hosted RPO/RTO evidence. Record a privately performed hosted restore, external synthetic availability, and operator-approved recovery exercise before claiming production readiness.
 
 Prove new telemetry and alert rules by executing the CI suite and `promtool` fixtures. Run `python3 scripts/verify-restart.py` for a process-level single-node crash check. Failure experiments must use disposable state/containers, never the hosted coordinator or customer resources without explicit authorization.
+
+The authenticated metrics endpoint also exposes `platform_coordinator_epoch` and `platform_coordinator_fenced`. An expired/replaced process stays fenced. Lease-mode standbys are not ready while waiting for ownership; route only to the ready instance and restart a fenced process before reuse.

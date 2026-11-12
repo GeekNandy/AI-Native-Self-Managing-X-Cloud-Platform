@@ -1,15 +1,15 @@
 # ADR 0004 — Leadership, quorum and coordinator high availability
 
-- **Status:** Proposed architecture; no Raft or multiple active coordinators deployed.
+- **Status:** Durable epoch/lease and queue contracts implemented; opt-in PostgreSQL cold-standby mode. No Java/etcd integration or production HA deployment.
 - **Date:** 2026-11-04
 
 ## Context
 
-The platform currently runs one mutable coordinator. A PostgreSQL owner row fences replacement writers, but `RemoteJobBroker` retains its active scheduling decisions in process memory and converts unfinished jobs to `INTERRUPTED` on startup. External infrastructure effects cannot be made safe merely by electing a leader. Running multiple coordinators today risks conflicting approvals, duplicate scheduling and side effects.
+The original platform ran one mutable coordinator with replacement-writer fencing and interrupted unfinished jobs at startup. [Coordinator recovery](../coordinator-recovery.md) now adds monotonic epochs, bounded database-clock leases, conditional durable queue transitions and checkpointed isolated-test recovery. External infrastructure effects cannot be made safe merely by electing a leader. Running multiple coordinators today risks conflicting approvals, duplicate scheduling and side effects.
 
 ## Decision
 
-**Do not add a Raft service to the current demo.** First extract coordinator leadership and job transitions behind a durable, transactionally fenced contract with an explicit monotonically increasing epoch. Reads may be served by followers only if consistency is documented; the elected writer alone may issue privileged operations. Every worker lease and external-effect intent must be tied to a durable idempotency key and epoch; the old leader must be prevented from completing writes after a leadership change. An explicit fail-closed path is required when leadership cannot be established.
+**Do not add a Raft service to the current demo.** The first implementation extracts coordinator leadership and job transitions behind a durable, transactionally fenced contract with an explicit monotonically increasing epoch. Reads may be served by followers only if consistency is documented; the elected writer alone may issue privileged operations. Every worker lease and external-effect intent must be tied to a durable idempotency key and epoch; the old leader must be prevented from completing writes after a leadership change. An explicit fail-closed path is required when leadership cannot be established.
 
 Evaluate three production options after the durable contract exists:
 
@@ -21,7 +21,7 @@ Evaluate three production options after the durable contract exists:
 
 For an independent self-hosted coordinator cluster outside Kubernetes, **etcd is the preferred candidate**, not a custom Raft implementation. Do not run three nodes on the same failure domain and call them highly available.
 
-## Required implementation contracts before introducing consensus
+## Required implementation contracts for introducing consensus
 
 1. Represent every coordinator ownership transition by a strictly increasing, persisted `leaderEpoch` with a bounded lease TTL.
 2. Require the active epoch inside state mutations, job leases, plan approval and external-effect journals; reject stale epochs transactionally. Never hold a database transaction open across cloud API calls.
@@ -37,3 +37,7 @@ Only enable concurrent coordinator instances after repeatable tests establish: o
 ## Consequences
 
 This preserves current single-writer safety while building meaningful SRE evidence. An etcd cluster or Raft library without the contracts above would provide election but not reliable self-healing or correct recovery. Roll out the future change behind an explicit configuration mode, with the existing single-coordinator default retained for development.
+
+## Implementation boundary
+
+The durable contract and PostgreSQL lease alternative are implemented and covered by Java and process-level CI checks. Only the database-backed simulator and remote isolated tests are enabled in lease mode. Uncertain environment effects remain UNKNOWN; no automatic approval or external-provider replay is permitted. Etcd quorum gating, downstream fencing, database HA and asymmetric network-partition campaigns remain required before broader HA claims.

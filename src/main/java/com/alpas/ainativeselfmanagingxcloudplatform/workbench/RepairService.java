@@ -36,6 +36,16 @@ public class RepairService implements AutoCloseable {
             new RepairPolicy("mutation-v1", RepairSearch.DEFAULT_ORDER, List.of());
     private final ExecutionCapacity capacity;
     private final ThreadPoolExecutor workers;
+    private final Map<String, Checkpoint> recovery = new LinkedHashMap<>();
+
+    /** Only deterministic search is replayable; never replay a potentially billed model call. */
+    public record Checkpoint(String runId, RepairPolicy policy) {}
+
+    static boolean recoverable(RepairRun run, Clock clock) {
+        return Set.of("QUEUED", "RUNNING").contains(run.status())
+                && run.provider().equals("mutation-search")
+                && run.createdAt().plusSeconds(run.timeoutSeconds()).isAfter(clock.instant());
+    }
 
     public RepairService(
             RepositoryWorkspace repositories,
@@ -76,8 +86,15 @@ public class RepairService implements AutoCloseable {
         this.clock = clock;
         this.compiler = compiler;
         store.all("repair-policy", RepairPolicy.class).forEach(p -> active = p);
+        var checkpoints = new HashMap<String, Checkpoint>();
+        store.all("repair-checkpoints", Checkpoint.class).forEach(c -> checkpoints.put(c.runId(), c));
         for (var run : store.all("repair-runs", RepairRun.class)) {
-            if (List.of("QUEUED", "RUNNING", "APPLYING").contains(run.status())) {
+            var checkpoint = checkpoints.get(run.id());
+            if (recoverable(run, clock) && checkpoint != null
+                    && checkpoint.policy().version().equals(run.policyVersion())
+                    && repositories.head(run.repositoryId()).equals(run.baseCommit())) {
+                recovery.put(run.id(), checkpoint);
+            } else if (List.of("QUEUED", "RUNNING", "APPLYING").contains(run.status())) {
                 boolean committed =
                         run.status().equals("APPLYING")
                                 && repositories.matchesApprovedCommit(
@@ -139,10 +156,27 @@ public class RepairService implements AutoCloseable {
 
     @jakarta.annotation.PostConstruct
     void registerCapacityMetrics() {
-        if (metrics == null) return;
-        metrics.gauge("platform.repair.active", workers, ThreadPoolExecutor::getActiveCount);
-        metrics.gauge("platform.repair.queued", workers, w -> w.getQueue().size());
-        metrics.gauge("platform.repair.slots", workers, ThreadPoolExecutor::getCorePoolSize);
+        if (metrics != null) {
+            metrics.gauge("platform.repair.active", workers, ThreadPoolExecutor::getActiveCount);
+            metrics.gauge("platform.repair.queued", workers, w -> w.getQueue().size());
+            metrics.gauge("platform.repair.slots", workers, ThreadPoolExecutor::getCorePoolSize);
+        }
+        for (var checkpoint : recovery.values()) {
+            var run = require(checkpoint.runId());
+            var future = new FutureTask<Void>(() -> { execute(run, checkpoint.policy(), null); return null; });
+            futures.put(run.id(), future);
+            try {
+                workers.execute(future);
+            } catch (RejectedExecutionException full) {
+                futures.remove(run.id());
+                var e = new Execution(run);
+                e.status = "INTERRUPTED";
+                e.detail = "Recovery exceeds the configured repair capacity; submit a new run.";
+                e.completedAt = clock.instant();
+                save(e.freeze());
+            }
+        }
+        recovery.clear();
     }
 
     public Map<String, Object> capacity() {
@@ -272,7 +306,11 @@ public class RepairService implements AutoCloseable {
                         null,
                         null,
                         "Queued for an isolated worker.");
-        save(run);
+        if (provider.equals("mutation-search") && "remote".equals(sandbox.capabilities().get("mode"))) {
+            store.putBatch(List.of(new StateStore.Write("repair-runs", id, run),
+                    new StateStore.Write("repair-checkpoints", id, new Checkpoint(id, policy))));
+            runs.put(id, run);
+        } else save(run);
         var future =
                 new FutureTask<Void>(
                         () -> {
@@ -284,6 +322,7 @@ public class RepairService implements AutoCloseable {
             workers.execute(future);
         } catch (RejectedExecutionException full) {
             store.remove("repair-runs", id);
+            store.remove("repair-checkpoints", id);
             runs.remove(id);
             futures.remove(id);
             throw new PlatformException(
@@ -301,9 +340,19 @@ public class RepairService implements AutoCloseable {
     private void execute(
             RepairRun initial, RepairPolicy policy, PromptPolicies.Policy promptPolicy) {
         var e = new Execution(initial);
+        // Rebuild the deterministic trace from durable per-step test receipts. Reuse the pinned
+        // policy and base revision; a recovery never gets a new deadline or automatic approval.
+        e.steps.clear();
+        e.attempts = 0;
+        e.baseline = null;
+        e.verification = null;
+        e.changes = List.of();
         Path worktree = null;
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(initial.timeoutSeconds());
+        long remainingNanos = Math.min(TimeUnit.SECONDS.toNanos(initial.timeoutSeconds()),
+                Duration.between(clock.instant(), initial.createdAt().plusSeconds(initial.timeoutSeconds())).toNanos());
+        long deadline = System.nanoTime() + Math.max(0, remainingNanos);
         try {
+            remaining(deadline);
             e.status = "RUNNING";
             e.detail = "Checking the baseline in an isolated test container.";
             save(e.freeze());

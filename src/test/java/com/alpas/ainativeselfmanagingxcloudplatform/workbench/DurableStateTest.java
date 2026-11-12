@@ -50,6 +50,12 @@ class DurableStateTest {
             planId = plan.id();
             digest = plan.digest();
             receipt = control.apply(planId, digest, "durable-retry-key").receipt();
+            var effect = store.all("effect-intents", ControlPlane.EffectIntent.class).getFirst();
+            assertEquals("COMPLETED", effect.status());
+            assertEquals(store.leaderEpoch(), effect.leaderEpoch());
+            assertEquals(receipt.operationId(), effect.operationId());
+            assertEquals(digest, effect.digest());
+            assertEquals("durable-retry-key", effect.idempotencyKey());
             feedback.capture(
                     runId, "Retain a reviewed regression after restart.", plan.intent(), "ALLOW");
             control.injectFault(plan.environmentId(), "replica-loss");
@@ -104,6 +110,8 @@ class DurableStateTest {
                     environment,
                     new ControlPlane.EnvironmentSnapshot(
                             environment, 0, 0, null, null, List.of(), id));
+            store.put("effect-intents", "crashed-effect", new ControlPlane.EffectIntent(
+                    "crashed-effect", id, environment, digest, "interrupted-key", store.leaderEpoch(), "STARTED"));
         }
         try (var store = new StateStore(json, directory.toString())) {
             var audit = new AuditLog(CLOCK, store);
@@ -111,6 +119,7 @@ class DurableStateTest {
                     new ControlPlane(
                             compiler, new SandboxAdapter(store), audit, CLOCK, metrics, store);
             assertEquals("UNKNOWN", control.environment(environment).convergence());
+            assertEquals("UNKNOWN", store.all("effect-intents", ControlPlane.EffectIntent.class).getFirst().status());
             assertNull(control.environment(environment).desired());
             assertTrue(
                     control.environments().stream()
@@ -146,6 +155,38 @@ class DurableStateTest {
         try (var store = new StateStore(json, directory.toString())) {
             store.put("test", "one", new AuditLog.Snapshot(List.of()));
             assertTrue(java.nio.file.Files.exists(directory.resolve("state.mv.db")));
+        }
+    }
+
+    @Test
+    void delayedAdapterResponseCannotCommitAfterLeadershipChanges() {
+        var successor = new java.util.concurrent.atomic.AtomicReference<StateStore>();
+        var recovered = new java.util.concurrent.atomic.AtomicReference<ControlPlane>();
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        try (var first = new StateStore(json, directory.toString())) {
+            RuntimeAdapter delayed = new RuntimeAdapter() {
+                public IntentSpec observe(String id) { return null; }
+                public void inject(String id, String kind) {}
+                public IntentSpec apply(String id, IntentSpec target) {
+                    calls.incrementAndGet();
+                    var next = new StateStore(json, directory.toString());
+                    successor.set(next);
+                    recovered.set(new ControlPlane(compiler, new SandboxAdapter(next),
+                            new AuditLog(CLOCK, next), CLOCK, metrics, next));
+                    return target;
+                }
+            };
+            var control = new ControlPlane(compiler, delayed, new AuditLog(CLOCK, first), CLOCK, metrics, first);
+            var plan = control.propose(safe());
+            assertEquals("STATE_UNAVAILABLE", assertThrows(PlatformException.class,
+                    () -> control.apply(plan.id(), plan.digest(), "delayed-effect-key")).code());
+            assertEquals("UNKNOWN", recovered.get().environment(plan.environmentId()).convergence());
+            assertEquals("UNKNOWN", successor.get().all("effect-intents", ControlPlane.EffectIntent.class).getFirst().status());
+            assertEquals("STALE_PLAN", assertThrows(PlatformException.class,
+                    () -> recovered.get().apply(plan.id(), plan.digest(), "delayed-effect-key")).code());
+            assertEquals(1, calls.get());
+        } finally {
+            if (successor.get() != null) successor.get().close();
         }
     }
 

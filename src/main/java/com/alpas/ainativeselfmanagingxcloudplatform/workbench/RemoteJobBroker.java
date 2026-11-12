@@ -8,7 +8,7 @@ import java.time.*;
 import java.util.*;
 
 /**
- * Single-coordinator queue. Lease tokens fence late results; interrupted jobs are never replayed.
+ * Durable isolated-test queue. Epoch-bound lease tokens and conditional transitions fence late results.
  */
 @Component
 public final class RemoteJobBroker implements SandboxExecutor {
@@ -25,7 +25,8 @@ public final class RemoteJobBroker implements SandboxExecutor {
             String fence,
             Instant leaseUntil,
             int deliveries,
-            TestResult result) {}
+            TestResult result,
+            long leaderEpoch) {}
 
     public record Lease(
             String id,
@@ -59,21 +60,23 @@ public final class RemoteJobBroker implements SandboxExecutor {
         this.capacity = capacity;
         this.store = store;
         this.clock = clock;
+        var recoverable = new HashSet<String>();
+        var checkpoints = new HashMap<String, RepairService.Checkpoint>();
+        store.all("repair-checkpoints", RepairService.Checkpoint.class).forEach(c -> checkpoints.put(c.runId(), c));
+        for (var run : store.all("repair-runs", RepairRun.class)) {
+            var checkpoint = checkpoints.get(run.id());
+            if (checkpoint != null && checkpoint.policy().version().equals(run.policyVersion())
+                    && RepairService.recoverable(run, clock)) recoverable.add(run.id());
+        }
         for (var job : store.all("worker-jobs", Job.class)) {
-            if (active(job))
-                job =
-                        changed(
-                                job,
-                                "INTERRUPTED",
-                                "",
-                                "",
-                                clock.instant(),
-                                job.deliveries(),
-                                failure(
-                                        "INTERRUPTED",
-                                        "Coordinator restarted; submit a new repair."));
             jobs.put(job.id(), job);
-            store.put("worker-jobs", job.id(), job);
+            if (active(job) && !recoverable.contains(job.owner()))
+                save(changed(job, "INTERRUPTED", "", "", clock.instant(), job.deliveries(),
+                        failure("INTERRUPTED", "No resumable repair checkpoint; submit a new repair.")));
+            else if (job.status().equals("QUEUED"))
+                save(changed(job, "QUEUED", "", "", clock.instant(), job.deliveries(), null));
+            // Keep an old leased job until expiry; reject its old epoch immediately. Only the
+            // isolated test may be redelivered, never an approval, Git commit or provider write.
         }
     }
 
@@ -106,7 +109,8 @@ public final class RemoteJobBroker implements SandboxExecutor {
                 fence,
                 lease,
                 deliveries,
-                result);
+                result,
+                store.leaderEpoch());
     }
 
     private static boolean activeStatus(String s) {
@@ -114,15 +118,19 @@ public final class RemoteJobBroker implements SandboxExecutor {
     }
 
     private void save(Job j) {
-        store.put("worker-jobs", j.id(), j);
         var previous = jobs.get(j.id());
+        if (previous != null && !active(previous) && !previous.equals(j))
+            throw new PlatformException(409, "JOB_TERMINAL", "A terminal worker receipt cannot be overwritten.");
+        if (!store.compareAndSet("worker-jobs", j.id(), previous, j, Job.class))
+            throw new PlatformException(409, "JOB_CHANGED", "The durable job changed; reload before retrying.");
         if (metrics != null && (previous == null || !previous.status().equals(j.status())))
             metrics.counter("platform.worker.jobs", "state", j.status()).increment();
         jobs.put(j.id(), j);
-        notifyAll();
+        synchronized (this) { notifyAll(); }
     }
 
     private void reap() {
+        store.requireAvailable();
         var now = clock.instant();
         for (var j : List.copyOf(jobs.values())) {
             if (!active(j)) continue;
@@ -192,7 +200,7 @@ public final class RemoteJobBroker implements SandboxExecutor {
                                 j,
                                 "LEASED",
                                 worker,
-                                UUID.randomUUID().toString(),
+                                store.leaderEpoch() + ":" + UUID.randomUUID(),
                                 clock.instant().plusSeconds(20),
                                 j.deliveries() + 1,
                                 null);
@@ -250,7 +258,8 @@ public final class RemoteJobBroker implements SandboxExecutor {
 
     private Job authorized(String id, String worker, String fence) {
         var j = jobs.get(id);
-        if (j == null || !j.worker().equals(worker) || !j.fence().equals(fence))
+        if (j == null || j.leaderEpoch() != store.leaderEpoch()
+                || !j.worker().equals(worker) || !j.fence().equals(fence))
             throw new PlatformException(
                     409, "STALE_LEASE", "Worker identity or lease token is stale.");
         return j;
@@ -274,7 +283,7 @@ public final class RemoteJobBroker implements SandboxExecutor {
         result.put("queued", jobs.values().stream().filter(j -> j.status().equals("QUEUED")).count());
         result.put("leased", jobs.values().stream().filter(j -> j.status().equals("LEASED")).count());
         result.put("retainedJobs", jobs.size());
-        result.put("detail", "Authenticated Docker workers; 20-second fenced leases, two deliveries, bounded queue.");
+        result.put("detail", "Authenticated Docker workers; epoch-bound 20-second leases, two deliveries, durable queue.");
         return result;
     }
 
@@ -299,7 +308,9 @@ public final class RemoteJobBroker implements SandboxExecutor {
                                         "deadline",
                                         j.deadline(),
                                         "worker",
-                                        j.worker()))
+                                        j.worker(),
+                                        "leaderEpoch",
+                                        j.leaderEpoch()))
                 .toList();
     }
 
@@ -317,43 +328,36 @@ public final class RemoteJobBroker implements SandboxExecutor {
         reap();
         if (budget.isNegative() || budget.isZero())
             return failure("TIMEOUT", "No execution budget remains.");
-        if (jobs.values().stream().filter(this::active).count() >= capacity.remoteJobs())
-            throw new PlatformException(429, "WORKER_QUEUE_FULL", "Execution queue is full.");
-        while (jobs.size() >= capacity.jobHistory()) {
-            var old = jobs.values().stream()
-                    .filter(j -> !active(j) && !awaitingResults.contains(j.id()))
-                    .findFirst().orElseThrow(() -> new PlatformException(
-                            429, "WORKER_HISTORY_FULL", "Execution results are still being collected."));
-            jobs.remove(old.id());
-            store.remove("worker-jobs", old.id());
+        String digest = IntentCompiler.digest(new WorkbenchConfiguration().jsonMapper()
+                .writeValueAsString(List.of(new TreeMap<>(files), testClass)));
+        boolean resumable = store.all("repair-checkpoints", RepairService.Checkpoint.class).stream()
+                .anyMatch(c -> c.runId().equals(owner));
+        String id = resumable
+                ? IntentCompiler.digest(new WorkbenchConfiguration().jsonMapper()
+                        .writeValueAsString(List.of("test-step-v1", owner, phase)))
+                : UUID.randomUUID().toString();
+        var existing = jobs.get(id);
+        if (existing != null && !existing.inputDigest().equals(digest))
+            throw new PlatformException(409, "STEP_INPUT_CHANGED", "A recovered step must use its original immutable inputs.");
+        if (existing == null) {
+            if (jobs.values().stream().filter(this::active).count() >= capacity.remoteJobs())
+                throw new PlatformException(429, "WORKER_QUEUE_FULL", "Execution queue is full.");
+            while (jobs.size() >= capacity.jobHistory()) {
+                var liveRuns = store.all("repair-runs", RepairRun.class).stream()
+                        .filter(r -> Set.of("QUEUED", "RUNNING").contains(r.status()))
+                        .map(RepairRun::id).collect(java.util.stream.Collectors.toSet());
+                var old = jobs.values().stream()
+                        .filter(j -> !active(j) && !awaitingResults.contains(j.id()) && !liveRuns.contains(j.owner()))
+                        .findFirst().orElseThrow(() -> new PlatformException(
+                                429, "WORKER_HISTORY_FULL", "Execution results are still being collected."));
+                store.remove("worker-jobs", old.id());
+                jobs.remove(old.id());
+            }
+            var deadline = clock.instant().plus(budget.compareTo(Duration.ofSeconds(120)) > 0
+                    ? Duration.ofSeconds(120) : budget);
+            save(new Job(id, owner, phase, digest, Map.copyOf(files), testClass, deadline,
+                    "QUEUED", "", "", clock.instant(), 0, null, store.leaderEpoch()));
         }
-        String id = UUID.randomUUID().toString();
-        String digest =
-                IntentCompiler.digest(
-                        new WorkbenchConfiguration()
-                                .jsonMapper()
-                                .writeValueAsString(List.of(new TreeMap<>(files), testClass)));
-        var deadline =
-                clock.instant()
-                        .plus(
-                                budget.compareTo(Duration.ofSeconds(120)) > 0
-                                        ? Duration.ofSeconds(120)
-                                        : budget);
-        save(
-                new Job(
-                        id,
-                        owner,
-                        phase,
-                        digest,
-                        Map.copyOf(files),
-                        testClass,
-                        deadline,
-                        "QUEUED",
-                        "",
-                        "",
-                        clock.instant(),
-                        0,
-                        null));
         awaitingResults.add(id);
         long stop = System.nanoTime() + budget.toNanos();
         try {
@@ -377,7 +381,7 @@ public final class RemoteJobBroker implements SandboxExecutor {
             return jobs.get(id).result();
         } catch (InterruptedException cancelled) {
             var j = jobs.get(id);
-            save(
+            if (active(j)) save(
                     changed(
                             j,
                             "CANCELLED",

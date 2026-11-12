@@ -26,12 +26,12 @@ CI executes the same real consensus experiment in a dedicated `raft-quorum` job 
 
 ## Next production integration (not yet implemented)
 
-The existing Java `StateStore` is a **single-writer** store, and `RemoteJobBroker` still recovers in-flight work as interrupted. These currently prevent a safe multi-active coordinator deployment:
+The Java [coordinator recovery contract](coordinator-recovery.md) now supplies persisted epochs, database-clock leases, conditional worker transitions and deterministic repair checkpoints. PostgreSQL cold standby is available in an explicit restricted mode. The next independent etcd integration must:
 
-- Add `CoordinationService` abstraction with controlled migration from a single-node owner to etcd-backed lease ownership.
-- Add **monotonic leader epochs in PostgreSQL** and require the epoch in every privileged operation, queue transition and receipt commit. An etcd revision alone is not sufficient if database/state writes are unfenced.
-- Persist pending queue/lease transitions and reconcile uncertain external side effects before redelivery.
+- Add an etcd ownership/renewal gate without weakening PostgreSQL fencing or loading stale service caches.
+- Define a durable relationship between an etcd election proof and the database epoch; an etcd revision alone does not fence PostgreSQL or provider writes.
+
 - Perform bounded renewal and fail closed on quorum loss, expiration, bad epoch or PostgreSQL failure; perform a positive leadership check **before** starting external effects and enforce downstream idempotency/fencing.
 - Test SIGKILL, asymmetric network partitions, delayed external effects, lease expiry, Postgres outages and real recovery of the Java application; require separately managed TLS, etcd backups and failure-domain separation before production.
 
-**Do not deploy more than one active Java coordinator now**. A three-node etcd cluster only provides consensus for its own keyspace; it does not make PostgreSQL, the Java control plane or cloud API effects highly available. The SRE telemetry and on-call runbook changes are tracked separately in PR #16.
+**Do not deploy more than one active Java coordinator now**. A three-node etcd cluster only provides consensus for its own keyspace; it does not make PostgreSQL, the Java control plane or cloud API effects highly available. The SRE telemetry and on-call runbook changes from PR #16 are merged.
