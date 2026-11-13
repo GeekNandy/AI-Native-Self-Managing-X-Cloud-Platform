@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Verify durable worker-job recovery across real JVM crashes using a simulated worker.
 
-This exercises authenticated HTTP, H2 persistence and epoch fencing. It does not
+This exercises authenticated HTTP, H2 persistence, deterministic repair resumption
+and epoch fencing. It does not
 execute repository tests, run Docker, call a model or prove distributed failover.
 """
 import argparse
@@ -91,6 +92,7 @@ def main():
             'PLATFORM_OPERATOR_TOKEN': operator, 'PLATFORM_AGENT_TOKEN': agent,
             'PLATFORM_WORKER_TOKEN': worker, 'PLATFORM_AI_PROVIDER': 'fixture',
             'PLATFORM_RUNTIME': 'sandbox', 'PLATFORM_EXECUTION_MODE': 'remote',
+            'PLATFORM_COORDINATOR_MODE': 'single',
             'PLATFORM_NODE_ROLE': 'coordinator', 'SERVER_ADDRESS': '127.0.0.1',
             'PORT': str(port), 'DEMO_AUTH_REQUIRED': 'false', 'DEMO_EPHEMERAL': 'false',
             'DEMO_USERNAME': '', 'DEMO_PASSWORD': '', 'PUBLIC_ORIGIN': '',
@@ -139,10 +141,12 @@ def main():
             crash(first)
 
             second = start()
-            interrupted = call('/api/code/runs/' + run['id'])
+            resumed = call('/api/code/runs/' + run['id'])
             recovered = call(job_path)
-            check('repairRemainsInterrupted', interrupted['status'] == 'INTERRUPTED'
-                  and not interrupted.get('approvedCommit'))
+            check('repairAutomaticallyResumes', resumed['status'] in ('QUEUED', 'RUNNING')
+                  and resumed['createdAt'] == run['createdAt']
+                  and resumed['timeoutSeconds'] == run['timeoutSeconds']
+                  and not resumed.get('approvedCommit'))
             check('jobRecoveredQueued', recovered['status'] == 'QUEUED'
                   and recovered['deliveries'] == 1)
             check('immutableInputsAndDeadlinePreserved',
@@ -171,6 +175,14 @@ def main():
                   and receipt['result'] == fixture)
             check('duplicateCompletionAccepted', complete(current)['accepted'])
             check('duplicateCompletionUnchanged', call(job_path) == receipt)
+            resumed_result = until(lambda: (
+                r if (r := call('/api/code/runs/' + run['id']))['status']
+                not in ('QUEUED', 'RUNNING') else None), 15, 'resumed baseline receipt consumption')
+            check('resumedRepairConsumesRetainedReceipt',
+                  resumed_result['status'] == 'BASELINE_PASSED'
+                  and resumed_result['baseline'] == fixture
+                  and resumed_result['attempts'] == 0
+                  and not resumed_result.get('approvedCommit'))
             crash(second)
 
             start()
@@ -182,9 +194,9 @@ def main():
             check('previousEpochCannotRewriteReceipt', call(job_path) == restored)
             check('completedJobNotRedelivered', claim()['available'] is False)
             final_runs = call('/api/code/runs')
-            check('noAutomaticRepairOrApproval', len(final_runs) == 1
+            check('noDuplicateRepairOrAutomaticApproval', len(final_runs) == 1
                   and final_runs[0]['id'] == run['id']
-                  and final_runs[0]['status'] == 'INTERRUPTED'
+                  and final_runs[0] == resumed_result
                   and not final_runs[0].get('approvedCommit')
                   and len(call('/api/code/workers/jobs')) == 1
                   and next(r for r in call('/api/code/repositories')
@@ -205,7 +217,7 @@ def main():
                         child.wait(timeout=5)
 
     report = {'recordedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        'experiment': 'Two coordinator SIGKILLs; fresh JVMs; retained H2 state; authenticated simulated worker',
+        'experiment': 'Two coordinator SIGKILLs; fresh JVMs; retained H2 state; automatic deterministic repair resumption; authenticated simulated worker',
         'artifactSha256': hashlib.sha256(args.jar.read_bytes()).hexdigest(),
         'checks': checks, 'observations': observations,
         'elapsedSeconds': round(time.monotonic() - started, 3),

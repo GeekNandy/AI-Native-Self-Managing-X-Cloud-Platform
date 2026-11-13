@@ -49,6 +49,7 @@ class StateStoreLeadershipTest {
             store.put("test", "receipt", "legacy");
         }
         try (var connection = raw(); var statement = connection.createStatement()) {
+            statement.executeUpdate("DROP TABLE workbench_leadership");
             statement.executeUpdate("DELETE FROM workbench_state WHERE bucket='coordinator' AND item_id IN ('epoch','epoch-format')");
             statement.executeUpdate("UPDATE workbench_state SET payload='00000000-0000-0000-0000-000000000001' WHERE bucket='coordinator' AND item_id='owner'");
         }
@@ -58,6 +59,31 @@ class StateStoreLeadershipTest {
         }
         try (var restarted = new StateStore(json, directory.toString())) {
             assertEquals(2, restarted.leaderEpoch());
+        }
+    }
+
+    @Test
+    void upgradesBothEpochOnlyAndLeaseOnlyReleasesWithoutResettingFences() throws Exception {
+        try (var store = new StateStore(json, directory.toString())) {
+            store.put("test", "receipt", "preserved");
+        }
+        try (var connection = raw(); var statement = connection.createStatement()) {
+            // PR19 before integration had epoch metadata and no lease table.
+            statement.executeUpdate("DROP TABLE workbench_leadership");
+            statement.executeUpdate("UPDATE workbench_state SET payload='9' WHERE bucket='coordinator' AND item_id='epoch'");
+        }
+        try (var upgraded = new StateStore(json, directory.toString())) {
+            assertEquals(10, upgraded.leaderEpoch());
+            assertEquals(List.of("preserved"), upgraded.all("test", String.class));
+        }
+        try (var connection = raw(); var statement = connection.createStatement()) {
+            // PR18 persisted epochs in the lease table, with only a legacy owner row.
+            statement.executeUpdate("DELETE FROM workbench_state WHERE bucket='coordinator' AND item_id IN ('epoch','epoch-format')");
+            statement.executeUpdate("UPDATE workbench_leadership SET leader_epoch=20");
+        }
+        try (var upgraded = new StateStore(json, directory.toString())) {
+            assertEquals(21, upgraded.leaderEpoch());
+            assertEquals(List.of("preserved"), upgraded.all("test", String.class));
         }
     }
 

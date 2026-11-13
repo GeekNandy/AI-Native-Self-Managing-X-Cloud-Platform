@@ -83,6 +83,8 @@ public final class RemoteJobBroker implements SandboxExecutor {
         }
         void save(Job job) {
             var before = get(job.id());
+            if (before != null && !active(before) && !before.equals(job))
+                throw new PlatformException(409, "JOB_TERMINAL", "A terminal worker receipt cannot be overwritten.");
             tx.put("worker-jobs", job.id(), job);
             if (before == null || !before.status().equals(job.status())) transitions.add(job.status());
         }
@@ -235,8 +237,12 @@ public final class RemoteJobBroker implements SandboxExecutor {
             }
             if (jobs.stream().filter(RemoteJobBroker::active).count() >= capacity.remoteJobs())
                 throw new PlatformException(429, "WORKER_QUEUE_FULL", "Execution queue is full.");
+            var liveRuns = q.tx.all("repair-runs", RepairRun.class).stream()
+                    .filter(r -> Set.of("QUEUED", "RUNNING").contains(r.status()))
+                    .map(RepairRun::id).collect(java.util.stream.Collectors.toSet());
             while (jobs.size() >= capacity.jobHistory()) {
-                var old = jobs.stream().filter(j -> !active(j) && !awaitingResults.containsKey(j.id()))
+                var old = jobs.stream().filter(j -> !active(j) && !awaitingResults.containsKey(j.id())
+                                && !liveRuns.contains(j.owner()))
                         .findFirst().orElseThrow(() -> new PlatformException(429, "WORKER_HISTORY_FULL",
                                 "Execution results are still being collected."));
                 q.tx.remove("worker-jobs", old.id());

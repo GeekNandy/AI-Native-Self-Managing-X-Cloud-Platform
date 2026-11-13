@@ -1,0 +1,25 @@
+[Unit]
+Description=X Cloud fenced coordinator %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=xcloud
+Group=xcloud
+StateDirectory=xcloud-coordinator-%i
+WorkingDirectory=/var/lib/xcloud-coordinator-%i
+Environment=PLATFORM_DATA_DIR=/var/lib/xcloud-coordinator-%i
+EnvironmentFile=/etc/xcloud/coordinator-%i.env
+ExecStart=/usr/bin/java -Xmx512m -jar /opt/xcloud/workbench.jar
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

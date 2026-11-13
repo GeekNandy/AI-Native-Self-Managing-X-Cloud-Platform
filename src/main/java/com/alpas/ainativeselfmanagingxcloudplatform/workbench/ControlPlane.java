@@ -56,6 +56,13 @@ public class ControlPlane {
             List<Receipt> receipts,
             String pendingPlan) {}
 
+    public record EffectIntent(String operationId, String planId, String environmentId,
+            String digest, String idempotencyKey, long leaderEpoch, String status) {
+        EffectIntent withStatus(String next) {
+            return new EffectIntent(operationId, planId, environmentId, digest, idempotencyKey, leaderEpoch, next);
+        }
+    }
+
     public ControlPlane(
             IntentCompiler compiler,
             RuntimeAdapter adapter,
@@ -79,6 +86,7 @@ public class ControlPlane {
         this.clock = clock;
         this.metrics = metrics;
         this.store = store;
+        var effects = store.all("effect-intents", EffectIntent.class);
         for (var saved : store.all("environments", EnvironmentSnapshot.class)) {
             var e = new Environment(saved.id());
             e.revision = saved.revision();
@@ -98,7 +106,9 @@ public class ControlPlane {
                 e.observed = null;
                 e.revision++;
                 e.pendingPlan = null;
-                persist(e);
+                var pending = effects.stream().filter(effect -> effect.planId().equals(interrupted)
+                        && effect.status().equals("STARTED")).findFirst().orElse(null);
+                persist(e, pending == null ? null : pending.withStatus("UNKNOWN"));
                 audit.append(
                         "OPERATION_RECOVERY_REQUIRED",
                         "recovery",
@@ -115,17 +125,21 @@ public class ControlPlane {
     }
 
     private void persist(Environment e) {
-        store.put(
-                "environments",
-                e.id,
-                new EnvironmentSnapshot(
+        persist(e, null);
+    }
+
+    private void persist(Environment e, EffectIntent effect) {
+        var writes = new ArrayList<StateStore.Write>();
+        writes.add(new StateStore.Write("environments", e.id, new EnvironmentSnapshot(
                         e.id,
                         e.revision,
                         e.desiredVersion,
                         e.desired,
                         e.observed,
                         List.copyOf(e.receipts.values()),
-                        e.pendingPlan));
+                        e.pendingPlan)));
+        if (effect != null) writes.add(new StateStore.Write("effect-intents", effect.operationId(), effect));
+        store.putBatch(writes);
     }
 
     public String executionMode() {
@@ -345,9 +359,12 @@ public class ControlPlane {
                     "Reviewed digest " + plan.digest());
             audit.append("OPERATION_STARTED", "control-plane", environment.id, id, operationId);
             environment.pendingPlan = id;
-            persist(environment); // Write-ahead marker precedes every external side effect.
+            var effect = new EffectIntent(operationId, id, environment.id, plan.digest(),
+                    idempotencyKey, store.leaderEpoch(), "STARTED");
+            persist(environment, effect); // Approval, epoch and write-ahead marker commit together.
             IntentSpec observed;
             try {
+                store.requireAvailable();
                 observed = adapter.apply(environment.id, plan.intent());
                 if (!plan.intent().equals(observed))
                     throw new IllegalStateException("Adapter did not converge");
@@ -361,7 +378,7 @@ public class ControlPlane {
                 }
                 environment.revision++;
                 environment.pendingPlan = null;
-                persist(environment);
+                persist(environment, effect.withStatus("UNKNOWN"));
                 audit.append(
                         "OPERATION_FAILED",
                         "control-plane",
@@ -391,7 +408,7 @@ public class ControlPlane {
                             clock.instant());
             environment.receipts.put(idempotencyKey, receipt);
             environment.pendingPlan = null;
-            persist(environment);
+            persist(environment, effect.withStatus("COMPLETED"));
             completedPlans.put(id, receipt);
             audit.append(
                     "OPERATION_SUCCEEDED",

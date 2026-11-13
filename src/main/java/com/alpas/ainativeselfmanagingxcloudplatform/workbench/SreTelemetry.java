@@ -15,6 +15,18 @@ public final class SreTelemetry {
     private final Counter readyChecks;
     private final Counter notReadyChecks;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public SreTelemetry(MeterRegistry metrics, StateStore state) {
+        this(metrics);
+        Gauge.builder("platform.coordinator.epoch", state, StateStore::leaderEpoch)
+                .description("Persisted epoch of this coordinator instance")
+                .register(metrics);
+        Gauge.builder("platform.coordinator.fenced", state,
+                s -> Boolean.TRUE.equals(s.status().get("available")) ? 0 : 1)
+                .description("Whether this coordinator has permanently failed closed")
+                .register(metrics);
+    }
+
     public SreTelemetry(MeterRegistry metrics) {
         Gauge.builder("platform.readiness.state", readiness, AtomicInteger::doubleValue)
                 .description("Last observed /readyz result: 1 ready, 0 not ready or not yet checked")

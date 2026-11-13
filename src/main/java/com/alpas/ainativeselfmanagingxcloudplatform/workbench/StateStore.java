@@ -9,23 +9,27 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.util.concurrent.*;
 import java.util.*;
 import java.util.function.Function;
 
 /**
- * Single active coordinator with durable replacement epochs. The ownership row is locked through
- * every read/write transaction; replacing a coordinator cannot race a checked state mutation.
- * This is replacement fencing, not a lease-based election or a multi-active coordinator service.
+ * Atomic state transactions fenced by a persisted epoch and a database-clock lease.
+ * Ownership stays locked through every transaction, with expiry checked again before commit.
  */
 public final class StateStore implements AutoCloseable {
     private final JsonMapper json;
-    private final Connection connection;
+    private Connection connection;
+    private CoordinatorLease lease;
+    private ScheduledExecutorService renewal;
     private final Map<Key, String> volatileRows = new HashMap<>();
     private final Path directory;
     private boolean failedClosed;
     private final boolean postgres;
     private final String coordinator = UUID.randomUUID().toString();
-    private final long epoch;
+    private long epoch = 1;
+    private final String mode;
     private StateTransaction activeTransaction;
 
     private record Key(String bucket, String id) {}
@@ -52,74 +56,92 @@ public final class StateStore implements AutoCloseable {
     }
 
     public StateStore(JsonMapper json, String location, String databaseUrl) {
+        this(json, location, databaseUrl, "single", 30, 0);
+    }
+
+    public StateStore(JsonMapper json, String location, String databaseUrl,
+            String mode, int leaseSeconds, int acquireTimeoutSeconds) {
         this.json = Objects.requireNonNull(json);
         postgres = databaseUrl != null && !databaseUrl.isBlank();
-        Connection opened = null;
+        this.mode = mode;
+        if (!Set.of("single", "lease").contains(mode) || (mode.equals("lease") && !postgres)
+                || acquireTimeoutSeconds < 0 || acquireTimeoutSeconds > 600)
+            throw new IllegalArgumentException("Lease coordination requires PostgreSQL and a 0–600 second acquisition timeout");
+        directory = "memory".equals(location) ? null : Path.of(location).toAbsolutePath().normalize();
         try {
-            directory =
-                    "memory".equals(location)
-                            ? null
-                            : Path.of(location).toAbsolutePath().normalize();
             if (directory != null) {
                 Files.createDirectories(directory);
-                Files.setPosixFilePermissions(
-                        directory,
+                Files.setPosixFilePermissions(directory,
                         java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
             }
-            String url =
-                    directory == null
-                            ? "jdbc:h2:mem:" + UUID.randomUUID()
-                            : "jdbc:h2:file:"
-                                    + directory.resolve("state")
-                                    + ";DB_CLOSE_ON_EXIT=FALSE;WRITE_DELAY=0";
-            opened =
-                    postgres
-                            ? postgresConnection(databaseUrl)
-                            : DriverManager.getConnection(url, "sa", "");
-            connection = opened;
-            try (var statement = connection.createStatement()) {
-                statement.execute(
-                        "CREATE TABLE IF NOT EXISTS workbench_state (bucket VARCHAR(80), item_id"
-                                + " VARCHAR(120), payload "
-                                + (postgres ? "TEXT" : "CLOB")
-                                + " NOT NULL, PRIMARY KEY(bucket, item_id))");
+            String url = directory == null ? "jdbc:h2:mem:" + UUID.randomUUID()
+                    : "jdbc:h2:file:" + directory.resolve("state") + ";DB_CLOSE_ON_EXIT=FALSE;WRITE_DELAY=0";
+            connection = postgres ? postgresConnection(databaseUrl) : DriverManager.getConnection(url, "sa", "");
+            try (var sql = connection.createStatement()) {
+                if (postgres) {
+                    sql.execute("SET lock_timeout = '5s'");
+                    sql.execute("SET statement_timeout = '10s'");
+                    sql.execute("SET idle_in_transaction_session_timeout = '15s'");
+                } else sql.execute("SET LOCK_TIMEOUT 5000");
+                sql.execute("CREATE TABLE IF NOT EXISTS workbench_state (bucket VARCHAR(80), item_id VARCHAR(120),"
+                        + " payload " + (postgres ? "TEXT" : "CLOB")
+                        + " NOT NULL, PRIMARY KEY(bucket,item_id))");
+            }
+            lease = new CoordinatorLease(connection, postgres, coordinator, Duration.ofSeconds(leaseSeconds));
+            lease.initialize();
+            // Preserve the raw owner used by both older releases. Insert, never replace, before
+            // taking the lock so concurrent startup cannot displace an active lease.
+            try (var sql = connection.createStatement()) {
+                sql.executeUpdate("INSERT INTO workbench_state(bucket,item_id,payload) VALUES ('coordinator','owner','')");
+            } catch (SQLException exists) {
+                if (!"23505".equals(exists.getSQLState())) throw exists;
             }
             connection.setAutoCommit(false);
-            epoch = claimLeadership();
-        } catch (Exception e) {
-            // A failed migration/claim must not leave a live connection or H2 file lock behind.
-            if (opened != null) {
+            long stop = System.nanoTime() + TimeUnit.SECONDS.toNanos(acquireTimeoutSeconds);
+            while (true) {
+                boolean acquired;
                 try {
-                    if (!opened.getAutoCommit()) opened.rollback();
-                } catch (SQLException ignored) {
+                    acquired = claimLeadership();
+                } catch (SQLException locked) {
+                    // Only a never-acquired lease candidate may retry a paused owner's row lock.
+                    if (!mode.equals("lease") || lease.epoch() != 0 || !"55P03".equals(locked.getSQLState())) throw locked;
+                    acquired = false;
                 }
-                try {
-                    opened.close();
-                } catch (SQLException ignored) {
-                }
+                if (acquired) break;
+                connection.rollback();
+                if (System.nanoTime() >= stop) throw new IllegalStateException("Coordinator lease is held");
+                Thread.sleep(200);
             }
-            throw new IllegalStateException(
-                    "Cannot open workbench state. Check the data directory and ensure only one"
-                            + " server uses it.",
-                    postgres ? null : e);
+            connection.commit();
+            renewal = Executors.newSingleThreadScheduledExecutor(
+                    Thread.ofPlatform().daemon().name("coordinator-lease").factory());
+            renewal.scheduleWithFixedDelay(this::renewLease, leaseSeconds * 1000L / 3,
+                    leaseSeconds * 1000L / 3, TimeUnit.MILLISECONDS);
+        } catch (Exception failure) {
+            if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
+            failedClosed = true;
+            rollback();
+            close();
+            throw new IllegalStateException("Cannot acquire workbench state. Check storage and coordinator ownership.",
+                    postgres ? null : failure);
         }
     }
 
-    private long claimLeadership() throws SQLException {
-        // Keep the legacy raw UUID owner row so a pre-epoch PostgreSQL writer is also fenced.
-        // The upsert obtains the ownership lock before inspecting or incrementing the epoch.
-        writePayload("coordinator", "owner", coordinator);
+    private boolean claimLeadership() throws Exception {
+        // Use the same lock order as previous releases, including pre-lease epoch writers.
+        lockLegacyOwner(false);
         String previous = readPayload("coordinator", "epoch");
         String format = readPayload("coordinator", "epoch-format");
         if ((format != null && !format.equals("1")) || (format != null && previous == null))
             throw new IllegalStateException("Coordinator epoch metadata is missing or unsupported");
         long last = previous == null ? 0 : Long.parseLong(previous);
         if (last < 0) throw new IllegalStateException("Invalid coordinator epoch");
-        long next = Math.addExact(last, 1);
-        writePayload("coordinator", "epoch", Long.toString(next));
+        if (!lease.acquire(mode.equals("single"), last)) return false;
+        epoch = lease.epoch();
+        writePayload("coordinator", "owner", coordinator);
+        writePayload("coordinator", "epoch", Long.toString(epoch));
         writePayload("coordinator", "epoch-format", "1");
-        connection.commit();
-        return next;
+        return true;
     }
 
     private static Connection postgresConnection(String value) throws Exception {
@@ -156,7 +178,7 @@ public final class StateStore implements AutoCloseable {
         connection = null;
         directory = null;
         postgres = false;
-        epoch = 1;
+        mode = "single";
     }
 
     public static StateStore volatileStore() {
@@ -172,7 +194,9 @@ public final class StateStore implements AutoCloseable {
                 "backend", postgres ? "postgresql" : connection == null ? "memory" : "h2",
                 "available", !failedClosed,
                 "writerFenced", connection != null,
-                "leaderEpoch", epoch);
+                "leaderEpoch", epoch,
+                "coordinationMode", mode,
+                "leaseUntil", lease == null ? "process-local" : lease.expiresAt().toString());
     }
 
     public synchronized long leaderEpoch() {
@@ -188,18 +212,40 @@ public final class StateStore implements AutoCloseable {
         transaction(expected, tx -> null);
     }
 
-    private void assertFence() throws SQLException {
+    private void lockLegacyOwner(boolean requireOwner) throws SQLException {
         try (var query = connection.createStatement();
                 var row =
                         query.executeQuery(
                                 "SELECT payload FROM workbench_state WHERE bucket='coordinator' AND"
                                         + " item_id='owner' FOR UPDATE")) {
-            if (!row.next() || !coordinator.equals(row.getString(1)))
+            if (!row.next() || (requireOwner && !coordinator.equals(row.getString(1))))
                 throw new StorageFailure();
         }
+    }
+
+    private void assertFence() throws SQLException {
+        lockLegacyOwner(true);
         if (!Long.toString(epoch).equals(readPayload("coordinator", "epoch"))
                 || !"1".equals(readPayload("coordinator", "epoch-format")))
             throw new StorageFailure();
+        try {
+            lease.assertOwned();
+        } catch (Exception failure) {
+            throw new StorageFailure();
+        }
+    }
+
+    private synchronized void renewLease() {
+        if (failedClosed) return;
+        try {
+            assertFence();
+            lease.renew();
+            assertFence();
+            connection.commit();
+        } catch (Exception failure) {
+            failedClosed = true;
+            rollback();
+        }
     }
 
     public synchronized <T> T transaction(long expectedEpoch, Function<Transaction, T> work) {
@@ -213,7 +259,10 @@ public final class StateStore implements AutoCloseable {
             activeTransaction = tx;
             T result = work.apply(tx);
             if (tx.storageFailed) throw new StorageFailure();
-            if (connection != null) connection.commit();
+            if (connection != null) {
+                assertFence(); // Expiry may have passed while the callback held the ownership lock.
+                connection.commit();
+            }
             else {
                 volatileRows.clear();
                 volatileRows.putAll(tx.rows);
@@ -240,6 +289,15 @@ public final class StateStore implements AutoCloseable {
         transaction(epoch, tx -> {
             for (var write : writes) tx.put(write.bucket(), write.id(), write.value());
             return null;
+        });
+    }
+
+    /** Compare persisted values and commit the transition under the same ownership lock. */
+    public synchronized <T> boolean compareAndSet(String bucket, String id, T expected, T value, Class<T> type) {
+        return transaction(epoch, tx -> {
+            if (!Objects.equals(tx.get(bucket, id, type), expected)) return false;
+            tx.put(bucket, id, value);
+            return true;
         });
     }
 
@@ -405,7 +463,7 @@ public final class StateStore implements AutoCloseable {
         return new PlatformException(
                 503,
                 "STATE_UNAVAILABLE",
-                "Durable state is unavailable or this coordinator epoch has been replaced.");
+                "Coordinator ownership expired or durable state is unavailable. Stop mutations and restart after recovery.");
     }
 
     @PreDestroy
@@ -413,11 +471,19 @@ public final class StateStore implements AutoCloseable {
     public synchronized void close() {
         if (activeTransaction != null)
             throw new IllegalStateException("Cannot close a store inside its transaction");
-        failedClosed = true;
-        if (connection != null)
+        if (renewal != null) renewal.shutdownNow();
+        if (connection != null) {
             try {
-                connection.close();
-            } catch (SQLException ignored) {
+                if (!failedClosed && lease != null && lease.epoch() > 0) {
+                    assertFence();
+                    lease.release();
+                    connection.commit();
+                }
+            } catch (Exception ignored) {
+                rollback();
             }
+            try { connection.close(); } catch (SQLException ignored) {}
+        }
+        failedClosed = true;
     }
 }

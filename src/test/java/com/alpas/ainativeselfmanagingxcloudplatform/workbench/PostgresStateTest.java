@@ -22,6 +22,44 @@ class PostgresStateTest {
             new WorkbenchConfiguration().jsonMapper();
 
     @Test
+    void liveLeaseCannotBeStolenAndCleanHandoffIncrementsEpoch() {
+        long epoch;
+        try (var active = new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"), "lease", 30, 0)) {
+            epoch = active.leaderEpoch();
+            assertThrows(IllegalStateException.class,
+                    () -> new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"), "lease", 30, 0));
+            active.put("lease-test", "receipt", "committed");
+        }
+        try (var next = new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"), "lease", 30, 0)) {
+            assertEquals(epoch + 1, next.leaderEpoch());
+            assertEquals(List.of("committed"), next.all("lease-test", String.class));
+            next.remove("lease-test", "receipt");
+        }
+    }
+
+    @Test
+    void transactionCannotCommitAfterItsDatabaseClockLeaseExpires() {
+        String bucket = "lease-expiry-" + UUID.randomUUID();
+        try (var store = new StateStore(json, "memory", System.getenv("TEST_DATABASE_URL"), "single", 5, 0)) {
+            store.put(bucket, "receipt", "before");
+            long epoch = store.leaderEpoch();
+            assertUnavailable(() -> store.transaction(epoch, tx -> {
+                tx.put(bucket, "receipt", "expired");
+                try {
+                    Thread.sleep(5_100);
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(failure);
+                }
+                return null;
+            }));
+        }
+        try (var next = open()) {
+            assertEquals(List.of("before"), next.all(bucket, String.class));
+        }
+    }
+
+    @Test
     void replacementCoordinatorFencesOldReadsAndWritesAndRestoresGitFromDatabase() {
         try (var first = open()) {
             long epoch = first.leaderEpoch();
@@ -143,7 +181,8 @@ class PostgresStateTest {
         String bucket = "epoch-legacy-" + UUID.randomUUID();
         try (var first = open()) { first.put(bucket, "receipt", "legacy"); }
         try (var connection = rawConnection(); var statement = connection.createStatement()) {
-            // Simulate the exact metadata schema of the previous release on the disposable test DB.
+            // Simulate the exact metadata schema of the pre-epoch release on the disposable test DB.
+            statement.executeUpdate("DROP TABLE workbench_leadership");
             statement.executeUpdate("DELETE FROM workbench_state WHERE bucket='coordinator' AND item_id IN ('epoch','epoch-format')");
             statement.executeUpdate("UPDATE workbench_state SET payload='00000000-0000-0000-0000-000000000001' WHERE bucket='coordinator' AND item_id='owner'");
         }

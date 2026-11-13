@@ -42,3 +42,7 @@ Retain at most 100 environment identities, 500 unexpired plans, 500 interpreter 
 Back up the entire data directory with the server stopped, including managed Git repositories and token files. Keep it private. This release has no automatic schema migration, key rotation endpoint, tenant isolation, distributed lease service or horizontal scaling. Do not run multiple application nodes against the embedded file. The larger architecture documents describe future contracts.
 
 `python3 scripts/verify-restart.py` performs an actual SIGKILL and new-JVM receipt/observation check. Java tests also simulate interruption between an external write and receipt commit. Docker integration tests validate real replica loss and governed recovery.
+
+## Coordinator leases and remote repair checkpoints
+
+[Coordinator recovery](coordinator-recovery.md) adds persisted leadership epochs, renewable database-clock leases and conditional queue transitions. The default remains single mode; restricted PostgreSQL lease mode acquires ownership before loading mutable services. Checkpointed remote mutation-search repairs may resume with committed test receipts and their original deadline. Other interrupted repairs and all uncertain infrastructure effects still require explicit recovery. Environment pending markers and epoch-bound effect intents commit together; completed receipts and effect completion also commit together.
