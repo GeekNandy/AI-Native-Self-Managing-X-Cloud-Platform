@@ -20,7 +20,8 @@ class RemoteWorkerPoolTest {
 
     private void complete(RemoteJobBroker jobs, String worker, RemoteJobBroker.Lease lease) {
         jobs.complete(lease.id(), worker,
-                new RemoteJobBroker.Completion(lease.fence(), lease.inputDigest(), passed));
+                new RemoteJobBroker.Completion(
+                        lease.fence(), lease.inputDigest(), passed, lease.leaderEpoch()));
     }
 
     @Test

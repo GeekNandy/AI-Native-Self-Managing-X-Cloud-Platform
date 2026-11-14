@@ -6,7 +6,7 @@ Status: accepted
 
 Keep the authenticated web coordinator separate from untrusted source execution. A Docker-capable worker pulls short jobs over HTTPS using a narrowly scoped credential. GitHub Actions workers use short-lived OIDC tokens restricted to an audience, immutable repository/owner IDs, workflow/ref and allowed event. Operators retain review and publication authority.
 
-The coordinator is a single logical writer. PostgreSQL replacement fencing prevents an older coordinator from committing state during a deployment overlap. Git metadata and bundles are committed atomically so an ephemeral checkout can be reconstructed. In-flight jobs and repairs are interrupted after restart; approvals are never replayed automatically.
+The coordinator is a single logical writer. PostgreSQL replacement fencing prevents an older coordinator from committing state during a deployment overlap. Git metadata and bundles are committed atomically so an ephemeral checkout can be reconstructed. Higher-level repairs are interrupted after restart; approvals are never replayed automatically. The subsequent [coordinator recovery increment](../durable-coordinator-recovery.md) persists bounded isolated-test jobs and receipts, with epoch-fenced redelivery that preserves the original deadline and delivery limit.
 
 Use a declared Java 21 profile and an offline runner image instead of executing arbitrary Maven plugins, dependency resolution or repository scripts. This narrows compatibility in exchange for a reproducible execution boundary. The Maven POM and tests remain immutable evidence.
 

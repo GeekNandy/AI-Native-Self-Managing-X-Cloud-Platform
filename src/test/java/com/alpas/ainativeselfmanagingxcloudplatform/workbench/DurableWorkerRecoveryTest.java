@@ -50,7 +50,8 @@ class DurableWorkerRecoveryTest {
             var jobs = new RemoteJobBroker(store, clock);
             var result = pool.submit(() -> jobs.test(task.files(), task.testClass(), Duration.ofSeconds(90), run.id(), "baseline"));
             var lease = claim(jobs, "first");
-            jobs.complete(lease.id(), "first", new RemoteJobBroker.Completion(lease.fence(), lease.inputDigest(), failed));
+            jobs.complete(lease.id(), "first", new RemoteJobBroker.Completion(
+                    lease.fence(), lease.inputDigest(), failed, lease.leaderEpoch()));
             assertEquals(failed, result.get(3, TimeUnit.SECONDS));
         }
         try (var store = new StateStore(json, directory.toString())) {
@@ -61,13 +62,56 @@ class DurableWorkerRecoveryTest {
             var changed = new TreeMap<>(task.files());
             var path = changed.firstKey();
             changed.put(path, changed.get(path) + "\n");
-            assertEquals("STEP_INPUT_CHANGED", assertThrows(PlatformException.class,
+            assertEquals("JOB_INPUT_CHANGED", assertThrows(PlatformException.class,
                     () -> recovered.test(changed, task.testClass(), Duration.ofSeconds(70), run.id(), "baseline")).code());
         }
     }
 
     @Test
-    void takeoverRejectsOldWorkerAndRedeliversOnlyAfterItsLeaseExpires() throws Exception {
+    void activeRepairPinsCompletedStepsAcrossRestartUntilTheRunIsTerminal() {
+        var run = run("retained-repair", "repository", "head");
+        var capacity = new ExecutionCapacity(1, 1, 1, 1, 2);
+        String baselineId;
+        try (var store = new StateStore(json, directory.toString())) {
+            checkpoint(store, run);
+            var jobs = new RemoteJobBroker(store, clock, capacity);
+            baselineId = jobs.submit(task.files(), task.testClass(), Duration.ofSeconds(60), run.id(), "baseline");
+            var baseline = jobs.claim("worker", "eclipse-temurin:21-jdk");
+            assertNotNull(baseline);
+            jobs.complete(baseline.id(), "worker", new RemoteJobBroker.Completion(
+                    baseline.fence(), baseline.inputDigest(), failed, baseline.leaderEpoch()));
+            jobs.submit(task.files(), task.testClass(), Duration.ofSeconds(90), run.id(), "attempt-1");
+            var candidate = jobs.claim("worker", "eclipse-temurin:21-jdk");
+            assertNotNull(candidate);
+            jobs.complete(candidate.id(), "worker", new RemoteJobBroker.Completion(
+                    candidate.fence(), candidate.inputDigest(), failed, candidate.leaderEpoch()));
+        }
+        try (var store = new StateStore(json, directory.toString())) {
+            var recovered = new RemoteJobBroker(store, clock, capacity);
+            assertEquals("WORKER_HISTORY_FULL", assertThrows(PlatformException.class,
+                    () -> recovered.submit(task.files(), task.testClass(), Duration.ofSeconds(100),
+                            "another-repair", "baseline")).code());
+            assertEquals(baselineId, recovered.submit(task.files(), task.testClass(),
+                    Duration.ofSeconds(30), run.id(), "baseline"));
+            assertEquals(failed, recovered.await(baselineId));
+            assertNull(recovered.claim("worker", "eclipse-temurin:21-jdk"));
+            assertEquals(1, recovered.receipt(baselineId).get("deliveries"));
+
+            store.put("repair-runs", run.id(), new RepairRun(run.id(), run.repositoryId(), run.baseCommit(),
+                    run.instruction(), run.provider(), run.policyVersion(), "FAILED", run.maxAttempts(),
+                    run.timeoutSeconds(), 1, run.createdAt(), clock.instant(), run.steps(), failed, failed,
+                    List.of(), "", null, null, null, "Completed within its original budget."));
+            var next = recovered.submit(task.files(), task.testClass(), Duration.ofSeconds(100),
+                    "another-repair", "baseline");
+            assertEquals("QUEUED", recovered.receipt(next).get("status"));
+            assertEquals("JOB_NOT_FOUND", assertThrows(PlatformException.class,
+                    () -> recovered.receipt(baselineId)).code());
+            assertEquals(2, recovered.summary().size());
+        }
+    }
+
+    @Test
+    void takeoverRejectsOldEpochAndImmediatelyRedeliversWithANewFence() throws Exception {
         var run = run(UUID.randomUUID().toString(), "repository", "head");
         try (var first = new StateStore(json, directory.toString());
                 var pool = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -78,15 +122,19 @@ class DurableWorkerRecoveryTest {
             try (var next = new StateStore(json, directory.toString())) {
                 var recovered = new RemoteJobBroker(next, clock);
                 assertEquals("STALE_LEASE", assertThrows(PlatformException.class, () -> recovered.complete(stale.id(),
-                        "old-worker", new RemoteJobBroker.Completion(stale.fence(), stale.inputDigest(), passed))).code());
-                assertNull(recovered.claim("new-worker", "eclipse-temurin:21-jdk"));
-                clock.now = clock.now.plusSeconds(21);
+                        "old-worker", new RemoteJobBroker.Completion(
+                                stale.fence(), stale.inputDigest(), passed, stale.leaderEpoch()))).code());
                 var retry = claim(recovered, "new-worker");
                 assertEquals(stale.id(), retry.id());
                 assertEquals(stale.deadline(), retry.deadline());
+                assertEquals(stale.inputDigest(), retry.inputDigest());
                 assertNotEquals(stale.fence(), retry.fence());
-                assertTrue(retry.fence().startsWith(next.leaderEpoch() + ":"));
-                recovered.complete(retry.id(), "new-worker", new RemoteJobBroker.Completion(retry.fence(), retry.inputDigest(), passed));
+                assertEquals(next.leaderEpoch(), retry.leaderEpoch());
+                assertTrue(retry.leaderEpoch() > stale.leaderEpoch());
+                assertEquals("STALE_LEASE", assertThrows(PlatformException.class,
+                        () -> recovered.heartbeat(retry.id(), "new-worker", retry.fence(), stale.leaderEpoch())).code());
+                recovered.complete(retry.id(), "new-worker", new RemoteJobBroker.Completion(
+                        retry.fence(), retry.inputDigest(), passed, retry.leaderEpoch()));
                 assertEquals(passed, recovered.test(task.files(), task.testClass(), Duration.ofSeconds(60), run.id(), "baseline"));
                 assertEquals(2, recovered.summary().getFirst().get("deliveries"));
                 assertThrows(ExecutionException.class, () -> waiting.get(3, TimeUnit.SECONDS));
@@ -107,7 +155,8 @@ class DurableWorkerRecoveryTest {
             var jobs = new RemoteJobBroker(store, clock);
             var result = pool.submit(() -> jobs.test(task.files(), task.testClass(), Duration.ofSeconds(100), id, "baseline"));
             var lease = claim(jobs, "worker");
-            jobs.complete(lease.id(), "worker", new RemoteJobBroker.Completion(lease.fence(), lease.inputDigest(), failed));
+            jobs.complete(lease.id(), "worker", new RemoteJobBroker.Completion(
+                    lease.fence(), lease.inputDigest(), failed, lease.leaderEpoch()));
             assertEquals(failed, result.get(3, TimeUnit.SECONDS));
         }
         clock.now = clock.now.plusSeconds(10);
@@ -122,7 +171,8 @@ class DurableWorkerRecoveryTest {
                 assertTrue(jobs.summary().stream().anyMatch(j -> j.get("id").equals(lease.id())
                         && j.get("phase").equals("attempt-1")));
                 assertFalse(lease.deadline().isAfter(repairs.require(id).createdAt().plusSeconds(120)));
-                jobs.complete(lease.id(), "recovered-worker", new RemoteJobBroker.Completion(lease.fence(), lease.inputDigest(), passed));
+                jobs.complete(lease.id(), "recovered-worker", new RemoteJobBroker.Completion(
+                        lease.fence(), lease.inputDigest(), passed, lease.leaderEpoch()));
                 long stop = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
                 while (Set.of("QUEUED", "RUNNING").contains(repairs.require(id).status()) && System.nanoTime() < stop)
                     Thread.sleep(10);
@@ -147,7 +197,7 @@ class DurableWorkerRecoveryTest {
     }
 
     @Test
-    void legacyJobSchemaIsReadableButCannotBecomeAResumableLease() {
+    void legacyJobSchemaRequeuesWithAnExplicitEpochAndRejectsTheOldWorker() {
         try (var store = new StateStore(json, directory.toString())) {
             var legacy = new LinkedHashMap<String, Object>();
             legacy.put("id", "legacy"); legacy.put("owner", "unrecorded"); legacy.put("phase", "baseline");
@@ -157,8 +207,18 @@ class DurableWorkerRecoveryTest {
             legacy.put("deliveries", 1); legacy.put("result", null);
             store.put("worker-jobs", "legacy", legacy);
             var jobs = new RemoteJobBroker(store, clock);
-            assertEquals("INTERRUPTED", jobs.summary().getFirst().get("status"));
-            assertNull(jobs.claim("new-worker", "eclipse-temurin:21-jdk"));
+            assertEquals("QUEUED", jobs.summary().getFirst().get("status"));
+            assertEquals("STALE_LEASE", assertThrows(PlatformException.class,
+                    () -> jobs.complete("legacy", "old", new RemoteJobBroker.Completion(
+                            "old-token", "old", passed, 0))).code());
+            var retry = jobs.claim("new-worker", "eclipse-temurin:21-jdk");
+            assertNotNull(retry);
+            assertEquals("legacy", retry.id());
+            assertEquals(legacy.get("deadline"), retry.deadline());
+            assertEquals(legacy.get("inputDigest"), retry.inputDigest());
+            assertEquals(store.leaderEpoch(), retry.leaderEpoch());
+            assertNotEquals("old-token", retry.fence());
+            assertEquals(2, jobs.summary().getFirst().get("deliveries"));
         }
     }
 }

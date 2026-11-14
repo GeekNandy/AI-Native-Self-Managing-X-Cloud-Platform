@@ -1,17 +1,19 @@
 # ADR 0004 — Leadership, quorum and coordinator high availability
 
-- **Status:** Durable epoch/lease and queue contracts implemented; opt-in PostgreSQL cold-standby mode. No Java/etcd integration or production HA deployment.
+- **Status:** Durable epoch/lease and transactional queue contracts implemented; opt-in PostgreSQL cold standby and checkpointed remote mutation-search recovery. No Java/etcd integration or production HA deployment.
 - **Date:** 2026-11-04
 
 ## Context
 
-The original platform ran one mutable coordinator with replacement-writer fencing and interrupted unfinished jobs at startup. [Coordinator recovery](../coordinator-recovery.md) now adds monotonic epochs, bounded database-clock leases, conditional durable queue transitions and checkpointed isolated-test recovery. External infrastructure effects cannot be made safe merely by electing a leader. Running multiple coordinators today risks conflicting approvals, duplicate scheduling and side effects.
+The platform has one mutable coordinator at a time. Its persisted owner, increasing epoch and bounded database-clock lease fence state transactions from replaced or expired writers. `RemoteJobBroker` persists atomic queue/lease/result transitions and can redeliver an unfinished isolated test within its existing deadline and delivery limit. Checkpointed remote mutation-search repairs can rebuild their deterministic steps from retained receipts; generative model loops remain interrupted. External infrastructure effects cannot be made safe merely by electing a leader. Concurrent active coordinators risk conflicting approvals, duplicate scheduling and side effects.
 
 ## Decision
 
-**Do not add a Raft service to the current demo.** The first implementation extracts coordinator leadership and job transitions behind a durable, transactionally fenced contract with an explicit monotonically increasing epoch. Reads may be served by followers only if consistency is documented; the elected writer alone may issue privileged operations. Every worker lease and external-effect intent must be tied to a durable idempotency key and epoch; the old leader must be prevented from completing writes after a leadership change. An explicit fail-closed path is required when leadership cannot be established.
+Coordinator leadership and job transitions use a durable, transactionally fenced contract with an explicit monotonically increasing epoch. Reads may be served by followers only if consistency is documented; the elected writer alone may issue privileged operations. Every worker lease and external-effect intent must be tied to a durable idempotency key and epoch; the old leader must be prevented from completing writes after a leadership change. An explicit fail-closed path is required when leadership cannot be established.
 
-Evaluate three production options after the durable contract exists:
+[Coordinator recovery](../coordinator-recovery.md) supplies database-clock lease acquisition and renewal, restricted PostgreSQL cold standby, and deterministic repair checkpoints. [Isolated-test recovery](../durable-coordinator-recovery.md) supplies atomic job transitions, explicit epoch-bearing worker messages, stable step identities and retained result receipts. These features do not connect the Java application to etcd, resume billed model calls, or fence an external request that was already sent. The remaining contracts below gate Raft-backed coordinator deployment.
+
+The durable contract supports evaluating three coordination options:
 
 | Option | Benefit | Limit |
 | --- | --- | --- |

@@ -4,7 +4,7 @@
 
 One coordinator owns repair state, approval decisions and a bounded execution queue. Docker-capable workers pull immutable test jobs; they receive a worker credential, never an operator credential. Tests run in separate containers without network, host mounts, secrets or a Docker socket. Model providers propose source replacements and cannot execute or approve them.
 
-PostgreSQL stores metadata and integrity-checked Git archives. Starting a replacement coordinator fences the old writer. This is single-coordinator recovery, not concurrent coordinator HA. Keep `numInstances: 1`; scale execution workers independently.
+PostgreSQL stores metadata and integrity-checked Git archives. Starting a replacement coordinator increments its persisted ownership epoch and fences the old writer's subsequent state transactions. Queue transitions use that same transactional boundary. This is single-coordinator replacement recovery; it does not implement a leadership lease or automatic coordinator HA. Keep `numInstances: 1`; scale execution workers independently.
 
 | Setting | Default | Accepted range / relationship |
 | --- | --- | --- |
@@ -22,9 +22,9 @@ The committed Render configuration selects four orchestration slots and four exe
 
 Each worker process adds a stable instance identifier to its authenticated principal. Parallel jobs in the same Actions run consequently get different lease owners, even when GitHub renews their OIDC tokens. The identifier adds no permissions. Legacy single-worker clients remain compatible.
 
-Workers announce their acceptance deadline. The broker assigns a job only when its immutable execution deadline fits inside that window; a worker near shutdown drains instead of accepting work it cannot finish. Heartbeats run every five seconds. A 20-second lease expiry permits one redelivery with a new fence. Late completion, heartbeat or cancellation from the old fence is rejected.
+Workers announce their acceptance deadline. The broker assigns a job only when its immutable execution deadline fits inside that window; a worker near shutdown drains instead of accepting work it cannot finish. Heartbeats run every five seconds. A 20-second lease expiry permits one redelivery with a new fence. Heartbeats and results must carry the lease's coordinator epoch; late submissions from an old epoch or fence are rejected. Upgrade the coordinator and workers together as described in [the protocol upgrade procedure](remote-execution.md#worker-protocol-upgrade).
 
-SIGTERM cancels current execution and removes containers carrying that worker's persisted owner label. SIGKILL cannot execute cleanup; starting the same worker data directory reaps its abandoned containers before accepting more work. Cancellation revokes a lease, while coordinator restart marks unfinished jobs interrupted. Repair and approval operations are not automatically replayed.
+SIGTERM cancels current execution and removes containers carrying that worker's persisted owner label. SIGKILL cannot execute cleanup; starting the same worker data directory reaps its abandoned containers before accepting more work. Cancellation revokes a lease. After coordinator replacement, persisted isolated-test jobs retain their inputs, original deadline, and delivery count; an old lease may be requeued only while its deadline and two-delivery budget permit. Retained completed receipts are available for inspection without dispatching another test. Higher-level repair/model loops remain interrupted, and approval operations are not automatically replayed. [Recovery details](durable-coordinator-recovery.md) explain these limits and the bounded receipt history.
 
 ## Worker availability
 

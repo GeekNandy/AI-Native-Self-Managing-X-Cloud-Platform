@@ -24,13 +24,13 @@ The probe uses fixed, short-lived **unrenewed lab leases** (120 seconds) to avoi
 
 CI executes the same real consensus experiment in a dedicated `raft-quorum` job and retains a redacted JSON report. This distinguishes **actual Raft cluster evidence** from the pre-existing single-node coordinator/worker recovery tests.
 
-## Next production integration (not yet implemented)
+## Java integration boundary and remaining work
 
-The Java [coordinator recovery contract](coordinator-recovery.md) now supplies persisted epochs, database-clock leases, conditional worker transitions and deterministic repair checkpoints. PostgreSQL cold standby is available in an explicit restricted mode. The next independent etcd integration must:
+The Java [coordinator recovery contract](coordinator-recovery.md) supplies persisted epochs, database-clock leases, transactional worker transitions and deterministic repair checkpoints. [Isolated-test recovery](durable-coordinator-recovery.md) adds explicit epoch-bearing worker messages, stable step identities and retained receipts. PostgreSQL cold standby is available in an explicit restricted mode; it does not connect this etcd lab to the Java application. The next etcd integration must:
 
 - Add an etcd ownership/renewal gate without weakening PostgreSQL fencing or loading stale service caches.
 - Define a durable relationship between an etcd election proof and the database epoch; an etcd revision alone does not fence PostgreSQL or provider writes.
-
+- Add complete candidate, policy and usage checkpoints before resuming generative repair loops, and reconcile uncertain external effects before any approved retry. Isolated-test redelivery must not replay billed model calls or approvals.
 - Perform bounded renewal and fail closed on quorum loss, expiration, bad epoch or PostgreSQL failure; perform a positive leadership check **before** starting external effects and enforce downstream idempotency/fencing.
 - Test SIGKILL, asymmetric network partitions, delayed external effects, lease expiry, Postgres outages and real recovery of the Java application; require separately managed TLS, etcd backups and failure-domain separation before production.
 

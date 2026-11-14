@@ -65,6 +65,27 @@ class CoordinatorLeaseTest {
     }
 
     @Test
+    void embeddedLeaseExpiryIsNotFrozenAtTransactionStart() {
+        try (var store = new StateStore(json, directory.toString(), "", "single", 5, 0)) {
+            store.put("test", "receipt", "before");
+            long epoch = store.leaderEpoch();
+            assertThrows(PlatformException.class, () -> store.transaction(epoch, tx -> {
+                tx.put("test", "receipt", "expired");
+                try {
+                    Thread.sleep(5_100);
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(failure);
+                }
+                return null;
+            }));
+        }
+        try (var next = new StateStore(json, directory.toString())) {
+            assertEquals(List.of("before"), next.all("test", String.class));
+        }
+    }
+
+    @Test
     void contendersElectOneOwnerAndAnExpiredEpochCannotBeRenewed() throws Exception {
         String url = "jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1";
         try (var first = DriverManager.getConnection(url); var second = DriverManager.getConnection(url);

@@ -1,6 +1,9 @@
 package com.alpas.ainativeselfmanagingxcloudplatform.workbench;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -17,7 +20,7 @@ public final class WorkerController {
 
     public record Hello(String image) {}
 
-    public record Heartbeat(String fence) {}
+    public record Heartbeat(@NotBlank String fence, @Positive long leaderEpoch) {}
 
     private String identity(HttpServletRequest request) {
         var identity = (String) request.getAttribute("workerIdentity");
@@ -46,8 +49,8 @@ public final class WorkerController {
 
     @PostMapping(value = "/jobs/{id}/heartbeat", consumes = "application/json")
     Map<String, Object> heartbeat(
-            HttpServletRequest request, @PathVariable String id, @RequestBody Heartbeat h) {
-        jobs.heartbeat(id, identity(request), h.fence());
+            HttpServletRequest request, @PathVariable String id, @Valid @RequestBody Heartbeat h) {
+        jobs.heartbeat(id, identity(request), h.fence(), h.leaderEpoch());
         return Map.of("accepted", true);
     }
 

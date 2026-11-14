@@ -6,7 +6,10 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
-/** Database-clock lease. Callers serialize access to the connection and own the transaction. */
+/**
+ * PostgreSQL database-clock lease; embedded H2 uses the shared process clock because its SQL
+ * current timestamp is frozen at transaction start. Callers serialize access and own the transaction.
+ */
 final class CoordinatorLease {
     private final Connection db;
     private final boolean postgres;
@@ -57,8 +60,9 @@ final class CoordinatorLease {
     }
 
     private Instant now() throws Exception {
+        if (!postgres) return Instant.now();
         try (var sql = db.createStatement(); var row = sql.executeQuery(
-                postgres ? "SELECT clock_timestamp()" : "SELECT CURRENT_TIMESTAMP")) {
+                "SELECT clock_timestamp()")) {
             row.next();
             return row.getObject(1, OffsetDateTime.class).toInstant();
         }
@@ -66,13 +70,21 @@ final class CoordinatorLease {
 
     /** Single mode preserves explicit replacement; lease mode never displaces an unexpired owner. */
     boolean acquire(boolean replace) throws Exception {
+        return acquire(replace, 0);
+    }
+
+    /** Include epochs written by releases that predate the lease table. */
+    boolean acquire(boolean replace, long previousEpoch) throws Exception {
+        if (previousEpoch < 0) throw new IllegalStateException("Invalid previous coordinator epoch");
         lockLegacyOwner();
         try (var sql = db.createStatement(); var row = sql.executeQuery(
                 "SELECT leader_epoch,lease_until FROM workbench_leadership WHERE singleton=1 FOR UPDATE")) {
             if (!row.next()) throw new IllegalStateException("Missing leadership record");
             var now = now();
             if (!replace && now.isBefore(row.getObject(2, OffsetDateTime.class).toInstant())) return false;
-            epoch = Math.addExact(row.getLong(1), 1);
+            long storedEpoch = row.getLong(1);
+            if (storedEpoch < 0) throw new IllegalStateException("Invalid coordinator epoch");
+            epoch = Math.addExact(Math.max(storedEpoch, previousEpoch), 1);
             expiresAt = now.plus(ttl);
         }
         try (var sql = db.prepareStatement("UPDATE workbench_leadership SET leader_epoch=?,owner=?,lease_until=? WHERE singleton=1")) {
@@ -103,12 +115,16 @@ final class CoordinatorLease {
 
     void renew() throws Exception {
         assertOwned(); // Expired owners cannot revive their own epoch, even without a successor.
-        String currentTime = postgres ? "clock_timestamp()" : "CURRENT_TIMESTAMP";
-        String nextTime = postgres ? currentTime + " + (? * INTERVAL '1 millisecond')"
-                : "DATEADD('MILLISECOND', ?, CURRENT_TIMESTAMP)";
-        try (var sql = db.prepareStatement("UPDATE workbench_leadership SET lease_until=" + nextTime
-                + " WHERE singleton=1 AND lease_until > " + currentTime)) {
-            sql.setLong(1, ttl.toMillis());
+        try (var sql = db.prepareStatement(postgres
+                ? "UPDATE workbench_leadership SET lease_until=clock_timestamp() + (? * INTERVAL '1 millisecond')"
+                        + " WHERE singleton=1 AND lease_until > clock_timestamp()"
+                : "UPDATE workbench_leadership SET lease_until=? WHERE singleton=1 AND lease_until > ?")) {
+            if (postgres) sql.setLong(1, ttl.toMillis());
+            else {
+                var current = now();
+                sql.setObject(1, current.plus(ttl).atOffset(ZoneOffset.UTC));
+                sql.setObject(2, current.atOffset(ZoneOffset.UTC));
+            }
             if (sql.executeUpdate() != 1) throw new IllegalStateException("Coordinator lease expired before renewal");
         }
         try (var sql = db.createStatement(); var row = sql.executeQuery(

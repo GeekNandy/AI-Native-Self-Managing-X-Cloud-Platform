@@ -132,6 +132,7 @@ def main():
             checks['oldLeaderAliveButNotReady'] = status(origins[0], '/actuator/health') == 200
             checks['oldLeaderRejectsMutation'] = status(origins[0], f'/api/plans/{plan["id"]}/apply', approval) == 503
             stale_result = {'fence': stale['fence'], 'inputDigest': stale['inputDigest'],
+                            'leaderEpoch': stale['leaderEpoch'],
                             'result': {'status': 'PASS', 'exitCode': 0, 'timedOut': False,
                                        'truncated': False, 'durationMs': 1, 'output': 'stale synthetic response'}}
             checks['oldWorkerRejected'] = status(origins[1], f'/api/worker/jobs/{stale["id"]}/complete',
